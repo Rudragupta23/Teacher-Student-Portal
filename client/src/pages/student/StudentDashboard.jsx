@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, CheckCircle2, UploadCloud, LogOut, Clock, Activity } from 'lucide-react';
+import { CheckCircle2, UploadCloud, LogOut, Clock, Activity, FileQuestion } from 'lucide-react';
 import api from '../../services/api';
 import { AuthContext } from '../../context/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
@@ -29,7 +29,7 @@ const StudentDashboard = () => {
     if(!answerText[hwId]) return toast.error("Please provide an answer.");
     try {
       await api.post(`/homework/submit/${hwId}`, { answerText: answerText[hwId] });
-      toast.success('Homework Submitted to Teacher! An alert has been sent.');
+      toast.success('Homework Submitted! Your teacher has been notified.');
       fetchMyHomework();
     } catch (error) {
       toast.error('Failed to submit');
@@ -45,14 +45,14 @@ const StudentDashboard = () => {
     <div className="min-h-screen bg-[#f8fafc] font-sans pb-12">
       <Toaster position="top-center" />
       
-      {/* Header */}
       <header className="bg-[#0f172a] text-white px-8 py-6 shadow-lg flex justify-between items-center z-10 relative">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-violet-400">MathCom Mentors</h1>
           <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 text-xs font-bold rounded-full uppercase tracking-widest border border-indigo-500/30">Student Portal</span>
         </div>
         <div className="flex items-center gap-6">
-          <p className="font-medium text-gray-300">Welcome, {user?.name}</p>
+          {/* REMOVED: "Welcome" text. Replaced with purely functional identification. */}
+          <p className="font-medium text-gray-300">{user?.name} | <span className="text-gray-500 text-sm">Active Session</span></p>
           <button onClick={handleLogout} className="flex items-center gap-2 text-red-400 hover:text-red-300 bg-red-400/10 px-4 py-2 rounded-lg transition-colors font-semibold">
             <LogOut size={18} /> Logout
           </button>
@@ -89,17 +89,36 @@ const StudentDashboard = () => {
                 </div>
 
                 <div className="p-8">
-                  <div className="mb-6">
-                    <h4 className="font-bold text-gray-700 mb-2 uppercase text-xs tracking-wider">Instructions / Questions</h4>
-                    <p className="text-gray-800 font-medium whitespace-pre-wrap bg-gray-50 p-6 rounded-2xl border border-gray-100">{hw.description}</p>
-                  </div>
+                  {hw.description && (
+                    <div className="mb-6">
+                      <h4 className="font-bold text-gray-700 mb-2 uppercase text-xs tracking-wider">Instructions</h4>
+                      <p className="text-gray-800 font-medium whitespace-pre-wrap bg-gray-50 p-4 rounded-xl border border-gray-100">{hw.description}</p>
+                    </div>
+                  )}
+
+                  {hw.questions && hw.questions.length > 0 && (
+                    <div className="mb-8">
+                       <h4 className="font-bold text-indigo-800 mb-3 flex items-center gap-2">
+                         <FileQuestion size={18} /> Assigned Questions ({hw.questions.length})
+                       </h4>
+                       <div className="space-y-4">
+                         {hw.questions.map((q, index) => (
+                           <div key={q._id} className="p-4 border border-indigo-100 bg-white rounded-xl shadow-sm">
+                             <span className="text-indigo-600 font-bold text-sm mr-2">Q{index + 1}.</span>
+                             <span className="text-gray-800 font-medium">{q.questionText}</span>
+                             <span className="ml-3 text-xs px-2 py-1 rounded bg-gray-100 text-gray-500">{q.difficulty}</span>
+                           </div>
+                         ))}
+                       </div>
+                    </div>
+                  )}
 
                   {hw.status === 'Pending' ? (
                     <div className="space-y-4 border-t pt-6 mt-6">
                       <label className="font-bold text-gray-700 uppercase text-xs tracking-wider">Your Answer</label>
                       <textarea 
                         rows="5" 
-                        placeholder="Type your answers here or paste a link to your work..." 
+                        placeholder="Type your answers here..." 
                         value={answerText[hw._id] || ''}
                         onChange={(e) => setAnswerText({...answerText, [hw._id]: e.target.value})}
                         className="w-full p-5 bg-white border-2 border-gray-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none resize-none font-medium shadow-inner"
@@ -116,6 +135,10 @@ const StudentDashboard = () => {
                       <CheckCircle2 size={32} className="mx-auto text-emerald-500 mb-2" />
                       <p className="text-emerald-800 font-bold">Successfully Submitted!</p>
                       <p className="text-sm text-emerald-600 mt-1">Your teacher has been notified and is reviewing your work.</p>
+                      <div className="mt-4 p-4 bg-white rounded-xl text-left border border-emerald-100">
+                         <p className="text-xs text-gray-500 font-bold uppercase mb-1">Your Submission:</p>
+                         <p className="text-gray-800">{hw.submission?.answerText}</p>
+                      </div>
                     </div>
                   )}
                 </div>

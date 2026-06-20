@@ -126,37 +126,6 @@ exports.login = async (req, res) => {
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-    // --- LOGIN ALERT EMAIL ---
-    const loginEmailHtml = `
-      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 16px;">
-        <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
-          <h2 style="color: #6d28d9; margin-top: 0; font-size: 28px; font-weight: 800;">MathCom Mentors</h2>
-          <h3 style="color: #1e293b; font-size: 22px; margin-bottom: 16px;">New Login Detected</h3>
-          <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-            Hello <strong>${user.name}</strong>, we noticed a successful login to your account.
-          </p>
-          <p style="color: #64748b; font-size: 14px; background-color: #f1f5f9; padding: 12px; border-radius: 8px; display: inline-block;">
-            🕒 <strong>Time:</strong> ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
-          </p>
-          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
-          <p style="color: #94a3b8; font-size: 13px; line-height: 1.5;">
-            If this was you, no further action is required. If you did not authorize this login, please reset your password immediately.
-          </p>
-        </div>
-      </div>
-    `;
-
-    try {
-      await sendEmail({
-        email: user.email,
-        subject: 'Security Alert: New Login - MathCom Mentors',
-        html: loginEmailHtml
-      });
-    } catch (emailErr) {
-      console.log('Login email alert failed to send:', emailErr);
-    }
-    // --------------------------------
-
     res.status(200).json({
       message: 'Login successful',
       token,
