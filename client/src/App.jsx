@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import AuthPage from './pages/auth/AuthPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import StudentDashboard from './pages/student/StudentDashboard'; // <-- 1. ADDED THIS IMPORT
 import ProtectedRoute from './components/common/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
 
@@ -25,7 +26,17 @@ function App() {
             } 
           />
           
-          {/* We will add Student Dashboard here later */}
+          {/* Protected Student Route */}
+          {/* <-- 2. ADDED THIS ROUTE --> */}
+          <Route 
+            path="/student-dashboard" 
+            element={
+              <ProtectedRoute allowedRole="student">
+                <StudentDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          
         </Routes>
       </AuthProvider>
     </Router>

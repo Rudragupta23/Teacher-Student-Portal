@@ -1,12 +1,14 @@
 const Homework = require('../models/Homework');
 const User = require('../models/User');
+const Question = require('../models/Question');
+const sendEmail = require('../utils/sendEmail');
 
-// @desc    Assign homework to one or all students
+// @desc    Assign Adaptive Homework (Auto-fetches questions based on ratio)
 exports.assignHomework = async (req, res) => {
-  const { title, description, studentId, difficulty, dueDate } = req.body;
+  const { title, description, studentId, topic, totalQs, easyCount, mediumCount, hardCount, dueDate } = req.body;
+  
   try {
     let targetStudents = [];
-    
     if (studentId === 'all') {
       targetStudents = await User.find({ role: 'student' });
     } else {
@@ -16,19 +18,29 @@ exports.assignHomework = async (req, res) => {
 
     if (targetStudents.length === 0) return res.status(404).json({ message: 'No students found' });
 
+    // 1. Fetch Questions for the Adaptive Algorithm
+    let selectedQuestions = [];
+    if (topic) {
+      const easyQs = await Question.aggregate([{ $match: { topic, difficulty: 'Easy' } }, { $sample: { size: Number(easyCount) || 0 } }]);
+      const medQs = await Question.aggregate([{ $match: { topic, difficulty: 'Medium' } }, { $sample: { size: Number(mediumCount) || 0 } }]);
+      const hardQs = await Question.aggregate([{ $match: { topic, difficulty: 'Hard' } }, { $sample: { size: Number(hardCount) || 0 } }]);
+      selectedQuestions = [...easyQs, ...medQs, ...hardQs].map(q => q._id);
+    }
+
+    // 2. Assign to students
     const homeworkPromises = targetStudents.map(student => 
       Homework.create({
         title,
         description,
-        difficulty,
         dueDate,
+        questions: selectedQuestions, // Links to the auto-selected questions
         studentId: student._id,
-        adminId: req.user.id // Requires auth middleware
+        adminId: req.user.id
       })
     );
 
     await Promise.all(homeworkPromises);
-    res.status(201).json({ message: `Homework assigned to ${targetStudents.length} student(s)` });
+    res.status(201).json({ message: `Assigned ${selectedQuestions.length} questions to ${targetStudents.length} student(s)` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -37,33 +49,50 @@ exports.assignHomework = async (req, res) => {
 // @desc    Get all homeworks for the logged-in student
 exports.getStudentHomework = async (req, res) => {
   try {
-    const homeworks = await Homework.find({ studentId: req.user.id }).sort({ createdAt: -1 });
+    const homeworks = await Homework.find({ studentId: req.user.id }).populate('questions').sort({ createdAt: -1 });
     res.status(200).json(homeworks);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Student submits homework
+// @desc    Student submits homework & Triggers Admin Email
 exports.submitHomework = async (req, res) => {
   const { id } = req.params;
   const { answerText } = req.body;
   try {
     const homework = await Homework.findOneAndUpdate(
       { _id: id, studentId: req.user.id },
-      { 
-        status: 'Submitted',
-        submission: { answerText, submittedAt: new Date() }
-      },
+      { status: 'Submitted', submission: { answerText, submittedAt: new Date() } },
       { new: true }
-    );
+    ).populate('studentId');
+
+    // --- EMAIL ADMIN NOTIFICATION ---
+    const adminEmailHtml = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; background: #f8fafc;">
+        <div style="background: white; padding: 30px; border-radius: 10px;">
+          <h2 style="color: #4f46e5;">New Homework Submission! 📚</h2>
+          <p><strong>Student:</strong> ${homework.studentId.name}</p>
+          <p><strong>Assignment:</strong> ${homework.title}</p>
+          <p>The student has successfully submitted their work. Please log in to your dashboard to review and grade it.</p>
+        </div>
+      </div>
+    `;
+    
+    // Send to admin email (assuming standard admin email from .env)
+    await sendEmail({
+      email: process.env.ADMIN_EMAIL, 
+      subject: `Submission Alert: ${homework.studentId.name} submitted ${homework.title}`,
+      html: adminEmailHtml
+    });
+
     res.status(200).json({ message: 'Homework submitted successfully!', homework });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Admin gets all homeworks (to see submissions)
+// @desc    Admin gets all homeworks
 exports.getAdminHomework = async (req, res) => {
   try {
     const homeworks = await Homework.find().populate('studentId', 'name email').sort({ createdAt: -1 });
@@ -73,20 +102,32 @@ exports.getAdminHomework = async (req, res) => {
   }
 };
 
-// @desc    Admin grades homework and sets adaptive profile
+// @desc    Admin grades homework -> Saves Score -> Deletes Task
 exports.gradeHomework = async (req, res) => {
   const { id } = req.params;
-  const { score, canDoEasy, canDoMedium, canDoHard, feedback } = req.body;
+  const { score, feedback, canDoEasy, canDoMedium, canDoHard } = req.body;
   try {
-    const homework = await Homework.findByIdAndUpdate(
-      id,
-      {
-        status: 'Graded',
-        grading: { score, canDoEasy, canDoMedium, canDoHard, feedback }
+    const homework = await Homework.findById(id);
+    if(!homework) return res.status(404).json({ message: 'Homework not found' });
+
+    // 1. Update Student's Permanent Profile/Score History
+    await User.findByIdAndUpdate(homework.studentId, {
+      $push: { 
+        performanceHistory: {
+          assignmentTitle: homework.title,
+          score: score,
+          feedback: feedback,
+          gradedAt: new Date()
+        }
       },
-      { new: true }
-    );
-    res.status(200).json({ message: 'Graded successfully! Adaptive profile updated.', homework });
+      // Update the adaptive profile for next time
+      $set: { 'adaptiveProfile.canDoEasy': canDoEasy, 'adaptiveProfile.canDoMedium': canDoMedium, 'adaptiveProfile.canDoHard': canDoHard }
+    });
+
+    // 2. Delete the homework task as requested ("only the score remains there")
+    await Homework.findByIdAndDelete(id);
+
+    res.status(200).json({ message: 'Graded successfully! Score saved and task removed.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
