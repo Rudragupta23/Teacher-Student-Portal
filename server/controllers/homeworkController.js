@@ -1,31 +1,92 @@
 const Homework = require('../models/Homework');
-const Question = require('../models/Question');
 const User = require('../models/User');
 
+// @desc    Assign homework to one or all students
 exports.assignHomework = async (req, res) => {
-  const { studentIds, topic, totalQuestions, difficultyRatio } = req.body; 
-  // difficultyRatio could be { easy: 8, medium: 2, hard: 0 }
-
+  const { title, description, studentId, difficulty, dueDate } = req.body;
   try {
-    // 1. Fetch questions based on filters
-    const easyQs = await Question.find({ topic, difficulty: 'Easy' }).limit(difficultyRatio.easy);
-    const medQs = await Question.find({ topic, difficulty: 'Medium' }).limit(difficultyRatio.medium);
-    const selectedQuestions = [...easyQs, ...medQs].map(q => q._id);
+    let targetStudents = [];
+    
+    if (studentId === 'all') {
+      targetStudents = await User.find({ role: 'student' });
+    } else {
+      const student = await User.findById(studentId);
+      if (student) targetStudents.push(student);
+    }
 
-    // 2. Assign to either a specific student or all students
-    const students = studentIds === 'all' ? await User.find({ role: 'student' }) : studentIds;
+    if (targetStudents.length === 0) return res.status(404).json({ message: 'No students found' });
 
-    const homeworkPromises = students.map(student => 
+    const homeworkPromises = targetStudents.map(student => 
       Homework.create({
-        studentId: student._id || student,
-        adminId: req.user.id,
-        questions: selectedQuestions,
-        dueDate: new Date(Date.now() + 48 * 60 * 60 * 1000) // 48 hours
+        title,
+        description,
+        difficulty,
+        dueDate,
+        studentId: student._id,
+        adminId: req.user.id // Requires auth middleware
       })
     );
 
     await Promise.all(homeworkPromises);
-    res.status(200).json({ message: 'Homework assigned successfully!' });
+    res.status(201).json({ message: `Homework assigned to ${targetStudents.length} student(s)` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get all homeworks for the logged-in student
+exports.getStudentHomework = async (req, res) => {
+  try {
+    const homeworks = await Homework.find({ studentId: req.user.id }).sort({ createdAt: -1 });
+    res.status(200).json(homeworks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Student submits homework
+exports.submitHomework = async (req, res) => {
+  const { id } = req.params;
+  const { answerText } = req.body;
+  try {
+    const homework = await Homework.findOneAndUpdate(
+      { _id: id, studentId: req.user.id },
+      { 
+        status: 'Submitted',
+        submission: { answerText, submittedAt: new Date() }
+      },
+      { new: true }
+    );
+    res.status(200).json({ message: 'Homework submitted successfully!', homework });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Admin gets all homeworks (to see submissions)
+exports.getAdminHomework = async (req, res) => {
+  try {
+    const homeworks = await Homework.find().populate('studentId', 'name email').sort({ createdAt: -1 });
+    res.status(200).json(homeworks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Admin grades homework and sets adaptive profile
+exports.gradeHomework = async (req, res) => {
+  const { id } = req.params;
+  const { score, canDoEasy, canDoMedium, canDoHard, feedback } = req.body;
+  try {
+    const homework = await Homework.findByIdAndUpdate(
+      id,
+      {
+        status: 'Graded',
+        grading: { score, canDoEasy, canDoMedium, canDoHard, feedback }
+      },
+      { new: true }
+    );
+    res.status(200).json({ message: 'Graded successfully! Adaptive profile updated.', homework });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
