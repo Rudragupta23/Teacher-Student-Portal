@@ -3,7 +3,7 @@ const User = require('../models/User');
 const Question = require('../models/Question');
 const sendEmail = require('../utils/sendEmail');
 
-// @desc    Assign Adaptive Homework
+// @desc    Assign Adaptive Homework based on Filters
 exports.assignHomework = async (req, res) => {
   const { title, description, studentId, topic, easyCount, mediumCount, hardCount, dueDate } = req.body;
   
@@ -17,10 +17,10 @@ exports.assignHomework = async (req, res) => {
     }
 
     if (targetStudents.length === 0) {
-      return res.status(404).json({ message: 'No students found! Make sure the student creates an account first.' });
+      return res.status(404).json({ message: 'No students found! Ensure students are registered.' });
     }
 
-    // 1. Fetch Questions for the Adaptive Algorithm
+    // ADAPTIVE ALGORITHM: Automatically pull random questions from the Question Bank based on your specified counts
     let selectedQuestions = [];
     if (topic) {
       const easyQs = await Question.aggregate([{ $match: { topic, difficulty: 'Easy' } }, { $sample: { size: Number(easyCount) || 0 } }]);
@@ -29,31 +29,29 @@ exports.assignHomework = async (req, res) => {
       selectedQuestions = [...easyQs, ...medQs, ...hardQs].map(q => q._id);
     }
 
-    // 2. Assign to students (USING _id TO GUARANTEE DB MATCH)
     const homeworkPromises = targetStudents.map(student => 
       Homework.create({
         title,
         description,
         dueDate,
         questions: selectedQuestions,
-        studentId: student._id,
+        studentId: student._id, // Using _id for perfect DB matching
         adminId: req.user._id
       })
     );
 
     await Promise.all(homeworkPromises);
-    res.status(201).json({ message: `Assigned homework to ${targetStudents.length} student(s)` });
+    res.status(201).json({ message: `Assigned ${selectedQuestions.length} questions to ${targetStudents.length} student(s)` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Get all homeworks for the logged-in student
+// @desc    Student fetches ONLY their own homework
 exports.getStudentHomework = async (req, res) => {
   try {
-    // USING req.user._id FOR PERFECT DB MATCH
     const homeworks = await Homework.find({ studentId: req.user._id })
-                                    .populate('questions')
+                                    .populate('questions') 
                                     .sort({ createdAt: -1 });
     res.status(200).json(homeworks);
   } catch (error) {
@@ -61,7 +59,7 @@ exports.getStudentHomework = async (req, res) => {
   }
 };
 
-// @desc    Student submits homework
+// @desc    Student submits homework & Triggers Admin Email
 exports.submitHomework = async (req, res) => {
   const { id } = req.params;
   const { answerText } = req.body;
@@ -72,6 +70,7 @@ exports.submitHomework = async (req, res) => {
       { new: true }
     ).populate('studentId');
 
+    // EMAIL ADMIN NOTIFICATION
     const adminEmailHtml = `
       <div style="font-family: Arial, sans-serif; padding: 20px; background: #f8fafc;">
         <div style="background: white; padding: 30px; border-radius: 10px;">
@@ -85,7 +84,7 @@ exports.submitHomework = async (req, res) => {
     
     await sendEmail({
       email: process.env.ADMIN_EMAIL, 
-      subject: `Submission Alert: ${homework.studentId.name} submitted ${homework.title}`,
+      subject: `Submission Alert: ${homework.studentId.name} submitted work!`,
       html: adminEmailHtml
     });
 
@@ -108,7 +107,7 @@ exports.getAdminHomework = async (req, res) => {
   }
 };
 
-// @desc    Admin grades homework -> Saves Score -> Deletes Task
+// @desc    Admin grades homework -> Saves Permanent Score -> Deletes Task
 exports.gradeHomework = async (req, res) => {
   const { id } = req.params;
   const { score, feedback, canDoEasy, canDoMedium, canDoHard } = req.body;
@@ -116,6 +115,7 @@ exports.gradeHomework = async (req, res) => {
     const homework = await Homework.findById(id);
     if(!homework) return res.status(404).json({ message: 'Homework not found' });
 
+    // 1. Save the Permanent Score and update the Adaptive Profile based on teacher's evaluation
     await User.findByIdAndUpdate(homework.studentId, {
       $push: { 
         performanceHistory: {
@@ -125,12 +125,17 @@ exports.gradeHomework = async (req, res) => {
           gradedAt: new Date()
         }
       },
-      $set: { 'adaptiveProfile.canDoEasy': canDoEasy, 'adaptiveProfile.canDoMedium': canDoMedium, 'adaptiveProfile.canDoHard': canDoHard }
+      $set: { 
+        'adaptiveProfile.canDoEasy': canDoEasy, 
+        'adaptiveProfile.canDoMedium': canDoMedium, 
+        'adaptiveProfile.canDoHard': canDoHard 
+      }
     });
 
+    // 2. Delete the homework task entirely from the active database
     await Homework.findByIdAndDelete(id);
 
-    res.status(200).json({ message: 'Graded successfully! Score saved and task removed.' });
+    res.status(200).json({ message: 'Graded successfully! Score permanently saved and task deleted.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
