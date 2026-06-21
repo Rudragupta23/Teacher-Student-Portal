@@ -9,8 +9,16 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors()); // Allows frontend to communicate with backend
-app.use(express.json()); // Allows parsing of JSON bodies
+app.use(cors({
+  origin: 'http://localhost:5173', // Your React frontend URL
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'] // 👈 THIS IS THE MAGIC LINE
+}));
+
+// 2. Setup JSON limits (MUST BE EXACTLY LIKE THIS AND BEFORE ROUTES)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));

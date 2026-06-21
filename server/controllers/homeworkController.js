@@ -1,14 +1,15 @@
+// server/controllers/homeworkController.js
 const Homework = require('../models/Homework');
 const User = require('../models/User');
-const Question = require('../models/Question');
-const sendEmail = require('../utils/sendEmail');
 
-// @desc    Assign Adaptive Homework based on Filters
+// 1. Assign Work (Handles Direct Due Date, Text, File, and MCQ Formats)
 exports.assignHomework = async (req, res) => {
-  const { title, description, studentId, topic, easyCount, mediumCount, hardCount, dueDate } = req.body;
+  const { title, description, type, studentId, difficulty, dueDate, fileUrl, content, mcqs } = req.body;
   
   try {
     let targetStudents = [];
+    
+    // Check if assigned to all or a specific student
     if (studentId === 'all') {
       targetStudents = await User.find({ role: 'student' });
     } else {
@@ -16,42 +17,51 @@ exports.assignHomework = async (req, res) => {
       if (student) targetStudents.push(student);
     }
 
-    if (targetStudents.length === 0) {
-      return res.status(404).json({ message: 'No students found! Ensure students are registered.' });
-    }
+    if (targetStudents.length === 0) return res.status(404).json({ message: 'No students found!' });
 
-    // ADAPTIVE ALGORITHM: Automatically pull random questions from the Question Bank based on your specified counts
-    let selectedQuestions = [];
-    if (topic) {
-      const easyQs = await Question.aggregate([{ $match: { topic, difficulty: 'Easy' } }, { $sample: { size: Number(easyCount) || 0 } }]);
-      const medQs = await Question.aggregate([{ $match: { topic, difficulty: 'Medium' } }, { $sample: { size: Number(mediumCount) || 0 } }]);
-      const hardQs = await Question.aggregate([{ $match: { topic, difficulty: 'Hard' } }, { $sample: { size: Number(hardCount) || 0 } }]);
-      selectedQuestions = [...easyQs, ...medQs, ...hardQs].map(q => q._id);
+    // Validate the due date is in the future
+    if (new Date(dueDate) <= new Date()) {
+      return res.status(400).json({ message: 'Due date must be in the future!' });
     }
 
     const homeworkPromises = targetStudents.map(student => 
       Homework.create({
-        title,
-        description,
-        dueDate,
-        questions: selectedQuestions,
-        studentId: student._id, // Using _id for perfect DB matching
+        title, 
+        description, 
+        type, 
+        difficulty,
+        fileUrl: type === 'File' ? fileUrl : undefined,
+        content: type === 'Text' ? content : undefined,
+        mcqs: type === 'MCQ' ? mcqs : [],
+        dueDate: new Date(dueDate),
+        studentId: student._id,
         adminId: req.user._id
       })
     );
 
     await Promise.all(homeworkPromises);
-    res.status(201).json({ message: `Assigned ${selectedQuestions.length} questions to ${targetStudents.length} student(s)` });
+    res.status(201).json({ message: `Successfully assigned to ${targetStudents.length} student(s)` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Student fetches ONLY their own homework
+// 2. Admin: Get all homeworks for the dashboard
+exports.getAdminHomework = async (req, res) => {
+  try {
+    const homeworks = await Homework.find()
+                                    .populate('studentId', 'name email') // Gets student details
+                                    .sort({ createdAt: -1 }); // Newest first
+    res.status(200).json(homeworks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// 3. Student: Get ONLY their own homework
 exports.getStudentHomework = async (req, res) => {
   try {
     const homeworks = await Homework.find({ studentId: req.user._id })
-                                    .populate('questions') 
                                     .sort({ createdAt: -1 });
     res.status(200).json(homeworks);
   } catch (error) {
@@ -59,34 +69,23 @@ exports.getStudentHomework = async (req, res) => {
   }
 };
 
-// @desc    Student submits homework & Triggers Admin Email
+// 4. Student: Submit Homework (With Late Block)
 exports.submitHomework = async (req, res) => {
   const { id } = req.params;
-  const { answerText } = req.body;
+  const { answerText, answerFileUrl } = req.body;
+  
   try {
-    const homework = await Homework.findOneAndUpdate(
-      { _id: id, studentId: req.user._id },
-      { status: 'Submitted', submission: { answerText, submittedAt: new Date() } },
-      { new: true }
-    ).populate('studentId');
+    const homework = await Homework.findOne({ _id: id, studentId: req.user._id });
+    if (!homework) return res.status(404).json({ message: 'Homework not found' });
 
-    // EMAIL ADMIN NOTIFICATION
-    const adminEmailHtml = `
-      <div style="font-family: Arial, sans-serif; padding: 20px; background: #f8fafc;">
-        <div style="background: white; padding: 30px; border-radius: 10px;">
-          <h2 style="color: #4f46e5;">New Homework Submission! 📚</h2>
-          <p><strong>Student:</strong> ${homework.studentId.name}</p>
-          <p><strong>Assignment:</strong> ${homework.title}</p>
-          <p>The student has successfully submitted their work. Please log in to your dashboard to review and grade it.</p>
-        </div>
-      </div>
-    `;
-    
-    await sendEmail({
-      email: process.env.ADMIN_EMAIL, 
-      subject: `Submission Alert: ${homework.studentId.name} submitted work!`,
-      html: adminEmailHtml
-    });
+    // Block submission if deadline is missed
+    if (new Date() > new Date(homework.dueDate)) {
+      return res.status(403).json({ message: 'You are late! The deadline has passed. Please contact your teacher to extend the duration.' });
+    }
+
+    homework.status = 'Submitted';
+    homework.submission = { answerText, answerFileUrl, submittedAt: new Date() };
+    await homework.save();
 
     res.status(200).json({ message: 'Homework submitted successfully!', homework });
   } catch (error) {
@@ -94,48 +93,59 @@ exports.submitHomework = async (req, res) => {
   }
 };
 
-// @desc    Admin gets all homeworks
-exports.getAdminHomework = async (req, res) => {
+// 5. Admin: Grades & Uploads Answer Sheet
+exports.gradeHomework = async (req, res) => {
+  const { id } = req.params;
+  const { score, feedback, adminAnswerSheetUrl } = req.body;
+  
   try {
-    const homeworks = await Homework.find()
-                                    .populate('studentId', 'name email')
-                                    .populate('questions')
-                                    .sort({ createdAt: -1 });
-    res.status(200).json(homeworks);
+    const homework = await Homework.findById(id);
+    if (!homework) return res.status(404).json({ message: 'Homework not found' });
+
+    homework.status = 'Graded';
+    homework.grading = { score, feedback, adminAnswerSheetUrl, gradedAt: new Date() };
+    await homework.save();
+
+    res.status(200).json({ message: 'Graded successfully! Answer sheet uploaded.', homework });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Admin grades homework -> Saves Permanent Score -> Deletes Task
-exports.gradeHomework = async (req, res) => {
+// 6. Admin: Extends Deadline (UPDATED TO USE REAL DATES)
+exports.extendDeadline = async (req, res) => {
   const { id } = req.params;
-  const { score, feedback, canDoEasy, canDoMedium, canDoHard } = req.body;
+  const { newDueDate } = req.body; // Now expects a direct date from the calendar
+
   try {
     const homework = await Homework.findById(id);
-    if(!homework) return res.status(404).json({ message: 'Homework not found' });
+    if (!homework) return res.status(404).json({ message: 'Homework not found' });
 
-    // 1. Save the Permanent Score and update the Adaptive Profile based on teacher's evaluation
-    await User.findByIdAndUpdate(homework.studentId, {
-      $push: { 
-        performanceHistory: {
-          assignmentTitle: homework.title,
-          score: score,
-          feedback: feedback,
-          gradedAt: new Date()
-        }
-      },
-      $set: { 
-        'adaptiveProfile.canDoEasy': canDoEasy, 
-        'adaptiveProfile.canDoMedium': canDoMedium, 
-        'adaptiveProfile.canDoHard': canDoHard 
-      }
-    });
+    // Validate the new due date is in the future
+    if (new Date(newDueDate) <= new Date()) {
+      return res.status(400).json({ message: 'New due date must be in the future!' });
+    }
 
-    // 2. Delete the homework task entirely from the active database
-    await Homework.findByIdAndDelete(id);
+    homework.dueDate = new Date(newDueDate);
+    
+    // If student was stuck, keep it pending so they can submit again
+    if (homework.status !== 'Graded') homework.status = 'Pending';
+    
+    await homework.save();
+    res.status(200).json({ message: 'Deadline extended successfully!', homework });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
-    res.status(200).json({ message: 'Graded successfully! Score permanently saved and task deleted.' });
+// Feature 7: Admin Deletes an Assignment
+exports.deleteHomework = async (req, res) => {
+  try {
+    const homework = await Homework.findById(req.params.id);
+    if (!homework) return res.status(404).json({ message: 'Homework not found' });
+
+    await Homework.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: 'Assignment permanently deleted.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

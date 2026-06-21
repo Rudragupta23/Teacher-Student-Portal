@@ -1,294 +1,487 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, CheckCircle2, UploadCloud, Send, AlertCircle, LogOut } from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
+import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { AuthContext } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
-// --- YOUR SPECIFIC CASCADING FILTERS ---
-const filterData = {
-  "GCSE Maths - Foundation": {
-    "Algebra": ["Equations", "Inequalities", "Sequences", "Graphs"],
-    "Geometry and measures": ["Area", "Angle of triangle", "Circle", "Volume"],
-    "Number": ["Fractions", "Decimals", "Percentages", "Ratios"],
-    "Probability": ["Single events", "Mutually exclusive", "Tree diagrams"],
-    "Statistics": ["Mean, Median, Mode", "Scatter graphs", "Pie charts"]
-  },
-  "GCSE Maths - Higher": {
-    "Algebra": ["Quadratics", "Simultaneous Equations", "Functions"],
-    "Geometry and measures": ["Trigonometry", "Vectors", "Circle Theorems"],
-    "Number": ["Surds", "Indices", "Bounds"],
-  },
-  "AS-Level Maths": {
-    "Pure Maths": ["Differentiation", "Integration", "Logarithms"],
-    "Mechanics": ["Kinematics", "Forces", "Newton's Laws"],
-  },
-  "A-Level Maths": {
-    "Pure Maths": ["Parametric Equations", "Differential Equations"],
-    "Statistics": ["Normal Distribution", "Hypothesis Testing"],
-  }
-};
-
-const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('assign'); 
-  const { logoutUser } = useContext(AuthContext);
-  const navigate = useNavigate();
-  
+export default function AdminDashboard() {
+  // Navigation & Data State
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [students, setStudents] = useState([]);
   const [homeworks, setHomeworks] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [minDateTime, setMinDateTime] = useState('');
 
-  // UPLOAD QUESTION STATE
-  const [selectedQual, setSelectedQual] = useState('');
-  const [selectedChapter, setSelectedChapter] = useState('');
-  const [selectedTopic, setSelectedTopic] = useState('');
-  const [questionContent, setQuestionContent] = useState('');
-
-  // ASSIGNMENT STATE
-  const [assignData, setAssignData] = useState({ 
-    title: '', description: '', studentId: 'all', topic: '', 
-    easyCount: 8, mediumCount: 2, hardCount: 0 
+  // Form State
+  const [assignForm, setAssignForm] = useState({
+    title: '', type: 'File', studentId: 'all', difficulty: 'Medium', 
+    dueDate: '', fileUrl: '', content: '', 
+    mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
   });
+  const [fileName, setFileName] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
-  // GRADING STATE
-  const [gradeData, setGradeData] = useState({ score: '', feedback: '', canDoEasy: true, canDoMedium: false, canDoHard: false });
+  // 🌟 NEW: Custom UI States (Toasts & Modals)
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [modal, setModal] = useState({ type: null, hwId: null, data: '' }); // types: 'grade', 'extend', 'delete'
 
   useEffect(() => {
-    fetchStudents();
-    fetchHomeworks();
+    fetchData();
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    setMinDateTime(now.toISOString().slice(0, 16));
   }, []);
 
-  const fetchStudents = async () => {
+  const fetchData = async () => {
     try {
-      const res = await api.get('/admin/students');
-      setStudents(res.data);
-    } catch (err) { console.log(err); }
+      const [studentRes, hwRes] = await Promise.all([
+        api.get('/admin/students'),
+        api.get('/homework/admin')
+      ]);
+      setStudents(studentRes.data);
+      setHomeworks(hwRes.data);
+    } catch (error) {
+      showToast("Error fetching dashboard data.", "error");
+    }
   };
 
-  const fetchHomeworks = async () => {
-    try {
-      const res = await api.get('/homework/admin');
-      setHomeworks(res.data);
-    } catch (err) { console.log(err); }
+  const handleLogout = () => {
+    localStorage.removeItem('token'); 
+    window.location.href = '/'; 
   };
 
-  // CASCADING HANDLERS
-  const handleQualChange = (e) => { setSelectedQual(e.target.value); setSelectedChapter(''); setSelectedTopic(''); };
-  const handleChapterChange = (e) => { setSelectedChapter(e.target.value); setSelectedTopic(''); };
+  // 🌟 Custom Notification System
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+  };
 
-  const handleUploadQuestion = async (e) => {
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5000000) { 
+        showToast("File is too large! Please keep it under 5MB.", "error");
+        return;
+      }
+      setFileName(file.name);
+      setIsUploading(true);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAssignForm({ ...assignForm, fileUrl: reader.result });
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAssignSubmit = async (e) => {
     e.preventDefault();
-    // Assuming backend route /api/admin/questions exists to populate Question schema
-    toast.success('Question added to database successfully!');
-    setQuestionContent('');
-  };
+    if (!assignForm.dueDate) return showToast("Please assign a valid Due Date!", "error");
 
-  const handleAssign = async (e) => {
-    e.preventDefault();
     try {
-      await api.post('/homework/assign', assignData);
-      toast.success('Adaptive Homework Deployed & Students Notified!');
-      setAssignData({ ...assignData, title: '', description: '' });
-      fetchHomeworks();
-    } catch (error) { toast.error('Failed to assign homework.'); }
+      await api.post('/homework/assign', assignForm);
+      showToast('🎉 Assignment successfully published!');
+      fetchData(); 
+      setAssignForm({ ...assignForm, title: '', fileUrl: '', content: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
+      setFileName('');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Error assigning work.', "error");
+    }
   };
 
-  const handleGrade = async (hwId) => {
+  const addMcq = () => setAssignForm({ ...assignForm, mcqs: [...assignForm.mcqs, { question: '', options: ['', '', '', ''], correctOption: 0 }] });
+  const updateMcq = (index, field, value, optionIndex = null) => {
+    const updatedMcqs = [...assignForm.mcqs];
+    if (field === 'options') updatedMcqs[index].options[optionIndex] = value;
+    else updatedMcqs[index][field] = value;
+    setAssignForm({ ...assignForm, mcqs: updatedMcqs });
+  };
+
+  // 🌟 Modal Actions Executions
+  const executeModalAction = async () => {
     try {
-      await api.post(`/homework/grade/${hwId}`, gradeData);
-      toast.success('Graded! Score permanently saved and active task deleted.');
-      fetchHomeworks();
-    } catch (error) { toast.error('Failed to submit grade.'); }
+      if (modal.type === 'grade') {
+        if (!modal.data || modal.data < 0 || modal.data > 100) return showToast("Enter a valid score (0-100)", "error");
+        await api.put(`/homework/${modal.hwId}/grade`, { score: modal.data });
+        showToast("Assignment Graded Successfully!");
+      } 
+      else if (modal.type === 'extend') {
+        if (!modal.data) return showToast("Select a valid date!", "error");
+        await api.put(`/homework/${modal.hwId}/extend`, { newDueDate: modal.data });
+        showToast("Deadline Extended!");
+      } 
+      else if (modal.type === 'delete') {
+        await api.delete(`/homework/${modal.hwId}`);
+        showToast("Assignment Deleted.", "error"); // Red toast for delete
+      }
+      
+      setModal({ type: null, hwId: null, data: '' });
+      fetchData();
+    } catch (error) {
+      showToast(error.response?.data?.message || "Action failed.", "error");
+    }
   };
 
-  const handleLogout = () => { logoutUser(); navigate('/'); };
+  const filteredHomeworks = homeworks.filter(hw => 
+    hw.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    hw.studentId?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="flex h-screen bg-[#f8fafc] font-sans">
-      <Toaster position="top-center" />
+    <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
       
-      {/* SIDEBAR */}
-      <motion.div initial={{ x: -250 }} animate={{ x: 0 }} className="w-64 bg-[#0f172a] text-white flex flex-col shadow-2xl z-20">
-        <div className="p-6 border-b border-gray-800">
-          <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-violet-400">MathCom Mentors</h1>
-          <p className="text-xs text-gray-400 mt-1 uppercase tracking-widest font-semibold">Admin Console</p>
+      {/* 🌟 CUSTOM TOAST NOTIFICATION */}
+      <div className={`absolute top-6 right-6 z-50 transform transition-all duration-500 ease-out flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl font-bold text-white
+        ${toast.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
+        ${toast.type === 'error' ? 'bg-rose-500' : 'bg-slate-900'}`}>
+        {toast.type === 'error' ? '⚠️' : '✅'}
+        {toast.message}
+      </div>
+
+      {/* 🌟 CUSTOM MODAL OVERLAY */}
+      {modal.type && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl transform scale-100 animate-slide-up">
+            
+            {modal.type === 'grade' && (
+              <>
+                <h3 className="text-2xl font-black text-slate-800 mb-2">Grade Assignment</h3>
+                <p className="text-slate-500 text-sm mb-6">Enter a score out of 100.</p>
+                <input type="number" min="0" max="100" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-black text-2xl text-center mb-6" 
+                  value={modal.data} onChange={e => setModal({...modal, data: e.target.value})} placeholder="0 - 100" />
+              </>
+            )}
+
+            {modal.type === 'extend' && (
+              <>
+                <h3 className="text-2xl font-black text-slate-800 mb-2">Extend Deadline 📅</h3>
+                <p className="text-slate-500 text-sm mb-6">Select the new due date and time for this assignment.</p>
+                <input type="datetime-local" min={minDateTime} className="w-full p-4 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold mb-6" 
+                  value={modal.data} onChange={e => setModal({...modal, data: e.target.value})} />
+              </>
+            )}
+
+            {modal.type === 'delete' && (
+              <>
+                <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mb-4 text-3xl mx-auto">🗑️</div>
+                <h3 className="text-2xl font-black text-slate-800 mb-2 text-center">Delete Assignment?</h3>
+                <p className="text-slate-500 text-sm mb-6 text-center">This action is permanent and cannot be undone.</p>
+              </>
+            )}
+
+            <div className="flex gap-4">
+              <button onClick={() => setModal({ type: null, hwId: null, data: '' })} className="flex-1 py-4 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-2xl transition-colors">
+                Cancel
+              </button>
+              <button onClick={executeModalAction} className={`flex-1 py-4 font-bold rounded-2xl text-white transition-transform hover:-translate-y-1 shadow-lg
+                ${modal.type === 'delete' ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' : 
+                  modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
+                  'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}>
+                {modal.type === 'delete' ? 'Yes, Delete' : 'Confirm'}
+              </button>
+            </div>
+          </div>
         </div>
+      )}
 
-        <nav className="flex-1 p-4 space-y-2">
-          <SidebarButton icon={<UploadCloud size={20}/>} label="Question Bank" active={activeTab === 'upload'} onClick={() => setActiveTab('upload')} />
-          <SidebarButton icon={<Send size={20}/>} label="Assign Work" active={activeTab === 'assign'} onClick={() => setActiveTab('assign')} />
-          <SidebarButton icon={<CheckCircle2 size={20}/>} label="Grading & Review" active={activeTab === 'grading'} onClick={() => setActiveTab('grading')} />
-        </nav>
-
-        <div className="p-4 border-t border-gray-800">
-          <button onClick={handleLogout} className="flex items-center gap-3 text-red-400 hover:text-white hover:bg-red-500 transition-all w-full p-3 rounded-xl font-bold">
-            <LogOut size={20} /> Sign Out
+      {/* 🟢 SLEEK SIDEBAR */}
+      <aside className="w-72 bg-[#0B1437] text-slate-300 flex flex-col justify-between shadow-2xl z-20 hidden lg:flex rounded-r-[2rem] my-4 ml-4">
+        <div>
+          <div className="p-8 flex items-center gap-4 border-b border-slate-700/50">
+            <div className="bg-gradient-to-tr from-indigo-500 to-purple-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-indigo-500/30">
+              M
+            </div>
+            <div>
+              <h1 className="text-lg font-black text-white tracking-wide leading-tight">MathCom<br/>Mentor</h1>
+            </div>
+          </div>
+          
+          <div className="p-6 space-y-3">
+            <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all
+              ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+              Assignments Hub
+            </button>
+            <button onClick={() => setActiveTab('students')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all
+              ${activeTab === 'students' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+              Student List
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <button onClick={handleLogout} className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-rose-500 text-slate-300 hover:text-white px-5 py-4 rounded-2xl font-bold transition-all shadow-sm group">
+            <svg className="w-5 h-5 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            Sign Out
           </button>
         </div>
-      </motion.div>
+      </aside>
 
-      {/* MAIN CONTENT AREA */}
-      <div className="flex-1 overflow-y-auto relative">
-        <header className="bg-white px-8 py-6 shadow-sm sticky top-0 z-10 flex justify-between items-center">
-          <div>
-            <h2 className="text-3xl font-extrabold text-gray-800 tracking-tight">
-              {activeTab === 'assign' ? 'Adaptive Assignment' : activeTab === 'grading' ? 'Student Submissions' : 'Upload to Question Bank'}
-            </h2>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold shadow-lg">A</div>
-        </header>
-
-        <main className="p-8 max-w-6xl mx-auto">
-          <AnimatePresence mode="wait">
+      {/* 🟢 MAIN CONTENT */}
+      <div className="flex-1 overflow-y-auto scroll-smooth p-6 lg:p-10">
+        <div className="max-w-[1600px] mx-auto">
+          
+          {/* Header */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
+            <div>
+              <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, MathCom Mentor 👋</h1>
+              <p className="text-[#A3AED0] mt-2 font-bold tracking-wide">Here is what is happening in your classes today.</p>
+            </div>
             
-            {/* TAB 1: QUESTION BANK (CASCADING FILTERS) */}
-            {activeTab === 'upload' && (
-              <motion.div key="upload" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
-                <form onSubmit={handleUploadQuestion} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">Qualification</label>
-                      <select value={selectedQual} onChange={handleQualChange} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none">
-                        <option value="">Select Qualification...</option>
-                        {Object.keys(filterData).map(qual => <option key={qual} value={qual}>{qual}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">Chapter</label>
-                      <select value={selectedChapter} onChange={handleChapterChange} disabled={!selectedQual} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none disabled:opacity-50">
-                        <option value="">Select Chapter...</option>
-                        {selectedQual && Object.keys(filterData[selectedQual]).map(chapter => <option key={chapter} value={chapter}>{chapter}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">Specific Topic</label>
-                      <select value={selectedTopic} onChange={(e) => setSelectedTopic(e.target.value)} disabled={!selectedChapter} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none disabled:opacity-50">
-                        <option value="">Select Topic...</option>
-                        {selectedChapter && filterData[selectedQual][selectedChapter].map(topic => <option key={topic} value={topic}>{topic}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-gray-700 mb-2">Question Content (Text / Link to PDF/Image)</label>
-                    <textarea required value={questionContent} onChange={(e) => setQuestionContent(e.target.value)} rows="5" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none resize-none" placeholder="Type question or paste image URL here..."></textarea>
-                  </div>
-                  
-                  <button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-all">Save to Database</button>
-                </form>
-              </motion.div>
-            )}
-
-            {/* TAB 2: ASSIGN ADAPTIVE HOMEWORK */}
-            {activeTab === 'assign' && (
-              <motion.div key="assign" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 max-w-4xl mx-auto">
-                <form onSubmit={handleAssign} className="space-y-6">
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block font-bold text-gray-700 mb-2">Assign To:</label>
-                      <select value={assignData.studentId} onChange={(e) => setAssignData({...assignData, studentId: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium text-gray-700">
-                        <option value="all">All Students (Class Broadcast)</option>
-                        {students.map(s => <option key={s._id} value={s._id}>{s.name} ({s.email})</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block font-bold text-gray-700 mb-2">Assignment Title:</label>
-                      <input type="text" required value={assignData.title} onChange={(e) => setAssignData({...assignData, title: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium" placeholder="e.g. Algebra Weekly Test" />
-                    </div>
-                  </div>
-
-                  <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100">
-                    <label className="block font-bold text-indigo-900 mb-4">Adaptive Algorithm Engine (Auto-Fetch from Bank by Topic):</label>
-                    <input type="text" placeholder="Topic to fetch (e.g., Area, Equations)" value={assignData.topic} onChange={e => setAssignData({...assignData, topic: e.target.value})} className="w-full p-3 mb-4 rounded-lg border border-gray-200 outline-none" />
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1">Easy Qs</label>
-                        <input type="number" min="0" value={assignData.easyCount} onChange={e => setAssignData({...assignData, easyCount: e.target.value})} className="w-full p-3 rounded-lg border border-gray-200 outline-none text-center font-bold" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1">Medium Qs</label>
-                        <input type="number" min="0" value={assignData.mediumCount} onChange={e => setAssignData({...assignData, mediumCount: e.target.value})} className="w-full p-3 rounded-lg border border-gray-200 outline-none text-center font-bold" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1">Hard Qs</label>
-                        <input type="number" min="0" value={assignData.hardCount} onChange={e => setAssignData({...assignData, hardCount: e.target.value})} className="w-full p-3 rounded-lg border border-gray-200 outline-none text-center font-bold" />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <button type="submit" className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-xl shadow-lg transition-all">Deploy Assignment</button>
-                </form>
-              </motion.div>
-            )}
-
-            {/* TAB 3: GRADING & REVIEW */}
-            {activeTab === 'grading' && (
-              <motion.div key="grading" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-4xl mx-auto">
-                <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl flex items-center gap-4 text-amber-800 shadow-sm">
-                  <AlertCircle size={24} className="shrink-0" />
-                  <p className="font-medium">Submissions will be automatically deleted from the database once graded, leaving only the permanent score on the student's profile.</p>
+            <div className="flex gap-4 mt-6 md:mt-0">
+              <div className="bg-white px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4">
+                <div className="bg-indigo-50 p-3 rounded-full text-indigo-600">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 </div>
+                <div>
+                  <p className="text-xs font-black text-[#A3AED0] uppercase tracking-wider">Total Students</p>
+                  <p className="text-2xl font-black text-[#1B2559]">{students.length}</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                {homeworks.filter(hw => hw.status === 'Submitted').map(hw => (
-                  <div key={hw._id} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-200">
-                    <div className="flex justify-between items-start mb-6 border-b border-gray-100 pb-4">
-                      <div>
-                        <h3 className="text-2xl font-bold text-gray-800">{hw.title}</h3>
-                        <p className="text-sm text-gray-500 mt-1">Student: <span className="font-bold text-indigo-600">{hw.studentId?.name || 'Unknown'}</span></p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-slate-50 p-6 rounded-2xl mb-8 border border-slate-200">
-                      <p className="text-sm font-bold text-slate-500 mb-2 uppercase">Student's Answer</p>
-                      <p className="text-gray-800 font-medium whitespace-pre-wrap">{hw.submission?.answerText}</p>
-                    </div>
+          {/* 🟢 VIEW 1: DASHBOARD TAB */}
+          {activeTab === 'dashboard' && (
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
+              
+              {/* ASSIGN WORK FORM */}
+              <div className="xl:col-span-5 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="bg-indigo-600 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Create Task</h2>
+                </div>
+                
+                <form onSubmit={handleAssignSubmit} className="space-y-6">
+                  <div className="space-y-1">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Task Title</label>
+                    <input className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl focus:ring-4 focus:ring-indigo-500/20 text-[#1B2559] outline-none transition-all font-bold" 
+                      placeholder="e.g., Advanced Calculus Chapter 2" required value={assignForm.title}
+                      onChange={e => setAssignForm({...assignForm, title: e.target.value})} />
+                  </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-gray-100 pt-8">
-                      <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-3">Score (out of 100)</label>
-                        <input type="number" onChange={(e) => setGradeData({...gradeData, score: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-bold text-gray-700" placeholder="e.g. 85" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Assign To</label>
+                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+                        onChange={e => setAssignForm({...assignForm, studentId: e.target.value})}>
+                        <option value="all">All Students</option>
+                        {students.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Difficulty</label>
+                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+                        onChange={e => setAssignForm({...assignForm, difficulty: e.target.value})}>
+                        <option value="Easy">Easy 🟢</option>
+                        <option value="Medium">Medium 🟡</option>
+                        <option value="Hard">Hard 🔴</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-black text-indigo-500 uppercase tracking-wide ml-1">Deadline Date & Time</label>
+                    <input type="datetime-local" required min={minDateTime}
+                      className="w-full p-4 bg-indigo-50 border-none text-indigo-800 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-black cursor-pointer" 
+                      value={assignForm.dueDate}
+                      onChange={e => setAssignForm({...assignForm, dueDate: e.target.value})} />
+                  </div>
+
+                  <div className="space-y-1 pt-4 border-t border-slate-100">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Format Type</label>
+                    <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl font-bold text-[#1B2559] outline-none mb-4 cursor-pointer" 
+                      value={assignForm.type} onChange={e => setAssignForm({...assignForm, type: e.target.value})}>
+                      <option value="File">Upload File (PDF/Image)</option>
+                      <option value="Text">Write Question</option>
+                      <option value="MCQ">Build Quiz (MCQ)</option>
+                    </select>
+
+                    <div className="animate-fade-in">
+                      {assignForm.type === 'File' && (
+                        <div className="relative border-2 border-dashed border-indigo-300 bg-[#F4F7FE] rounded-3xl p-10 text-center hover:bg-indigo-50 transition-colors cursor-pointer group">
+                          <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />
+                          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
+                          <p className="font-black text-[#1B2559]">Drag & Drop or Click</p>
+                          <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG up to 5MB</p>
+                          {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file...</p>}
+                          {fileName && !isUploading && <p className="mt-3 inline-block bg-white text-indigo-800 px-4 py-2 rounded-full text-xs font-bold shadow-sm">{fileName}</p>}
+                        </div>
+                      )}
+
+                      {assignForm.type === 'Text' && (
+                        <textarea className="w-full p-5 bg-[#F4F7FE] border-none rounded-3xl outline-none focus:ring-4 focus:ring-indigo-500/20 text-[#1B2559] font-medium min-h-[160px]" 
+                          placeholder="Type instructions or complete text here..." 
+                          value={assignForm.content} onChange={e => setAssignForm({...assignForm, content: e.target.value})} />
+                      )}
+
+                      {assignForm.type === 'MCQ' && (
+                        <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                          {assignForm.mcqs.map((mcq, qIndex) => (
+                            <div key={qIndex} className="p-5 bg-[#F4F7FE] rounded-3xl">
+                              <input className="w-full p-2 mb-3 font-black border-b-2 border-slate-200 bg-transparent outline-none focus:border-indigo-500 text-[#1B2559]" 
+                                placeholder={`Question ${qIndex + 1}`} value={mcq.question} 
+                                onChange={(e) => updateMcq(qIndex, 'question', e.target.value)} />
+                              <div className="grid grid-cols-2 gap-3 mb-4">
+                                {mcq.options.map((opt, oIndex) => (
+                                  <input key={oIndex} className="p-3 text-sm border-none rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-400 font-bold" 
+                                    placeholder={`Option ${oIndex + 1}`} value={opt} 
+                                    onChange={(e) => updateMcq(qIndex, 'options', e.target.value, oIndex)} />
+                                ))}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <label className="text-xs font-black text-[#A3AED0] uppercase">Correct Answer:</label>
+                                <select className="p-2 text-sm font-black border-none rounded-xl bg-emerald-100 text-emerald-800 outline-none" 
+                                  value={mcq.correctOption} onChange={(e) => updateMcq(qIndex, 'correctOption', parseInt(e.target.value))}>
+                                  <option value={0}>Option 1</option><option value={1}>Option 2</option><option value={2}>Option 3</option><option value={3}>Option 4</option>
+                                </select>
+                              </div>
+                            </div>
+                          ))}
+                          <button type="button" onClick={addMcq} className="w-full py-4 border-2 border-dashed border-indigo-300 text-indigo-600 rounded-3xl font-black hover:bg-indigo-50 transition-colors">
+                            + Add Next Question
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button className="w-full bg-[#1B2559] hover:bg-indigo-600 text-white font-black py-5 rounded-2xl transition-all shadow-[0_18px_40px_rgba(112,144,176,0.2)] text-lg flex items-center justify-center gap-2 transform hover:-translate-y-1">
+                    Publish Assignment
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                  </button>
+                </form>
+              </div>
+
+              {/* TRACKER BOARD */}
+              <div className="xl:col-span-7 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex flex-col h-fit md:min-h-[800px]">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-100 pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-emerald-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Submissions Board</h2>
+                  </div>
+                  <div className="relative w-full md:w-72">
+                    <svg className="w-5 h-5 absolute left-4 top-4 text-[#A3AED0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" placeholder="Search tasks..." 
+                      className="w-full py-3 pl-12 pr-4 bg-[#F4F7FE] rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-[#1B2559]"
+                      value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                  </div>
+                </div>
+                
+                <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
+                  {filteredHomeworks.map(hw => {
+                    const isLate = new Date() > new Date(hw.dueDate);
+
+                    return (
+                      <div key={hw._id} className="p-6 bg-white border border-slate-100 hover:bg-[#F4F7FE]/50 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-5 transition-all hover:shadow-lg group">
+                        <div>
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-black text-xl text-[#1B2559]">{hw.title}</h3>
+                            <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider
+                              ${hw.status === 'Pending' ? 'bg-slate-100 text-slate-500' : 
+                                hw.status === 'Submitted' ? 'bg-amber-100 text-amber-700 animate-pulse' : 'bg-emerald-100 text-emerald-700'}`}>
+                              {hw.status}
+                            </span>
+                          </div>
+                          
+                          <p className="text-sm text-[#A3AED0] font-bold mb-4">Assigned to: <span className="font-black text-[#1B2559]">{hw.studentId?.name || "Deleted User"}</span></p>
+                          
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 bg-[#F4F7FE] text-[#A3AED0] px-3 py-1.5 rounded-xl text-xs font-black">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                              {new Date(hw.dueDate).toLocaleString()}
+                            </div>
+                            {isLate && hw.status === 'Pending' && <span className="bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl text-xs font-black">Overdue</span>}
+                          </div>
+                        </div>
                         
-                        <label className="block text-sm font-bold text-gray-700 mt-4 mb-2">Teacher Feedback</label>
-                        <input type="text" onChange={(e) => setGradeData({...gradeData, feedback: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none font-medium" placeholder="e.g. Great logic!" />
+                        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                          {hw.status === 'Pending' && (
+                            <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: '' })} className="px-5 py-3 bg-white border border-indigo-200 text-indigo-600 font-black rounded-2xl hover:bg-indigo-50 hover:border-indigo-300 transition-all shadow-sm text-sm">
+                              + Extend Date
+                            </button>
+                          )}
+                          
+                          {hw.status === 'Submitted' && (
+                            <>
+                              {hw.submission?.answerFileUrl && (
+                                <a href={hw.submission.answerFileUrl} target="_blank" rel="noreferrer" className="px-5 py-3 bg-[#1B2559] text-white font-black rounded-2xl hover:bg-indigo-900 transition-colors shadow-md text-sm">
+                                  View Work
+                                </a>
+                              )}
+                              <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: '' })} className="px-5 py-3 bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-md text-sm flex items-center gap-2">
+                                Grade
+                              </button>
+                            </>
+                          )}
+                          
+                          {hw.status === 'Graded' && (
+                            <div className="px-6 py-3 bg-emerald-50 text-emerald-700 rounded-2xl font-black border border-emerald-100 text-lg">
+                              {hw.grading.score}/100
+                            </div>
+                          )}
+
+                          <button onClick={() => setModal({ type: 'delete', hwId: hw._id, data: '' })} className="p-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-colors shadow-sm ml-2 text-xl" title="Delete">
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {filteredHomeworks.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-full text-center py-20">
+                      <div className="text-6xl mb-6 opacity-50">📂</div>
+                      <p className="text-[#1B2559] font-black text-xl mb-1">Inbox Zero!</p>
+                      <p className="text-[#A3AED0] font-bold">Assign new work on the left side to get started.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 🟢 VIEW 2: STUDENT LIST TAB */}
+          {activeTab === 'students' && (
+            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="bg-purple-500 w-2 h-8 rounded-full"></div>
+                <h2 className="text-2xl font-black text-[#1B2559]">Enrolled Students Roster</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {students.map(student => {
+                  // Calculate Stats for this specific student
+                  const studentHw = homeworks.filter(h => h.studentId?._id === student._id);
+                  const completedCount = studentHw.filter(h => h.status === 'Graded').length;
+                  const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
+
+                  return (
+                    <div key={student._id} className="bg-[#F4F7FE] p-6 rounded-3xl flex items-center gap-6 hover:shadow-lg transition-shadow border border-transparent hover:border-indigo-100">
+                      <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-black text-2xl shadow-md">
+                        {student.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-3">Update Adaptive Profile</label>
-                        <div className="flex flex-col gap-3">
-                          <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer border border-gray-200">
-                            <input type="checkbox" className="w-5 h-5 text-indigo-600" onChange={e => setGradeData({...gradeData, canDoEasy: e.target.checked})} defaultChecked /> 
-                            <span className="font-semibold text-gray-700">Mastered Easy Concepts</span>
-                          </label>
-                          <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer border border-gray-200">
-                            <input type="checkbox" className="w-5 h-5 text-indigo-600" onChange={e => setGradeData({...gradeData, canDoMedium: e.target.checked})} /> 
-                            <span className="font-semibold text-gray-700">Mastered Medium Concepts</span>
-                          </label>
-                          <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer border border-gray-200">
-                            <input type="checkbox" className="w-5 h-5 text-indigo-600" onChange={e => setGradeData({...gradeData, canDoHard: e.target.checked})} /> 
-                            <span className="font-semibold text-gray-700">Mastered Hard Concepts</span>
-                          </label>
+                        <h3 className="font-black text-[#1B2559] text-xl">{student.name}</h3>
+                        <p className="text-sm font-bold text-[#A3AED0] mb-2">{student.email}</p>
+                        <div className="flex gap-2">
+                          <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-lg">{completedCount} Completed</span>
+                          <span className="bg-amber-100 text-amber-700 text-xs font-black px-2 py-1 rounded-lg">{pendingCount} Review</span>
                         </div>
                       </div>
                     </div>
-                    
-                    <button onClick={() => handleGrade(hw._id)} className="mt-8 px-8 py-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all w-full shadow-lg">
-                      Publish Grade & Delete Homework Task
-                    </button>
+                  );
+                })}
+
+                {students.length === 0 && (
+                  <div className="col-span-full text-center py-20 text-[#A3AED0] font-bold">
+                    No students have registered yet.
                   </div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </main>
+                )}
+              </div>
+            </div>
+          )}
+
+        </div>
       </div>
     </div>
   );
-};
-
-const SidebarButton = ({ icon, label, active, onClick }) => (
-  <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-4 rounded-xl font-bold transition-all outline-none ${active ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}>
-    {icon} {label}
-  </button>
-);
-
-export default AdminDashboard;
+}

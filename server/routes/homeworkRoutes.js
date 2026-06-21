@@ -1,14 +1,26 @@
 const express = require('express');
 const router = express.Router();
-const { assignHomework, getStudentHomework, submitHomework, getAdminHomework, gradeHomework } = require('../controllers/homeworkController');
+const { 
+  assignHomework, 
+  getStudentHomework, 
+  submitHomework, 
+  getAdminHomework, 
+  gradeHomework,
+  extendDeadline,
+  deleteHomework // <-- ADD THIS
+} = require('../controllers/homeworkController');
 
-// FIXED: Added the 's' back to middlewares!
 const { protect } = require('../middlewares/authMiddleware'); 
 
+// Admin Routes
 router.post('/assign', protect, assignHomework);
-router.get('/student', protect, getStudentHomework);
-router.post('/submit/:id', protect, submitHomework);
 router.get('/admin', protect, getAdminHomework);
-router.post('/grade/:id', protect, gradeHomework);
+router.put('/:id/grade', protect, gradeHomework);
+router.put('/:id/extend', protect, extendDeadline);
+router.delete('/:id', protect, deleteHomework); // <-- NEW DELETE ROUTE
+
+// Student Routes
+router.get('/student', protect, getStudentHomework);
+router.post('/:id/submit', protect, submitHomework);
 
 module.exports = router;
