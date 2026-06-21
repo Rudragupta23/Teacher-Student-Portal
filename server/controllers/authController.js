@@ -212,3 +212,34 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
+// 🌟 NEW: Fetch User Profile from Database
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// 🌟 NEW: Save Profile Updates to Database
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, profilePic } = req.body;
+    const user = await User.findById(req.user._id);
+    
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    
+    if (name) user.name = name;
+    if (profilePic !== undefined) {
+      user.profilePic = profilePic;
+      user.markModified('profilePic'); // Force MongoDB to save the large base64 image
+    }
+    
+    await user.save();
+    res.status(200).json({ message: 'Profile saved to database successfully!', user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

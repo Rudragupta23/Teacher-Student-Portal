@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   otp: { type: String },                       
   otpExpires: { type: Date },                    
   role: { type: String, enum: ['admin', 'student'], default: 'student' },
+  profilePic: { type: String, default: '' },
   phone: { type: String },
   classCode: { type: String },
   resetPasswordOtp: { type: String },

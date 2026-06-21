@@ -24,32 +24,51 @@ export default function AdminDashboard() {
   // 🌟 NEW: Custom UI States (Toasts & Modals)
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [modal, setModal] = useState({ type: null, hwId: null, studentId: null, data: '' }); 
+  const [isLoading, setIsLoading] = useState(true); // 🌟 ADD THIS
 
   // 🌟 NEW: Admin Profile & Settings State
   const [adminProfile, setAdminProfile] = useState({ name: 'Mentor', profilePic: '' });
   const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '', studentToDelete: '' });
   const [isProfileUploading, setIsProfileUploading] = useState(false);
+  const [userId, setUserId] = useState(null); // 🌟 ADDED USER ID STATE
 
   useEffect(() => {
-    // 🌟 Extract Profile from token/localStorage
+    // 1. Fetch main dashboard data (homeworks, students)
+    fetchData();
+    
+    // 2. Fetch specific admin profile from DATABASE
+    fetchProfile(); 
+
+    // 3. Set minimum date for assignment picker
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    setMinDateTime(now.toISOString().slice(0, 16));
+    
+    // 4. Set the unique Admin ID from token for future API calls
     const token = localStorage.getItem('token');
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        const savedPic = localStorage.getItem('adminProfilePic') || '';
-        const savedName = localStorage.getItem('adminName') || payload.name || 'Mentor';
-        setAdminProfile({ name: savedName, profilePic: savedPic });
-        setSettingsForm(prev => ({ ...prev, name: savedName, profilePic: savedPic }));
+        setUserId(payload.id);
       } catch (e) {
         console.error("Could not parse token");
       }
     }
-    fetchData();
-
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    setMinDateTime(now.toISOString().slice(0, 16));
   }, []);
+
+  // 🌟 This function now talks to your Database
+  const fetchProfile = async () => {
+    setIsLoading(true); // 🌟 Set to loading when starting
+    try {
+      const res = await api.get('/auth/profile');
+      setAdminProfile({ name: res.data.name, profilePic: res.data.profilePic || '' });
+      setSettingsForm(prev => ({ ...prev, name: res.data.name, profilePic: res.data.profilePic || '' }));
+    } catch (error) {
+      console.error("Error fetching profile from DB");
+    } finally {
+      setIsLoading(false); // 🌟 Set to false when done
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -195,24 +214,27 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🌟 Save Profile Settings to LocalStorage
-  const handleSaveSettings = () => {
-    setAdminProfile({ name: settingsForm.name, profilePic: settingsForm.profilePic });
-    localStorage.setItem('adminName', settingsForm.name);
-    if (settingsForm.profilePic) localStorage.setItem('adminProfilePic', settingsForm.profilePic);
-    showToast("Profile Settings Updated Successfully!");
+  // 🌟 Save Profile Settings to Database
+  const handleSaveSettings = async () => {
+    try {
+      const res = await api.put('/auth/profile', { name: settingsForm.name, profilePic: settingsForm.profilePic });
+      setAdminProfile({ name: res.data.user.name, profilePic: res.data.user.profilePic || '' });
+      showToast("Profile Settings Saved to Database!");
+    } catch (error) {
+      showToast("Failed to save profile", "error");
+    }
   };
 
-  return (
-    <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
-      
-      {/* 🌟 CUSTOM TOAST NOTIFICATION */}
-      <div className={`absolute top-6 right-6 z-50 transform transition-all duration-500 ease-out flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl font-bold text-white
-        ${toast.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
-        ${toast.type === 'error' ? 'bg-rose-500' : 'bg-slate-900'}`}>
-        {toast.type === 'error' ? '⚠️' : '✅'}
-        {toast.message}
-      </div>
+    return (
+      <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
+        
+        {/* 🌟 CUSTOM TOAST NOTIFICATION */}
+        <div className={`absolute top-6 right-6 z-50 transform transition-all duration-500 ease-out flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl font-bold text-white
+          ${toast.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
+          ${toast.type === 'error' ? 'bg-rose-500' : 'bg-slate-900'}`}>
+          {toast.type === 'error' ? '⚠️' : '✅'}
+          {toast.message}
+        </div>
 
       {/* 🌟 CUSTOM MODAL OVERLAY */}
       {modal.type && (

@@ -1,6 +1,7 @@
 const Question = require('../models/Question');
 const Assignment = require('../models/Assignment');
 const User = require('../models/User');
+const Homework = require('../models/Homework'); // 🌟 Imported Homework to delete student's tasks
 
 // @desc    Upload a single question to the Question Bank
 // @route   POST /api/admin/questions
@@ -24,25 +25,18 @@ exports.assignAdaptiveHomework = async (req, res) => {
 
     let easyCount = 0, mediumCount = 0, hardCount = 0;
 
-    // YOUR ADAPTIVE ALGORITHM:
-    // If student hasn't mastered easy yet: mostly easy, some medium
     if (!student.performance.canDoEasy) {
-      easyCount = Math.floor(totalQuestions * 0.8); // 80% easy
-      mediumCount = totalQuestions - easyCount;     // 20% medium
-    } 
-    // If mastered easy, but not medium: mix of all three
-    else if (student.performance.canDoEasy && !student.performance.canDoMedium) {
-      easyCount = Math.floor(totalQuestions * 0.3); // 30% easy
-      mediumCount = Math.floor(totalQuestions * 0.6); // 60% medium
-      hardCount = totalQuestions - (easyCount + mediumCount); // 10% hard
-    } 
-    // If mastered medium: mostly hard, some medium
-    else {
-      mediumCount = Math.floor(totalQuestions * 0.4); // 40% medium
-      hardCount = totalQuestions - mediumCount;       // 60% hard
+      easyCount = Math.floor(totalQuestions * 0.8);
+      mediumCount = totalQuestions - easyCount;
+    } else if (!student.performance.canDoMedium) {
+      easyCount = Math.floor(totalQuestions * 0.2);
+      mediumCount = Math.floor(totalQuestions * 0.6);
+      hardCount = totalQuestions - easyCount - mediumCount;
+    } else {
+      mediumCount = Math.floor(totalQuestions * 0.3);
+      hardCount = totalQuestions - mediumCount;
     }
 
-    // Fetch random questions from the database matching the criteria
     const easyQs = await Question.aggregate([{ $match: { difficulty: 'easy', topic, qualification } }, { $sample: { size: easyCount } }]);
     const mediumQs = await Question.aggregate([{ $match: { difficulty: 'medium', topic, qualification } }, { $sample: { size: mediumCount } }]);
     const hardQs = await Question.aggregate([{ $match: { difficulty: 'hard', topic, qualification } }, { $sample: { size: hardCount } }]);
@@ -53,7 +47,6 @@ exports.assignAdaptiveHomework = async (req, res) => {
       return res.status(400).json({ message: 'Not enough questions in the bank for this topic.' });
     }
 
-    // Create the assignment
     const dueDate = new Date(Date.now() + durationHours * 60 * 60 * 1000);
     
     const assignment = await Assignment.create({
@@ -76,5 +69,27 @@ exports.getAllStudents = async (req, res) => {
     res.status(200).json(students);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// 🌟 NEW: Delete Student Controller
+// @desc    Delete a student and their coursework
+// @route   DELETE /api/admin/students/:id
+exports.deleteStudent = async (req, res) => {
+  try {
+    const studentId = req.params.id;
+
+    const student = await User.findById(studentId);
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    // 1. Delete all homework assigned to this student to free up database space
+    await Homework.deleteMany({ studentId: studentId });
+
+    // 2. Delete the student account
+    await User.findByIdAndDelete(studentId);
+
+    res.status(200).json({ message: 'Student and all associated coursework deleted successfully.' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

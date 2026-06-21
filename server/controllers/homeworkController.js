@@ -130,10 +130,20 @@ exports.gradeHomework = async (req, res) => {
     homework.status = 'Graded';
     homework.grading = { score, feedback, adminAnswerSheetUrl, gradedAt: new Date() };
     
-    // NEW ADDITION: Delete the original assigned work when grading is published
+    // 🌟 THIS TELLS MONGODB TO FORCE SAVE THE ANSWER SHEET
+    homework.markModified('grading'); 
+    
+    // Delete the original assigned work when grading is published
     homework.fileUrl = undefined;
     homework.content = undefined;
     homework.mcqs = [];
+
+    // 🌟 NEW ADDITION: Delete the student's submitted work from the database
+    if (homework.submission) {
+      homework.submission.answerText = undefined;
+      homework.submission.answerFileUrl = undefined;
+      homework.markModified('submission'); // Force MongoDB to save the cleared submission
+    }
 
     await homework.save();
 

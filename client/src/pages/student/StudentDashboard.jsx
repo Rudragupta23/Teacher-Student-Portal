@@ -11,6 +11,7 @@ export default function StudentDashboard() {
   // UI States
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [modalTask, setModalTask] = useState(null); 
+  const [isLoading, setIsLoading] = useState(true); // 🌟 ADD THIS
   
   // Submission Form State
   const [submitForm, setSubmitForm] = useState({ answerFileUrl: '', answerText: '' });
@@ -22,23 +23,27 @@ export default function StudentDashboard() {
   const [studentProfile, setStudentProfile] = useState({ name: 'Scholar', profilePic: '' });
   const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '' });
   const [isProfileUploading, setIsProfileUploading] = useState(false);
+  const [userId, setUserId] = useState(null); // 🌟 ADDED USER ID STATE
 
   useEffect(() => {
-    // 🌟 Extract Profile from token/localStorage
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const savedPic = localStorage.getItem('studentProfilePic') || '';
-        const savedName = localStorage.getItem('studentName') || payload.name || 'Scholar';
-        setStudentProfile({ name: savedName, profilePic: savedPic });
-        setSettingsForm({ name: savedName, profilePic: savedPic });
-      } catch (e) {
-        console.error("Could not parse token");
-      }
-    }
     fetchAssignments();
+    fetchProfile(); // 🌟 Fetch directly from the Database
+    
   }, []);
+
+  const fetchProfile = async () => {
+    setIsLoading(true); // 🌟 Set to loading when starting
+    try {
+      const res = await api.get('/auth/profile');
+      setStudentProfile({ name: res.data.name, profilePic: res.data.profilePic || '' });
+      setSettingsForm({ name: res.data.name, profilePic: res.data.profilePic || '' });
+    } catch (error) {
+      console.error("Error fetching profile from DB");
+    } finally {
+      setIsLoading(false); // 🌟 Set to false when done
+    }
+  };
+  
 
   const fetchAssignments = async () => {
     try {
@@ -128,12 +133,15 @@ export default function StudentDashboard() {
     }
   };
 
-  // 🌟 Save Profile Settings to LocalStorage
-  const handleSaveSettings = () => {
-    setStudentProfile({ name: settingsForm.name, profilePic: settingsForm.profilePic });
-    localStorage.setItem('studentName', settingsForm.name);
-    if (settingsForm.profilePic) localStorage.setItem('studentProfilePic', settingsForm.profilePic);
-    showToast("Profile Settings Updated Successfully!");
+  // 🌟 Save Profile Settings to Database
+  const handleSaveSettings = async () => {
+    try {
+      const res = await api.put('/auth/profile', settingsForm);
+      setStudentProfile({ name: res.data.user.name, profilePic: res.data.user.profilePic || '' });
+      showToast("Profile Settings Saved to Database!");
+    } catch (error) {
+      showToast("Failed to save profile", "error");
+    }
   };
 
   return (
