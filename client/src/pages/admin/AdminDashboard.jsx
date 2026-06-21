@@ -134,8 +134,8 @@ export default function AdminDashboard() {
   const executeModalAction = async () => {
     try {
       if (modal.type === 'grade') {
-        // 🌟 Allow submission if score is empty BUT an answer sheet is provided
-        if ((modal.data !== '' && (modal.data < 0 || modal.data > 100)) || (!modal.data && !answerSheet.fileUrl)) {
+        // 🌟 Fix: Safely handle 0 and empty strings
+        if ((modal.data !== '' && (modal.data < 0 || modal.data > 100)) || (modal.data === '' && !answerSheet.fileUrl)) {
           return showToast("Enter a valid score (0-100) or attach an answer sheet!", "error");
         }
         
@@ -144,8 +144,8 @@ export default function AdminDashboard() {
           adminAnswerSheetUrl: answerSheet.fileUrl 
         });
         
-        showToast("Assignment Graded Successfully!");
-      }
+        showToast("Assignment Graded/Updated Successfully!");
+      } 
       else if (modal.type === 'extend') {
         if (!modal.data) return showToast("Select a valid date!", "error");
         await api.put(`/homework/${modal.hwId}/extend`, { newDueDate: modal.data });
@@ -160,8 +160,10 @@ export default function AdminDashboard() {
         showToast("Student Removed Successfully.", "error");
       }
       else if (modal.type === 'deleteAnsSheet') {
-        // 🌟 NEW: Deletes the answer sheet from a graded assignment by overwriting it
-        await api.put(`/homework/${modal.hwId}/grade`, { score: modal.data.score, adminAnswerSheetUrl: '' });
+        await api.put(`/homework/${modal.hwId}/grade`, { 
+          score: modal.data.score != null ? Number(modal.data.score) : null, 
+          adminAnswerSheetUrl: '' 
+        });
         showToast("Answer Sheet Removed!");
       }
       
@@ -571,10 +573,22 @@ export default function AdminDashboard() {
                           
                           {hw.status === 'Graded' && (
                             <div className="flex items-center gap-2">
-                              <div className="px-6 py-3 bg-emerald-50 text-emerald-700 rounded-2xl font-black border border-emerald-100 text-lg">
-                                {hw.grading?.score != null ? `${hw.grading.score}/100` : 'No Score'}
-                              </div>
-                              {/* 🌟 NEW: Button to remove the Answer Sheet */}
+                              {/* 🌟 NEW: Editable Score Button - Click to update grade or add score later! */}
+                              <button 
+                                onClick={() => {
+                                  setModal({ type: 'grade', hwId: hw._id, data: hw.grading?.score != null ? hw.grading.score : '' });
+                                  if (hw.grading?.adminAnswerSheetUrl) {
+                                    setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl, fileName: 'Existing Answer Sheet Attached', isUploading: false });
+                                  } else {
+                                    setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false });
+                                  }
+                                }}
+                                className="px-6 py-3 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-2xl font-black border border-emerald-200 text-lg transition-colors shadow-sm"
+                                title="Edit Grade or Answer Sheet"
+                              >
+                                {hw.grading?.score != null ? `${hw.grading.score}/100 ✏️` : '➕ Add Score'}
+                              </button>
+                              
                               {hw.grading?.adminAnswerSheetUrl && (
                                 <button onClick={() => setModal({ type: 'deleteAnsSheet', hwId: hw._id, data: { score: hw.grading.score } })} className="p-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-colors shadow-sm text-sm font-bold" title="Delete Answer Sheet">
                                   Remove Ans Sheet
