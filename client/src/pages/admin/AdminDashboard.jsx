@@ -253,16 +253,71 @@ export default function AdminDashboard() {
               </>
             )}
 
+            {/* 🌟 NEW: View Work Inline Preview Modal */}
+            {modal.type === 'viewWork' && (
+              <>
+                <h3 className="text-2xl font-black text-[#1B2559] mb-4 text-left border-b border-slate-100 pb-4">Student's Submission</h3>
+
+                <div className="max-h-[60vh] overflow-y-auto custom-scrollbar pr-2 mb-6 text-left space-y-4">
+                  {modal.data.answerText && (
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                      <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2">Written Answer</h4>
+                      <p className="text-slate-700 whitespace-pre-wrap font-medium">{modal.data.answerText}</p>
+                    </div>
+                  )}
+
+                  {modal.data.answerFileUrl && (
+                    <div className="flex flex-col gap-3">
+                      <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mt-2">Attached File Preview</h4>
+                      
+                      <div className="w-full max-h-[400px] overflow-auto border-2 border-slate-200 rounded-2xl bg-[#F4F7FE] p-2 shadow-inner">
+                        {modal.data.answerFileUrl.startsWith('data:image') ? (
+                          <img src={modal.data.answerFileUrl} alt="Submission" className="w-full h-auto rounded-xl object-contain" />
+                        ) : modal.data.answerFileUrl.startsWith('data:application/pdf') ? (
+                          <embed src={modal.data.answerFileUrl} type="application/pdf" className="w-full h-[380px] rounded-xl" />
+                        ) : (
+                          <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
+                        )}
+                      </div>
+
+                      <button type="button" onClick={() => {
+                          const a = document.createElement('a');
+                          a.href = modal.data.answerFileUrl;
+                          a.download = `${(modal.title || 'Student_Submission').replace(/\s+/g, '_')}_Attachment`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                        }}
+                        className="w-full mt-2 px-6 py-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 font-black rounded-2xl transition-all border-2 border-dashed border-indigo-200 flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Download Full File
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* 🌟 Dynamic Footer layout based on modal type */}
             <div className="flex gap-4">
-              <button onClick={() => { setModal({ type: null, hwId: null, studentId: null, data: '' }); setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); }} className="flex-1 py-4 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-2xl transition-colors">
-                Cancel
-              </button>
-              <button onClick={executeModalAction} className={`flex-1 py-4 font-bold rounded-2xl text-white transition-transform hover:-translate-y-1 shadow-lg
-                ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' : 
-                  modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
-                  'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}>
-                {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet') ? 'Yes, Delete' : 'Confirm'}
-              </button>
+              {modal.type === 'viewWork' ? (
+                <button onClick={() => setModal({ type: null, hwId: null, studentId: null, data: '' })} className="w-full py-4 bg-slate-100 text-slate-700 hover:bg-slate-200 font-black rounded-2xl transition-colors">
+                  Close Preview
+                </button>
+              ) : (
+                <>
+                  <button onClick={() => { setModal({ type: null, hwId: null, studentId: null, data: '' }); setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); }} className="flex-1 py-4 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-2xl transition-colors">
+                    Cancel
+                  </button>
+                  <button onClick={executeModalAction} className={`flex-1 py-4 font-bold rounded-2xl text-white transition-transform hover:-translate-y-1 shadow-lg
+                    ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' : 
+                      modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
+                      'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}>
+                    {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet') ? 'Yes, Delete' : 'Confirm'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -500,10 +555,11 @@ export default function AdminDashboard() {
                           
                           {hw.status === 'Submitted' && (
                             <>
-                              {hw.submission?.answerFileUrl && (
-                                <a href={hw.submission.answerFileUrl} target="_blank" rel="noreferrer" className="px-5 py-3 bg-[#1B2559] text-white font-black rounded-2xl hover:bg-indigo-900 transition-colors shadow-md text-sm">
+                              {/* 🌟 Triggers the inline preview modal instead of new tab */}
+                              {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText) && (
+                                <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title })} className="px-5 py-3 bg-[#1B2559] text-white font-black rounded-2xl hover:bg-indigo-900 transition-colors shadow-md text-sm">
                                   View Work
-                                </a>
+                                </button>
                               )}
                               <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: '' })} className="px-5 py-3 bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-md text-sm flex items-center gap-2">
                                 Grade

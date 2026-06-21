@@ -2,19 +2,41 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 
 export default function StudentDashboard() {
+  // 🌟 NEW: Tab Navigation
+  const [activeTab, setActiveTab] = useState('dashboard');
+
   const [assignments, setAssignments] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   // UI States
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  const [modalTask, setModalTask] = useState(null); // Holds the specific assignment the student clicks on
+  const [modalTask, setModalTask] = useState(null); 
   
   // Submission Form State
   const [submitForm, setSubmitForm] = useState({ answerFileUrl: '', answerText: '' });
+  const [mcqAnswers, setMcqAnswers] = useState({}); 
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
+  // 🌟 NEW: Student Profile & Settings State
+  const [studentProfile, setStudentProfile] = useState({ name: 'Scholar', profilePic: '' });
+  const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '' });
+  const [isProfileUploading, setIsProfileUploading] = useState(false);
+
   useEffect(() => {
+    // 🌟 Extract Profile from token/localStorage
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const savedPic = localStorage.getItem('studentProfilePic') || '';
+        const savedName = localStorage.getItem('studentName') || payload.name || 'Scholar';
+        setStudentProfile({ name: savedName, profilePic: savedPic });
+        setSettingsForm({ name: savedName, profilePic: savedPic });
+      } catch (e) {
+        console.error("Could not parse token");
+      }
+    }
     fetchAssignments();
   }, []);
 
@@ -58,17 +80,25 @@ export default function StudentDashboard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!submitForm.answerFileUrl && !submitForm.answerText) {
+    
+    // Check validation based on type
+    if (modalTask.type === 'MCQ') {
+      if (Object.keys(mcqAnswers).length !== modalTask.mcqs.length) {
+        return showToast("Please answer all MCQ questions before submitting!", "error");
+      }
+    } else if (!submitForm.answerFileUrl && !submitForm.answerText) {
       return showToast("Please attach a file or write an answer!", "error");
     }
 
     try {
-      await api.post(`/homework/${modalTask._id}/submit`, submitForm);
+      // 🌟 Send mcqAnswers alongside the standard form
+      await api.post(`/homework/${modalTask._id}/submit`, { ...submitForm, mcqAnswers });
       showToast('🎉 Assignment submitted successfully!');
-      setModalTask(null); // Close modal
-      setSubmitForm({ answerFileUrl: '', answerText: '' }); // Reset form
+      setModalTask(null); 
+      setSubmitForm({ answerFileUrl: '', answerText: '' }); 
+      setMcqAnswers({}); // Reset MCQs
       setFileName('');
-      fetchAssignments(); // Refresh data
+      fetchAssignments();
     } catch (err) {
       showToast(err.response?.data?.message || 'Submission failed.', "error");
     }
@@ -77,6 +107,34 @@ export default function StudentDashboard() {
   const filteredAssignments = assignments.filter(hw => 
     hw.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  // 🌟 Calculate Student Analytics
+  const gradedHw = assignments.filter(h => h.status === 'Graded');
+  const pendingHw = assignments.filter(h => h.status === 'Pending');
+  const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
+
+  // 🌟 Handle Profile Picture Upload
+  const handleProfilePicUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2000000) return showToast("Profile picture must be under 2MB", "error");
+      setIsProfileUploading(true);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettingsForm(prev => ({ ...prev, profilePic: reader.result }));
+        setIsProfileUploading(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // 🌟 Save Profile Settings to LocalStorage
+  const handleSaveSettings = () => {
+    setStudentProfile({ name: settingsForm.name, profilePic: settingsForm.profilePic });
+    localStorage.setItem('studentName', settingsForm.name);
+    if (settingsForm.profilePic) localStorage.setItem('studentProfilePic', settingsForm.profilePic);
+    showToast("Profile Settings Updated Successfully!");
+  };
 
   return (
     <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
@@ -151,18 +209,26 @@ export default function StudentDashboard() {
                   <p className="text-[#1B2559] font-medium whitespace-pre-wrap">{modalTask.content}</p>
                 )}
 
-                {modalTask.type === 'MCQ' && (
+                {modalTask.type === 'MCQ' && modalTask.status === 'Pending' && (
                   <div className="space-y-4">
+                    <p className="text-sm text-indigo-500 font-bold mb-4">Select the correct option for each question:</p>
                     {modalTask.mcqs.map((mcq, idx) => (
-                      <div key={idx} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                        <p className="font-black text-[#1B2559] mb-3">Q{idx + 1}: {mcq.question}</p>
-                        <ul className="space-y-2">
+                      <div key={idx} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <p className="font-black text-[#1B2559] mb-4 text-lg">Q{idx + 1}: {mcq.question}</p>
+                        <div className="space-y-3">
                           {mcq.options.map((opt, oIdx) => (
-                            <li key={oIdx} className="text-sm font-medium text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">• {opt}</li>
+                            <label key={oIdx} className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${mcqAnswers[idx] === oIdx ? 'bg-indigo-50 border-indigo-500' : 'bg-slate-50 border-transparent hover:bg-slate-100'}`}>
+                              <input type="radio" name={`q-${idx}`} value={oIdx} checked={mcqAnswers[idx] === oIdx} onChange={() => setMcqAnswers({...mcqAnswers, [idx]: oIdx})} className="w-5 h-5 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                              <span className="text-sm font-bold text-slate-700">{opt}</span>
+                            </label>
                           ))}
-                        </ul>
+                        </div>
                       </div>
                     ))}
+                    {/* 🌟 Add an immediate submit button for MCQs to avoid confusing the user with the file attachment box */}
+                    <button onClick={handleSubmit} className="w-full bg-[#1B2559] hover:bg-indigo-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg mt-6 transform hover:-translate-y-1">
+                      Submit Quiz
+                    </button>
                   </div>
                 )}
               </div>
@@ -176,7 +242,7 @@ export default function StudentDashboard() {
                   <h4 className="text-xl font-black text-rose-600 mb-1">Time is Up!</h4>
                   <p className="text-rose-500 font-medium">The deadline for this assignment has passed. Please ask your mentor to extend the date.</p>
                 </div>
-              ) : (
+              ) : modalTask.type !== 'MCQ' && (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Your Submission</h4>
                   
@@ -232,18 +298,25 @@ export default function StudentDashboard() {
       <aside className="w-72 bg-[#0B1437] text-slate-300 flex flex-col justify-between shadow-2xl z-20 hidden lg:flex rounded-r-[2rem] my-4 ml-4">
         <div>
           <div className="p-8 flex items-center gap-4 border-b border-slate-700/50">
-            <div className="bg-gradient-to-tr from-emerald-400 to-cyan-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-emerald-500/30">
-              S
-            </div>
+            {studentProfile.profilePic ? (
+              <img src={studentProfile.profilePic} alt="Profile" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-emerald-500/30" />
+            ) : (
+              <div className="bg-gradient-to-tr from-emerald-400 to-cyan-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-emerald-500/30">
+                S
+              </div>
+            )}
             <div>
-              <h1 className="text-lg font-black text-white tracking-wide leading-tight">MathCom<br/>Scholar</h1>
+              <h1 className="text-lg font-black text-white tracking-wide leading-tight">MathCom<br/>Mentor</h1>
             </div>
           </div>
-          
           <div className="p-6 space-y-3">
-            <button className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
+            <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
               My Assignments
+            </button>
+            <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              Settings
             </button>
           </div>
         </div>
@@ -263,7 +336,7 @@ export default function StudentDashboard() {
           {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
             <div>
-              <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, Scholar 👋</h1>
+              <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, {studentProfile.name} 👋</h1>
               <p className="text-[#A3AED0] mt-2 font-bold tracking-wide">Stay on top of your coursework and grades.</p>
             </div>
             
@@ -305,8 +378,9 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* 🟢 ASSIGNMENTS GRID */}
-          <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+          {/* 🟢 VIEW 1: DASHBOARD */}
+          {activeTab === 'dashboard' && (
+            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-100 pb-6">
               <div className="flex items-center gap-3">
                 <div className="bg-emerald-400 w-2 h-8 rounded-full"></div>
@@ -372,6 +446,50 @@ export default function StudentDashboard() {
               )}
             </div>
           </div>
+          )}
+
+          {/* 🟢 VIEW 2: SETTINGS TAB */}
+          {activeTab === 'settings' && (
+            <div className="animate-fade-in max-w-2xl mx-auto">
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)]">
+                <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                  <div className="bg-emerald-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Profile Settings</h2>
+                </div>
+
+                <div className="space-y-8">
+                  <div className="flex items-center gap-6">
+                    <div className="relative group">
+                      {settingsForm.profilePic ? (
+                        <img src={settingsForm.profilePic} alt="Profile" className="w-24 h-24 rounded-3xl object-cover shadow-md" />
+                      ) : (
+                        <div className="w-24 h-24 bg-slate-100 text-slate-400 rounded-3xl flex items-center justify-center text-4xl shadow-md">👤</div>
+                      )}
+                      <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white rounded-3xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                        <input type="file" accept="image/*" className="hidden" onChange={handleProfilePicUpload} />
+                        <span className="text-xs font-bold">Upload</span>
+                      </label>
+                    </div>
+                    <div>
+                      <h3 className="font-black text-[#1B2559] text-lg">Profile Picture</h3>
+                      <p className="text-sm font-bold text-[#A3AED0]">JPG, PNG under 2MB</p>
+                      {isProfileUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Display Name</label>
+                    <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20 font-bold text-[#1B2559]" 
+                      value={settingsForm.name} onChange={e => setSettingsForm({...settingsForm, name: e.target.value})} />
+                  </div>
+
+                  <button onClick={handleSaveSettings} className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-lg transition-transform hover:-translate-y-1">
+                    Save Profile Update
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

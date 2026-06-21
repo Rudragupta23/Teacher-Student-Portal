@@ -69,10 +69,10 @@ exports.getStudentHomework = async (req, res) => {
   }
 };
 
-// 4. Student: Submit Homework (With Late Block)
+// 4. Student: Submit Homework (With Late Block & Auto-grade MCQ)
 exports.submitHomework = async (req, res) => {
   const { id } = req.params;
-  const { answerText, answerFileUrl } = req.body;
+  const { answerText, answerFileUrl, mcqAnswers } = req.body;
   
   try {
     const homework = await Homework.findOne({ _id: id, studentId: req.user._id });
@@ -83,6 +83,31 @@ exports.submitHomework = async (req, res) => {
       return res.status(403).json({ message: 'You are late! The deadline has passed. Please contact your teacher to extend the duration.' });
     }
 
+    // 🌟 Auto-grade if it's an MCQ Assignment
+    if (homework.type === 'MCQ') {
+      let correctCount = 0;
+      const totalQuestions = homework.mcqs.length;
+
+      // Check answers
+      homework.mcqs.forEach((mcq, idx) => {
+        if (mcqAnswers && parseInt(mcqAnswers[idx]) === mcq.correctOption) {
+          correctCount++;
+        }
+      });
+
+      const score = Math.round((correctCount / totalQuestions) * 100);
+
+      // Auto-publish grade and delete content
+      homework.status = 'Graded';
+      homework.grading = { score, feedback: 'Auto-graded MCQ Submission', gradedAt: new Date() };
+      homework.submission = { submittedAt: new Date() };
+      homework.mcqs = []; 
+      
+      await homework.save();
+      return res.status(200).json({ message: 'MCQ auto-graded successfully!', homework });
+    }
+
+    // Standard File/Text Submission
     homework.status = 'Submitted';
     homework.submission = { answerText, answerFileUrl, submittedAt: new Date() };
     await homework.save();
