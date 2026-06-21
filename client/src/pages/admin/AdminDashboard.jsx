@@ -134,16 +134,18 @@ export default function AdminDashboard() {
   const executeModalAction = async () => {
     try {
       if (modal.type === 'grade') {
-        if (!modal.data || modal.data < 0 || modal.data > 100) return showToast("Enter a valid score (0-100)", "error");
+        // 🌟 Allow submission if score is empty BUT an answer sheet is provided
+        if ((modal.data !== '' && (modal.data < 0 || modal.data > 100)) || (!modal.data && !answerSheet.fileUrl)) {
+          return showToast("Enter a valid score (0-100) or attach an answer sheet!", "error");
+        }
         
-        // 🌟 NEW ADDITION: Passing adminAnswerSheetUrl
         await api.put(`/homework/${modal.hwId}/grade`, { 
-          score: modal.data, 
+          score: modal.data !== '' ? Number(modal.data) : null, 
           adminAnswerSheetUrl: answerSheet.fileUrl 
         });
         
         showToast("Assignment Graded Successfully!");
-      } 
+      }
       else if (modal.type === 'extend') {
         if (!modal.data) return showToast("Select a valid date!", "error");
         await api.put(`/homework/${modal.hwId}/extend`, { newDueDate: modal.data });
@@ -218,9 +220,9 @@ export default function AdminDashboard() {
             {modal.type === 'grade' && (
               <>
                 <h3 className="text-2xl font-black text-slate-800 mb-2">Grade Assignment</h3>
-                <p className="text-slate-500 text-sm mb-6">Enter a score out of 100.</p>
+                <p className="text-slate-500 text-sm mb-6">Enter a score out of 100 (Optional if attaching file).</p>
                 <input type="number" min="0" max="100" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-black text-2xl text-center mb-6" 
-                  value={modal.data} onChange={e => setModal({...modal, data: e.target.value})} placeholder="0 - 100" />
+                  value={modal.data} onChange={e => setModal({...modal, data: e.target.value})} placeholder="0 - 100 (Optional)" />
                   
                 {/* 🌟 NEW ADDITION: Optional Answer Sheet Form */}
                 <p className="text-slate-500 text-sm mb-2 font-bold">Attach Answer Sheet (Optional)</p>
@@ -570,7 +572,7 @@ export default function AdminDashboard() {
                           {hw.status === 'Graded' && (
                             <div className="flex items-center gap-2">
                               <div className="px-6 py-3 bg-emerald-50 text-emerald-700 rounded-2xl font-black border border-emerald-100 text-lg">
-                                {hw.grading.score}/100
+                                {hw.grading?.score != null ? `${hw.grading.score}/100` : 'No Score'}
                               </div>
                               {/* 🌟 NEW: Button to remove the Answer Sheet */}
                               {hw.grading?.adminAnswerSheetUrl && (
