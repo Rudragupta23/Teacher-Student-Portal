@@ -104,6 +104,12 @@ exports.gradeHomework = async (req, res) => {
 
     homework.status = 'Graded';
     homework.grading = { score, feedback, adminAnswerSheetUrl, gradedAt: new Date() };
+    
+    // NEW ADDITION: Delete the original assigned work when grading is published
+    homework.fileUrl = undefined;
+    homework.content = undefined;
+    homework.mcqs = [];
+
     await homework.save();
 
     res.status(200).json({ message: 'Graded successfully! Answer sheet uploaded.', homework });

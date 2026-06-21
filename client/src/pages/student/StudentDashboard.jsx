@@ -104,35 +104,69 @@ export default function StudentDashboard() {
               </button>
             </div>
 
-            {/* 1. Show Assignment Content to Student */}
-            <div className="bg-[#F4F7FE] p-6 rounded-3xl mb-8">
-              <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-4">Assignment Details</h4>
-              
-              {modalTask.type === 'File' && modalTask.fileUrl && (
-                <a href={modalTask.fileUrl} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-3 w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl transition-all shadow-md">
-                  📄 Click to View / Download Attachment
-                </a>
-              )}
+            {/* 1. Show Assignment Content to Student (🌟 NEW: Hidden if Graded) */}
+            {modalTask.status !== 'Graded' && (
+              <div className="bg-[#F4F7FE] p-6 rounded-3xl mb-8">
+                <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-4">Assignment Details</h4>
+                
+                {modalTask.type === 'File' && modalTask.fileUrl && (
+  <div className="flex flex-col gap-4 w-full">
+    <p className="text-sm font-black text-[#1B2559] uppercase tracking-wide">Attachment Preview</p>
+    
+    {/* 1. Inline Preview Box */}
+    <div className="w-full max-h-[400px] overflow-auto border-2 border-slate-200 rounded-2xl bg-white p-2 shadow-inner">
+      {modalTask.fileUrl.startsWith('data:image') ? (
+        <img src={modalTask.fileUrl} alt="Assignment" className="w-full h-auto rounded-xl object-contain" />
+      ) : modalTask.fileUrl.startsWith('data:application/pdf') ? (
+        <embed src={modalTask.fileUrl} type="application/pdf" className="w-full h-[380px] rounded-xl" />
+      ) : (
+        <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
+      )}
+    </div>
 
-              {modalTask.type === 'Text' && (
-                <p className="text-[#1B2559] font-medium whitespace-pre-wrap">{modalTask.content}</p>
-              )}
+    {/* 2. Download Prompt */}
+    <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
+      <p className="font-bold text-indigo-800 text-sm">Do you want to download this file?</p>
+      <button 
+        type="button"
+        onClick={() => {
+          // Programmatic download bypasses the browser's new-tab block
+          const a = document.createElement('a');
+          a.href = modalTask.fileUrl;
+          a.download = `${modalTask.title.replace(/\s+/g, '_')}_Attachment`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }}
+        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all shadow-md flex items-center gap-2"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        Download
+      </button>
+    </div>
+  </div>
+)}
 
-              {modalTask.type === 'MCQ' && (
-                <div className="space-y-4">
-                  {modalTask.mcqs.map((mcq, idx) => (
-                    <div key={idx} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                      <p className="font-black text-[#1B2559] mb-3">Q{idx + 1}: {mcq.question}</p>
-                      <ul className="space-y-2">
-                        {mcq.options.map((opt, oIdx) => (
-                          <li key={oIdx} className="text-sm font-medium text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">• {opt}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                {modalTask.type === 'Text' && (
+                  <p className="text-[#1B2559] font-medium whitespace-pre-wrap">{modalTask.content}</p>
+                )}
+
+                {modalTask.type === 'MCQ' && (
+                  <div className="space-y-4">
+                    {modalTask.mcqs.map((mcq, idx) => (
+                      <div key={idx} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                        <p className="font-black text-[#1B2559] mb-3">Q{idx + 1}: {mcq.question}</p>
+                        <ul className="space-y-2">
+                          {mcq.options.map((opt, oIdx) => (
+                            <li key={oIdx} className="text-sm font-medium text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">• {opt}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 2. Status Specific UI (Submit Form OR Grade Result) */}
             {modalTask.status === 'Pending' ? (
@@ -173,6 +207,9 @@ export default function StudentDashboard() {
               </div>
             ) : (
               <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-3xl text-center flex flex-col items-center">
+                {/* 🌟 NEW ADDITION: Disclaimer that original content was removed */}
+                <p className="text-emerald-600 font-bold text-sm mb-4 bg-emerald-100/50 px-4 py-2 rounded-full">Note: Original assignment content has been removed post-grading.</p>
+
                 <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center text-3xl font-black mb-4 shadow-lg shadow-emerald-500/30">
                   {modalTask.grading?.score}
                 </div>
@@ -249,6 +286,22 @@ export default function StudentDashboard() {
                   <p className="text-2xl font-black text-[#1B2559]">{assignments.filter(h => h.status === 'Graded').length}</p>
                 </div>
               </div>
+              
+              {/* 🌟 NEW ADDITION: Average Score Card */}
+              <div className="bg-white px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4">
+                <div className="bg-indigo-50 p-3 rounded-full text-indigo-500">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                </div>
+                <div>
+                  <p className="text-xs font-black text-[#A3AED0] uppercase tracking-wider">Avg Score</p>
+                  <p className="text-2xl font-black text-[#1B2559]">
+                    {assignments.filter(h => h.status === 'Graded').length > 0 ? 
+                      (assignments.filter(h => h.status === 'Graded').reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / assignments.filter(h => h.status === 'Graded').length).toFixed(1) 
+                      : 0}%
+                  </p>
+                </div>
+              </div>
+
             </div>
           </div>
 

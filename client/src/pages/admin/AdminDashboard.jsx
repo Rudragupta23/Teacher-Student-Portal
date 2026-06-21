@@ -18,12 +18,34 @@ export default function AdminDashboard() {
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
+  // 🌟 NEW ADDITION: State for optional answer sheet upload
+  const [answerSheet, setAnswerSheet] = useState({ fileUrl: '', fileName: '', isUploading: false });
+
   // 🌟 NEW: Custom UI States (Toasts & Modals)
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  const [modal, setModal] = useState({ type: null, hwId: null, data: '' }); // types: 'grade', 'extend', 'delete'
+  const [modal, setModal] = useState({ type: null, hwId: null, studentId: null, data: '' }); 
+
+  // 🌟 NEW: Admin Profile & Settings State
+  const [adminProfile, setAdminProfile] = useState({ name: 'Mentor', profilePic: '' });
+  const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '', studentToDelete: '' });
+  const [isProfileUploading, setIsProfileUploading] = useState(false);
 
   useEffect(() => {
+    // 🌟 Extract Profile from token/localStorage
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const savedPic = localStorage.getItem('adminProfilePic') || '';
+        const savedName = localStorage.getItem('adminName') || payload.name || 'Mentor';
+        setAdminProfile({ name: savedName, profilePic: savedPic });
+        setSettingsForm(prev => ({ ...prev, name: savedName, profilePic: savedPic }));
+      } catch (e) {
+        console.error("Could not parse token");
+      }
+    }
     fetchData();
+
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     setMinDateTime(now.toISOString().slice(0, 16));
@@ -71,6 +93,20 @@ export default function AdminDashboard() {
     }
   };
 
+  // 🌟 NEW ADDITION: Handler for answer sheet upload
+  const handleAnswerSheetUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5000000) return showToast("File is too large! Please keep it under 5MB.", "error");
+      setAnswerSheet({ ...answerSheet, fileName: file.name, isUploading: true });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAnswerSheet({ ...answerSheet, fileUrl: reader.result, fileName: file.name, isUploading: false });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAssignSubmit = async (e) => {
     e.preventDefault();
     if (!assignForm.dueDate) return showToast("Please assign a valid Due Date!", "error");
@@ -99,7 +135,13 @@ export default function AdminDashboard() {
     try {
       if (modal.type === 'grade') {
         if (!modal.data || modal.data < 0 || modal.data > 100) return showToast("Enter a valid score (0-100)", "error");
-        await api.put(`/homework/${modal.hwId}/grade`, { score: modal.data });
+        
+        // 🌟 NEW ADDITION: Passing adminAnswerSheetUrl
+        await api.put(`/homework/${modal.hwId}/grade`, { 
+          score: modal.data, 
+          adminAnswerSheetUrl: answerSheet.fileUrl 
+        });
+        
         showToast("Assignment Graded Successfully!");
       } 
       else if (modal.type === 'extend') {
@@ -109,10 +151,20 @@ export default function AdminDashboard() {
       } 
       else if (modal.type === 'delete') {
         await api.delete(`/homework/${modal.hwId}`);
-        showToast("Assignment Deleted.", "error"); // Red toast for delete
+        showToast("Assignment Deleted.", "error"); 
+      }
+      else if (modal.type === 'deleteStudent') {
+        await api.delete(`/admin/students/${modal.studentId}`);
+        showToast("Student Removed Successfully.", "error");
+      }
+      else if (modal.type === 'deleteAnsSheet') {
+        // 🌟 NEW: Deletes the answer sheet from a graded assignment by overwriting it
+        await api.put(`/homework/${modal.hwId}/grade`, { score: modal.data.score, adminAnswerSheetUrl: '' });
+        showToast("Answer Sheet Removed!");
       }
       
-      setModal({ type: null, hwId: null, data: '' });
+      setModal({ type: null, hwId: null, studentId: null, data: '' });
+      setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); 
       fetchData();
     } catch (error) {
       showToast(error.response?.data?.message || "Action failed.", "error");
@@ -123,6 +175,29 @@ export default function AdminDashboard() {
     hw.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
     hw.studentId?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // 🌟 Handle Profile Picture Upload
+  const handleProfilePicUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2000000) return showToast("Profile picture must be under 2MB", "error");
+      setIsProfileUploading(true);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettingsForm(prev => ({ ...prev, profilePic: reader.result }));
+        setIsProfileUploading(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // 🌟 Save Profile Settings to LocalStorage
+  const handleSaveSettings = () => {
+    setAdminProfile({ name: settingsForm.name, profilePic: settingsForm.profilePic });
+    localStorage.setItem('adminName', settingsForm.name);
+    if (settingsForm.profilePic) localStorage.setItem('adminProfilePic', settingsForm.profilePic);
+    showToast("Profile Settings Updated Successfully!");
+  };
 
   return (
     <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
@@ -146,6 +221,14 @@ export default function AdminDashboard() {
                 <p className="text-slate-500 text-sm mb-6">Enter a score out of 100.</p>
                 <input type="number" min="0" max="100" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-black text-2xl text-center mb-6" 
                   value={modal.data} onChange={e => setModal({...modal, data: e.target.value})} placeholder="0 - 100" />
+                  
+                {/* 🌟 NEW ADDITION: Optional Answer Sheet Form */}
+                <p className="text-slate-500 text-sm mb-2 font-bold">Attach Answer Sheet (Optional)</p>
+                <div className="relative border-2 border-dashed border-slate-300 bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer mb-6 group">
+                  <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAnswerSheetUpload} />
+                  <p className="font-bold text-slate-600 text-sm">{answerSheet.fileName ? `📎 ${answerSheet.fileName}` : 'Click to upload PDF/Image'}</p>
+                  {answerSheet.isUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
+                </div>
               </>
             )}
 
@@ -158,23 +241,27 @@ export default function AdminDashboard() {
               </>
             )}
 
-            {modal.type === 'delete' && (
+            {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet') && (
               <>
                 <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mb-4 text-3xl mx-auto">🗑️</div>
-                <h3 className="text-2xl font-black text-slate-800 mb-2 text-center">Delete Assignment?</h3>
-                <p className="text-slate-500 text-sm mb-6 text-center">This action is permanent and cannot be undone.</p>
+                <h3 className="text-2xl font-black text-slate-800 mb-2 text-center">
+                  {modal.type === 'deleteStudent' ? 'Remove Student?' : modal.type === 'deleteAnsSheet' ? 'Delete Answer Sheet?' : 'Delete Assignment?'}
+                </h3>
+                <p className="text-slate-500 text-sm mb-6 text-center">
+                  {modal.type === 'deleteAnsSheet' ? 'This will remove your uploaded answer sheet from this graded assignment.' : 'This action is permanent and cannot be undone.'}
+                </p>
               </>
             )}
 
             <div className="flex gap-4">
-              <button onClick={() => setModal({ type: null, hwId: null, data: '' })} className="flex-1 py-4 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-2xl transition-colors">
+              <button onClick={() => { setModal({ type: null, hwId: null, studentId: null, data: '' }); setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); }} className="flex-1 py-4 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-2xl transition-colors">
                 Cancel
               </button>
               <button onClick={executeModalAction} className={`flex-1 py-4 font-bold rounded-2xl text-white transition-transform hover:-translate-y-1 shadow-lg
-                ${modal.type === 'delete' ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' : 
+                ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' : 
                   modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
                   'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}>
-                {modal.type === 'delete' ? 'Yes, Delete' : 'Confirm'}
+                {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet') ? 'Yes, Delete' : 'Confirm'}
               </button>
             </div>
           </div>
@@ -185,10 +272,15 @@ export default function AdminDashboard() {
       <aside className="w-72 bg-[#0B1437] text-slate-300 flex flex-col justify-between shadow-2xl z-20 hidden lg:flex rounded-r-[2rem] my-4 ml-4">
         <div>
           <div className="p-8 flex items-center gap-4 border-b border-slate-700/50">
-            <div className="bg-gradient-to-tr from-indigo-500 to-purple-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-indigo-500/30">
-              M
-            </div>
+            {adminProfile.profilePic ? (
+              <img src={adminProfile.profilePic} alt="Profile" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-indigo-500/30" />
+            ) : (
+              <div className="bg-gradient-to-tr from-indigo-500 to-purple-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-indigo-500/30">
+                M
+              </div>
+            )}
             <div>
+              {/* 🌟 Reverted back to the hardcoded app name */}
               <h1 className="text-lg font-black text-white tracking-wide leading-tight">MathCom<br/>Mentor</h1>
             </div>
           </div>
@@ -203,6 +295,11 @@ export default function AdminDashboard() {
               ${activeTab === 'students' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
               Student List
+            </button>
+            <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all
+              ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              Settings
             </button>
           </div>
         </div>
@@ -222,7 +319,8 @@ export default function AdminDashboard() {
           {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
             <div>
-              <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, MathCom Mentor 👋</h1>
+              {/* 🌟 dynamically injects your registered name */}
+              <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, {adminProfile.name} 👋</h1>
               <p className="text-[#A3AED0] mt-2 font-bold tracking-wide">Here is what is happening in your classes today.</p>
             </div>
             
@@ -414,8 +512,16 @@ export default function AdminDashboard() {
                           )}
                           
                           {hw.status === 'Graded' && (
-                            <div className="px-6 py-3 bg-emerald-50 text-emerald-700 rounded-2xl font-black border border-emerald-100 text-lg">
-                              {hw.grading.score}/100
+                            <div className="flex items-center gap-2">
+                              <div className="px-6 py-3 bg-emerald-50 text-emerald-700 rounded-2xl font-black border border-emerald-100 text-lg">
+                                {hw.grading.score}/100
+                              </div>
+                              {/* 🌟 NEW: Button to remove the Answer Sheet */}
+                              {hw.grading?.adminAnswerSheetUrl && (
+                                <button onClick={() => setModal({ type: 'deleteAnsSheet', hwId: hw._id, data: { score: hw.grading.score } })} className="p-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-colors shadow-sm text-sm font-bold" title="Delete Answer Sheet">
+                                  Remove Ans Sheet
+                                </button>
+                              )}
                             </div>
                           )}
 
@@ -454,19 +560,40 @@ export default function AdminDashboard() {
                   const completedCount = studentHw.filter(h => h.status === 'Graded').length;
                   const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
 
+                  // 🌟 NEW ADDITION: Calculate Average Score and Progress Bar Width
+                  const gradedHw = studentHw.filter(h => h.status === 'Graded');
+                  const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
+                  const progressWidth = `${avgScore}%`;
+
                   return (
-                    <div key={student._id} className="bg-[#F4F7FE] p-6 rounded-3xl flex items-center gap-6 hover:shadow-lg transition-shadow border border-transparent hover:border-indigo-100">
-                      <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-black text-2xl shadow-md">
-                        {student.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <h3 className="font-black text-[#1B2559] text-xl">{student.name}</h3>
-                        <p className="text-sm font-bold text-[#A3AED0] mb-2">{student.email}</p>
-                        <div className="flex gap-2">
-                          <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-lg">{completedCount} Completed</span>
-                          <span className="bg-amber-100 text-amber-700 text-xs font-black px-2 py-1 rounded-lg">{pendingCount} Review</span>
+                    <div key={student._id} className="bg-[#F4F7FE] p-6 rounded-3xl flex flex-col gap-4 hover:shadow-lg transition-shadow border border-transparent hover:border-indigo-100">
+                      
+                      <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-black text-2xl shadow-md">
+                          {student.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h3 className="font-black text-[#1B2559] text-xl">{student.name}</h3>
+                          <p className="text-sm font-bold text-[#A3AED0] mb-2">{student.email}</p>
+                          <div className="flex gap-2">
+                            <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-lg">{completedCount} Completed</span>
+                            <span className="bg-amber-100 text-amber-700 text-xs font-black px-2 py-1 rounded-lg">{pendingCount} Review</span>
+                          </div>
+                        </div>
+                        
+                        </div>
+
+                      {/* 🌟 NEW ADDITION: Progress Bar based on Avg Score */}
+                      <div className="w-full bg-white p-3 rounded-2xl shadow-sm mt-2">
+                        <div className="flex justify-between text-xs font-black text-[#A3AED0] mb-2">
+                          <span>Average Performance</span>
+                          <span className={avgScore >= 80 ? 'text-emerald-500' : avgScore >= 50 ? 'text-amber-500' : 'text-rose-500'}>{avgScore}%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div className={`h-2 rounded-full ${avgScore >= 80 ? 'bg-emerald-500' : avgScore >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: progressWidth }}></div>
                         </div>
                       </div>
+
                     </div>
                   );
                 })}
@@ -477,6 +604,83 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* 🟢 VIEW 3: SETTINGS TAB (Profile & Danger Zone) */}
+          {activeTab === 'settings' && (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 animate-fade-in">
+              
+              {/* Profile Settings */}
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)]">
+                <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                  <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Profile Settings</h2>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="flex items-center gap-6">
+                    <div className="relative group">
+                      {settingsForm.profilePic ? (
+                        <img src={settingsForm.profilePic} alt="Profile" className="w-24 h-24 rounded-3xl object-cover shadow-md" />
+                      ) : (
+                        <div className="w-24 h-24 bg-slate-100 rounded-3xl flex items-center justify-center text-4xl shadow-md">👤</div>
+                      )}
+                      <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white rounded-3xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                        <input type="file" accept="image/*" className="hidden" onChange={handleProfilePicUpload} />
+                        <span className="text-xs font-bold">Upload</span>
+                      </label>
+                    </div>
+                    <div>
+                      <h3 className="font-black text-[#1B2559]">Profile Picture</h3>
+                      <p className="text-xs font-bold text-[#A3AED0]">JPG, PNG under 2MB</p>
+                      {isProfileUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Display Name</label>
+                    <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559]" 
+                      value={settingsForm.name} onChange={e => setSettingsForm({...settingsForm, name: e.target.value})} />
+                  </div>
+
+                  <button onClick={handleSaveSettings} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-lg transition-transform hover:-translate-y-1">
+                    Save Profile Update
+                  </button>
+                </div>
+              </div>
+
+              {/* Danger Zone: Delete Student */}
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
+                <div className="flex items-center gap-3 mb-8 border-b border-rose-100 pb-6">
+                  <div className="bg-rose-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-rose-600">Danger Zone</h2>
+                </div>
+
+                <div className="space-y-6">
+                  <p className="text-sm font-bold text-slate-500">Remove a student from the platform. This action is permanent and deletes all their coursework.</p>
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-rose-400 uppercase tracking-wide">Select Student to Delete</label>
+                    <select className="w-full p-4 bg-rose-50 text-rose-900 border border-rose-100 rounded-2xl outline-none focus:ring-4 focus:ring-rose-500/20 font-bold" 
+                      value={settingsForm.studentToDelete} onChange={e => setSettingsForm({...settingsForm, studentToDelete: e.target.value})}>
+                      <option value="">-- Choose a Student --</option>
+                      {students.map(s => <option key={s._id} value={s._id}>{s.name} ({s.email})</option>)}
+                    </select>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      if (!settingsForm.studentToDelete) return showToast("Select a student first!", "error");
+                      setModal({ type: 'deleteStudent', studentId: settingsForm.studentToDelete, data: '' });
+                    }} 
+                    className="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white font-black rounded-2xl shadow-lg transition-transform hover:-translate-y-1"
+                  >
+                    Delete Selected Student
+                  </button>
+                </div>
+              </div>
+
             </div>
           )}
 
