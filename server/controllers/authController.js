@@ -43,7 +43,12 @@ exports.register = async (req, res) => {
 
     // Create User (Unverified)
     const user = await User.create({
-      name, email, password: hashedPassword, phone: cleanPhone, role,
+      name, 
+      registrationName: name, // 🌟 NEW: Save original name here
+      email, 
+      password: hashedPassword, 
+      phone: cleanPhone, 
+      role,
       classCode: role === 'admin' ? process.env.ADMIN_CLASS_CODE : classCode,
       isVerified: false,
       otp,
@@ -231,14 +236,15 @@ exports.updateProfile = async (req, res) => {
     
     if (!user) return res.status(404).json({ message: 'User not found' });
     
-    if (name) user.name = name;
+    // 🌟 Only update the display 'name'. 'registrationName' stays the same forever.
+    if (name) user.name = name; 
     if (profilePic !== undefined) {
       user.profilePic = profilePic;
-      user.markModified('profilePic'); // Force MongoDB to save the large base64 image
+      user.markModified('profilePic');
     }
     
     await user.save();
-    res.status(200).json({ message: 'Profile saved to database successfully!', user });
+    res.status(200).json({ message: 'Profile saved!', user });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

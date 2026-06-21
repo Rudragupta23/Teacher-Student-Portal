@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+  name: { type: String, required: true }, // This is the "Display Name" (can be updated)
+  registrationName: { type: String },    // 🌟 NEW: The original name at signup
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },  
   isVerified: { type: Boolean, default: false }, 

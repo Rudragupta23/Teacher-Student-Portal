@@ -667,7 +667,9 @@ export default function AdminDashboard() {
                           {student.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <h3 className="font-black text-[#1B2559] text-xl">{student.name}</h3>
+                          <h3 className="font-black text-[#1B2559] text-xl">
+                            {student.registrationName || student.name}
+                          </h3>
                           <p className="text-sm font-bold text-[#A3AED0] mb-2">{student.email}</p>
                           <div className="flex gap-2">
                             <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-lg">{completedCount} Completed</span>
