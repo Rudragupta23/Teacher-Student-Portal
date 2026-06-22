@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import html2canvas from 'html2canvas';
 
 export default function AdminDashboard() {
   // Navigation & Data State
@@ -11,6 +12,7 @@ export default function AdminDashboard() {
   const [homeworks, setHomeworks] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [minDateTime, setMinDateTime] = useState('');
+  const [selectedStudentForChart, setSelectedStudentForChart] = useState('all');
 
   // Form State
   const [assignForm, setAssignForm] = useState({
@@ -262,21 +264,20 @@ export default function AdminDashboard() {
     
     showToast("Grades successfully exported to CSV!");
   };
-  // 🌟 NEW: Export Student Grades to PDF
-  const handleExportPDF = () => {
+  // 🌟 UPDATED: Export Student Grades AND Charts to PDF
+  const handleExportPDF = async () => { // Note the 'async' here
     if (students.length === 0) return showToast("No students to export", "error");
 
     try {
       const doc = new jsPDF();
       
-      // Add a Title
+      // 1. Generate the Table (Same as before)
       doc.setFontSize(18);
       doc.text("Student Performance Report", 14, 22);
       doc.setFontSize(11);
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-      // Prepare Data for the Table
       const tableColumn = ["Student Name", "Email", "Completed Tasks", "Pending Review", "Avg Score (%)"];
       const tableRows = [];
 
@@ -288,28 +289,40 @@ export default function AdminDashboard() {
         const gradedHw = studentHw.filter(h => h.status === 'Graded');
         const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : "0.0";
 
-        const studentData = [
-          student.name,
-          student.email,
-          completedCount.toString(),
-          pendingCount.toString(),
-          `${avgScore}%`
-        ];
-        tableRows.push(studentData);
+        tableRows.push([student.name, student.email, completedCount.toString(), pendingCount.toString(), `${avgScore}%`]);
       });
 
-      // 👇 UPDATE: Use the autoTable function directly
       autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
         startY: 40,
         theme: 'grid',
-        headStyles: { fillColor: [79, 70, 229] }, // Indigo-600 color
+        headStyles: { fillColor: [79, 70, 229] },
       });
 
-      // Save the PDF
-      doc.save(`Student_Grades_${new Date().toISOString().split('T')[0]}.pdf`);
-      showToast("Grades successfully exported to PDF!");
+      // 2. NEW: Capture and Append Charts if they exist in the DOM
+      const chartContainer = document.getElementById('analytics-export-area');
+      
+      if (chartContainer) {
+        // Add a new page for the charts
+        doc.addPage();
+        doc.setFontSize(18);
+        doc.setTextColor(27, 37, 89);
+        doc.text("Visual Analytics", 14, 22);
+
+        // Take a screenshot of the charts
+        const canvas = await html2canvas(chartContainer, { scale: 2, backgroundColor: '#ffffff' });
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Calculate image dimensions to fit A4 paper perfectly
+        const pdfWidth = 190; // mm
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        doc.addImage(imgData, 'PNG', 10, 30, pdfWidth, pdfHeight);
+      }
+
+      doc.save(`Student_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      showToast(chartContainer ? "Grades & Charts successfully exported!" : "Grades exported! (Go to Analytics tab to include charts)");
     } catch (error) {
       console.error("PDF Export Error:", error);
       showToast("Error generating PDF. Check console.", "error");
@@ -912,42 +925,105 @@ export default function AdminDashboard() {
           )}
 
           {/* 🟢 VIEW 4: ANALYTICS TAB */}
-          {activeTab === 'analytics' && (
-            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="bg-sky-500 w-2 h-8 rounded-full"></div>
-                <h2 className="text-2xl font-black text-[#1B2559]">Class Performance Analytics</h2>
-              </div>
+          {activeTab === 'analytics' && (() => {
+            // Calculate Pie Chart Data based on dropdown selection
+            const studentHwForPie = selectedStudentForChart === 'all' 
+              ? homeworks 
+              : homeworks.filter(h => h.studentId?._id === selectedStudentForChart);
               
-              <div className="mb-6">
-                <p className="text-slate-500 font-bold">Average Scores per Assignment Topic (Graded Only)</p>
-              </div>
+            const pieData = [
+              { name: 'Completed & Graded', value: studentHwForPie.filter(h => h.status === 'Graded').length, color: '#10B981' }, 
+              { name: 'Submitted (Pending Review)', value: studentHwForPie.filter(h => h.status === 'Submitted').length, color: '#F59E0B' }, 
+              { name: 'Pending Work', value: studentHwForPie.filter(h => h.status === 'Pending').length, color: '#EF4444' } 
+            ].filter(d => d.value > 0);
 
-              {chartData.length > 0 ? (
-                <div className="h-[400px] w-full pt-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600 }} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600 }} domain={[0, 100]} dx={-10} />
-                      <Tooltip 
-                        cursor={{ fill: '#F4F7FE' }} 
-                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', fontWeight: 'bold' }}
-                      />
-                      <Legend wrapperStyle={{ paddingTop: '20px', fontWeight: 'bold' }} />
-                      <Bar dataKey="avgScore" name="Average Score (%)" fill="#4F46E5" radius={[8, 8, 0, 0]} barSize={50} />
-                    </BarChart>
-                  </ResponsiveContainer>
+            return (
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+                
+                {/* Header & Export Button */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-sky-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Class Performance Analytics</h2>
+                  </div>
+                  <button onClick={handleExportPDF} className="px-5 py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center gap-2 border border-indigo-100">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Export Full PDF Report
+                  </button>
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-[350px] text-center bg-[#F4F7FE] rounded-3xl mt-4">
-                  <div className="text-6xl mb-4 opacity-50">📊</div>
-                  <p className="text-[#1B2559] font-black text-xl mb-2">Not enough data yet</p>
-                  <p className="text-[#A3AED0] font-bold">Grade some assignments in the Dashboard to see class performance charts here.</p>
+
+                {/* 🌟 The Area html2canvas will Screenshot for the PDF */}
+                <div id="analytics-export-area" className="space-y-8 bg-white p-2">
+                  
+                  {/* BAR CHART SECTION */}
+                  <div className="bg-[#F4F7FE]/50 p-6 rounded-3xl border border-slate-100">
+                    <div className="mb-6">
+                      <h3 className="text-xl font-black text-[#1B2559]">Average Scores per Assignment</h3>
+                      <p className="text-slate-500 text-sm font-bold mt-1">Class average for graded topics.</p>
+                    </div>
+                    {chartData.length > 0 ? (
+                      <div className="h-[350px] w-full pt-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600 }} dy={10} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600 }} domain={[0, 100]} dx={-10} />
+                            <Tooltip cursor={{ fill: '#F4F7FE' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', fontWeight: 'bold' }} />
+                            <Legend wrapperStyle={{ paddingTop: '20px', fontWeight: 'bold' }} />
+                            <Bar dataKey="avgScore" name="Average Score (%)" fill="#4F46E5" radius={[8, 8, 0, 0]} barSize={50} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-[250px] text-center opacity-50">
+                        <p className="font-bold text-[#1B2559]">Not enough graded data yet.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PIE CHART SECTION */}
+                  <div className="bg-[#F4F7FE]/50 p-6 rounded-3xl border border-slate-100">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                      <div>
+                        <h3 className="text-xl font-black text-[#1B2559]">Task Completion Breakdown</h3>
+                        <p className="text-slate-500 text-sm font-bold mt-1">View status distribution by individual student.</p>
+                      </div>
+                      
+                      {/* Individual Student Filter Dropdown */}
+                      <select 
+                        className="p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559] min-w-[200px]"
+                        value={selectedStudentForChart}
+                        onChange={e => setSelectedStudentForChart(e.target.value)}
+                      >
+                        <option value="all">Entire Class</option>
+                        {students.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                    
+                    {pieData.length > 0 ? (
+                      <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={pieData} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={5} dataKey="value"
+                              label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                              {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                            </Pie>
+                            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontWeight: 'bold' }} />
+                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontWeight: 'bold' }}/>
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-[200px] text-center opacity-50">
+                        <p className="font-bold text-[#1B2559]">No tasks assigned yet.</p>
+                      </div>
+                    )}
+                  </div>
+
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            );
+          })()}
 
         </div>
       </div>
