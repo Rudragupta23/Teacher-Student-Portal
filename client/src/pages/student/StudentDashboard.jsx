@@ -24,12 +24,43 @@ export default function StudentDashboard() {
   const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '' });
   const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [userId, setUserId] = useState(null); // 🌟 ADDED USER ID STATE
+  const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
     fetchAssignments();
-    fetchProfile(); // 🌟 Fetch directly from the Database
+    fetchProfile(); 
+    fetchAnnouncements(); // 🌟 NEW: Fetch announcements on load
     
+    // 🌟 NEW: Extract userId from token so we know who is reading the notice
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUserId(payload.id);
+      } catch (e) {
+        console.error("Could not parse token");
+      }
+    }
   }, []);
+  // 👇 NEW: Function to fetch announcements
+  const fetchAnnouncements = async () => {
+    try {
+      const res = await api.get('/announcements/student');
+      setAnnouncements(res.data);
+    } catch (error) {
+      console.error("Error fetching announcements");
+    }
+  };
+
+  // 👇 NEW: Function to mark announcement as read
+  const markAnnouncementAsRead = async (id) => {
+    try {
+      await api.put(`/announcements/${id}/read`);
+      fetchAnnouncements(); // Refresh the list to update the UI
+    } catch(e) {
+      console.error("Error marking as read");
+    }
+  };
 
   const fetchProfile = async () => {
     setIsLoading(true); // 🌟 Set to loading when starting
@@ -348,6 +379,10 @@ export default function StudentDashboard() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
               My Assignments
             </button>
+            <button onClick={() => setActiveTab('announcements')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+              Notice Board
+            </button>
             <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
               Settings
@@ -521,6 +556,55 @@ export default function StudentDashboard() {
                     Save Profile Update
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+        {/* 🟢 STUDENT VIEW: ANNOUNCEMENTS TAB (👇 NEW CODE HERE) */}
+          {activeTab === 'announcements' && (
+            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+              <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                <div className="bg-amber-500 w-2 h-8 rounded-full"></div>
+                <h2 className="text-2xl font-black text-[#1B2559]">Notice Board 📢</h2>
+              </div>
+              
+              <div className="space-y-6">
+                {announcements.map(ann => {
+                  const isRead = ann.readBy.includes(userId); 
+                  
+                  return (
+                    <div key={ann._id} className={`p-6 rounded-3xl border-2 transition-all ${isRead ? 'bg-[#F4F7FE] border-transparent' : 'bg-amber-50 border-amber-200 shadow-md'}`}>
+                      <div className="flex justify-between items-start mb-4">
+                        <span className="text-xs font-bold text-[#A3AED0]">{new Date(ann.createdAt).toLocaleString()}</span>
+                        {!isRead && <span className="bg-rose-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider animate-pulse">New Notice</span>}
+                      </div>
+                      
+                      <p className="text-[#1B2559] font-black whitespace-pre-wrap mb-4 text-lg">{ann.content}</p>
+                      
+                      {ann.imageUrl && (
+                        <img src={ann.imageUrl} alt="Announcement" className="w-full max-w-md rounded-2xl mb-4 border-4 border-white shadow-sm" />
+                      )}
+                      
+                      {!isRead ? (
+                        <button onClick={() => markAnnouncementAsRead(ann._id)} className="mt-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl transition-transform hover:-translate-y-1 shadow-lg text-sm flex items-center gap-2">
+                          Mark as Read ✓
+                        </button>
+                      ) : (
+                        <p className="mt-2 text-emerald-500 text-sm font-black flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                          Acknowledged
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+                
+                {announcements.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-[300px] text-center">
+                    <div className="text-6xl mb-4 opacity-50">📢</div>
+                    <p className="text-[#1B2559] font-black text-xl mb-1">All caught up!</p>
+                    <p className="text-[#A3AED0] font-bold">No new announcements from your mentor.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

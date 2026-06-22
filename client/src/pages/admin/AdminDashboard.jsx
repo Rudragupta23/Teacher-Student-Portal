@@ -13,6 +13,9 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [minDateTime, setMinDateTime] = useState('');
   const [selectedStudentForChart, setSelectedStudentForChart] = useState('all');
+  const [announcements, setAnnouncements] = useState([]);
+  const [announcementForm, setAnnouncementForm] = useState({ content: '', targetAudience: 'all', imageUrl: '' });
+  const [isAnnounceUploading, setIsAnnounceUploading] = useState(false);
 
   // Form State
   const [assignForm, setAssignForm] = useState({
@@ -77,14 +80,53 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const [studentRes, hwRes] = await Promise.all([
+      const [studentRes, hwRes, annRes] = await Promise.all([
         api.get('/admin/students'),
-        api.get('/homework/admin')
+        api.get('/homework/admin'),
+        api.get('/announcements/admin') // 🌟 ADDED THIS LINE
       ]);
       setStudents(studentRes.data);
       setHomeworks(hwRes.data);
+      setAnnouncements(annRes.data); // 🌟 ADDED THIS LINE
     } catch (error) {
       showToast("Error fetching dashboard data.", "error");
+    }
+  };
+
+  const handleAnnounceImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5000000) return showToast("Image too large (Max 5MB)", "error");
+      setIsAnnounceUploading(true);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAnnouncementForm({ ...announcementForm, imageUrl: reader.result });
+        setIsAnnounceUploading(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAnnouncementSubmit = async (e) => {
+    e.preventDefault();
+    if (!announcementForm.content) return showToast("Message content is required", "error");
+    try {
+      await api.post('/announcements', announcementForm);
+      showToast("📢 Announcement Broadcasted Successfully!");
+      setAnnouncementForm({ content: '', targetAudience: 'all', imageUrl: '' });
+      fetchData();
+    } catch (err) {
+      showToast("Failed to post announcement", "error");
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id) => {
+    try {
+      await api.delete(`/announcements/${id}`);
+      showToast("Announcement deleted", "error");
+      fetchData();
+    } catch(e) {
+      showToast("Failed to delete", "error");
     }
   };
 
@@ -493,14 +535,18 @@ export default function AdminDashboard() {
             <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all
               ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-              Assignments Hub
+              Publish Assignments 
             </button>
             <button onClick={() => setActiveTab('students')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all
               ${activeTab === 'students' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
               Student List
             </button>
-            {/* 👇 NEW: Analytics Sidebar Button */}
+            <button onClick={() => setActiveTab('announcements')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all
+              ${activeTab === 'announcements' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+              Announcements
+            </button>
             <button onClick={() => setActiveTab('analytics')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all
               ${activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -923,7 +969,89 @@ export default function AdminDashboard() {
 
             </div>
           )}
+          {/* 🟢 VIEW 3.5: ANNOUNCEMENTS TAB */}
+          {activeTab === 'announcements' && (
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
+              {/* Post Form */}
+              <div className="xl:col-span-5 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="bg-amber-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Post Announcement</h2>
+                </div>
+                
+                <form onSubmit={handleAnnouncementSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Message Content</label>
+                    <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559] min-h-[140px]" 
+                      placeholder="e.g., Tomorrow's class is rescheduled..." required value={announcementForm.content}
+                      onChange={e => setAnnouncementForm({...announcementForm, content: e.target.value})} />
+                  </div>
 
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Target Audience</label>
+                    <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+                      value={announcementForm.targetAudience} onChange={e => setAnnouncementForm({...announcementForm, targetAudience: e.target.value})}>
+                      <option value="all">📢 Share to Everyone</option>
+                      {students.map(s => <option key={s._id} value={s._id}>👤 {s.name}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Attach Image (Optional)</label>
+                    <div className="relative border-2 border-dashed border-slate-300 bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer group">
+                      <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAnnounceImageUpload} />
+                      <p className="font-bold text-slate-600 text-sm">{announcementForm.imageUrl ? '✅ Image Attached' : 'Click to upload Image'}</p>
+                      {isAnnounceUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
+                    </div>
+                  </div>
+
+                  <button className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-4 rounded-2xl transition-transform hover:-translate-y-1 shadow-lg text-lg">
+                    Broadcast Message
+                  </button>
+                </form>
+              </div>
+
+              {/* History & Read Receipts */}
+              <div className="xl:col-span-7 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
+                <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                  <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Notice Board History</h2>
+                </div>
+                
+                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                  {announcements.map(ann => (
+                    <div key={ann._id} className="p-6 bg-[#F4F7FE] rounded-3xl relative group border border-transparent hover:border-indigo-100 transition-colors">
+                      <button type="button" onClick={() => handleDeleteAnnouncement(ann._id)} className="absolute top-4 right-4 w-8 h-8 bg-white text-rose-500 hover:bg-rose-500 hover:text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-sm">🗑️</button>
+                      
+                      <div className="flex gap-2 mb-3">
+                        <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                          {ann.targetAudience === 'all' ? 'Everyone' : 'Specific Student'}
+                        </span>
+                        <span className="text-xs font-bold text-[#A3AED0] flex items-center">{new Date(ann.createdAt).toLocaleString()}</span>
+                      </div>
+                      
+                      <p className="text-[#1B2559] font-bold whitespace-pre-wrap mb-4 text-lg">{ann.content}</p>
+                      
+                      {ann.imageUrl && (
+                        <img src={ann.imageUrl} alt="Announcement" className="w-full max-w-sm rounded-xl mb-4 border-4 border-white shadow-sm" />
+                      )}
+                      
+                      <div className="pt-4 border-t border-slate-200">
+                        <p className="text-xs font-black text-emerald-600 mb-2">Read by {ann.readBy.length} student(s):</p>
+                        <div className="flex flex-wrap gap-2">
+                          {ann.readBy.map(student => (
+                            <span key={student._id} className="bg-white text-slate-700 text-xs px-2 py-1 rounded-md font-bold shadow-sm">{student.name}</span>
+                          ))}
+                          {ann.readBy.length === 0 && <span className="text-slate-400 text-xs font-bold">No reads yet</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {announcements.length === 0 && <p className="text-center text-[#A3AED0] font-bold py-10">No announcements posted yet.</p>}
+                </div>
+              </div>
+            </div>
+          )}
           {/* 🟢 VIEW 4: ANALYTICS TAB */}
           {activeTab === 'analytics' && (() => {
             // Calculate Pie Chart Data based on dropdown selection

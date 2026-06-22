@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const announcementRoutes = require('./routes/announcementRoutes');
 
 // Connect to Database
 connectDB();
@@ -25,9 +26,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/student', require('./routes/studentRoutes'));
 app.use('/api/homework', require('./routes/homeworkRoutes'));
-// We will add admin and student routes here later
-// app.use('/api/admin', require('./routes/adminRoutes'));
-// app.use('/api/student', require('./routes/studentRoutes'));
+app.use('/api/announcements', announcementRoutes);
 
 const PORT = process.env.PORT || 5000;
 
