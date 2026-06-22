@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
   // Navigation & Data State
@@ -314,6 +315,22 @@ export default function AdminDashboard() {
       showToast("Error generating PDF. Check console.", "error");
     }
   };
+  // 🌟 NEW: Calculate Data for Analytics Chart
+  const chartData = Object.values(homeworks.reduce((acc, hw) => {
+    // Only include graded assignments that have a score
+    if (hw.status === 'Graded' && hw.grading?.score != null) {
+      if (!acc[hw.title]) {
+        acc[hw.title] = { title: hw.title, totalScore: 0, count: 0 };
+      }
+      acc[hw.title].totalScore += hw.grading.score;
+      acc[hw.title].count += 1;
+    }
+    return acc;
+  }, {})).map(item => ({
+    // Shorten very long titles so they fit on the chart axis
+    name: item.title.length > 15 ? item.title.substring(0, 15) + '...' : item.title,
+    avgScore: Number((item.totalScore / item.count).toFixed(1))
+  }));
 
     return (
       <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
@@ -469,6 +486,12 @@ export default function AdminDashboard() {
               ${activeTab === 'students' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
               Student List
+            </button>
+            {/* 👇 NEW: Analytics Sidebar Button */}
+            <button onClick={() => setActiveTab('analytics')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all
+              ${activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+              Analytics
             </button>
             <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all
               ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
@@ -885,6 +908,44 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+            </div>
+          )}
+
+          {/* 🟢 VIEW 4: ANALYTICS TAB */}
+          {activeTab === 'analytics' && (
+            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="bg-sky-500 w-2 h-8 rounded-full"></div>
+                <h2 className="text-2xl font-black text-[#1B2559]">Class Performance Analytics</h2>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-slate-500 font-bold">Average Scores per Assignment Topic (Graded Only)</p>
+              </div>
+
+              {chartData.length > 0 ? (
+                <div className="h-[400px] w-full pt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600 }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600 }} domain={[0, 100]} dx={-10} />
+                      <Tooltip 
+                        cursor={{ fill: '#F4F7FE' }} 
+                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', fontWeight: 'bold' }}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: '20px', fontWeight: 'bold' }} />
+                      <Bar dataKey="avgScore" name="Average Score (%)" fill="#4F46E5" radius={[8, 8, 0, 0]} barSize={50} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[350px] text-center bg-[#F4F7FE] rounded-3xl mt-4">
+                  <div className="text-6xl mb-4 opacity-50">📊</div>
+                  <p className="text-[#1B2559] font-black text-xl mb-2">Not enough data yet</p>
+                  <p className="text-[#A3AED0] font-bold">Grade some assignments in the Dashboard to see class performance charts here.</p>
+                </div>
+              )}
             </div>
           )}
 
