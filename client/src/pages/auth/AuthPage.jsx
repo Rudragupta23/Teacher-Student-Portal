@@ -270,7 +270,7 @@ const AuthPage = () => {
               {(view === 'login' || view === 'signup') && (
                 <motion.div variants={itemVariants} className="relative group">
                   <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
-                  <input type="password" name="password" value={formData.password} placeholder="Password" required onChange={handleChange}
+                  <input type="password" name="password" value={formData.password} placeholder={view === 'signup' ? 'Set password' : 'Enter your password'} required onChange={handleChange}
                     className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
                 </motion.div>
               )}

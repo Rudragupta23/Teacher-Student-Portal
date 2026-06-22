@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function AdminDashboard() {
   // Navigation & Data State
@@ -224,6 +226,94 @@ export default function AdminDashboard() {
       showToast("Failed to save profile", "error");
     }
   };
+  
+  // 🌟 NEW: Export Student Grades to CSV
+  const handleExportCSV = () => {
+    if (students.length === 0) return showToast("No students to export", "error");
+
+    // Create CSV Headers
+    const headers = ["Student Name", "Email", "Completed Tasks", "Pending Review", "Average Score (%)"];
+    
+    // Generate Rows
+    const rows = students.map(student => {
+      const studentHw = homeworks.filter(h => h.studentId?._id === student._id);
+      const completedCount = studentHw.filter(h => h.status === 'Graded').length;
+      const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
+      
+      const gradedHw = studentHw.filter(h => h.status === 'Graded');
+      const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
+
+      // Wrap strings in quotes to handle commas inside names
+      return `"${student.name}","${student.email}",${completedCount},${pendingCount},${avgScore}`;
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    // Trigger Download
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Student_Grades_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast("Grades successfully exported to CSV!");
+  };
+  // 🌟 NEW: Export Student Grades to PDF
+  const handleExportPDF = () => {
+    if (students.length === 0) return showToast("No students to export", "error");
+
+    try {
+      const doc = new jsPDF();
+      
+      // Add a Title
+      doc.setFontSize(18);
+      doc.text("Student Performance Report", 14, 22);
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+
+      // Prepare Data for the Table
+      const tableColumn = ["Student Name", "Email", "Completed Tasks", "Pending Review", "Avg Score (%)"];
+      const tableRows = [];
+
+      students.forEach(student => {
+        const studentHw = homeworks.filter(h => h.studentId?._id === student._id);
+        const completedCount = studentHw.filter(h => h.status === 'Graded').length;
+        const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
+        
+        const gradedHw = studentHw.filter(h => h.status === 'Graded');
+        const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : "0.0";
+
+        const studentData = [
+          student.name,
+          student.email,
+          completedCount.toString(),
+          pendingCount.toString(),
+          `${avgScore}%`
+        ];
+        tableRows.push(studentData);
+      });
+
+      // 👇 UPDATE: Use the autoTable function directly
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 40,
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229] }, // Indigo-600 color
+      });
+
+      // Save the PDF
+      doc.save(`Student_Grades_${new Date().toISOString().split('T')[0]}.pdf`);
+      showToast("Grades successfully exported to PDF!");
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      showToast("Error generating PDF. Check console.", "error");
+    }
+  };
 
     return (
       <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
@@ -363,6 +453,9 @@ export default function AdminDashboard() {
             <div>
               {/* 🌟 Reverted back to the hardcoded app name */}
               <h1 className="text-lg font-black text-white tracking-wide leading-tight">MathCom<br/>Mentor</h1>
+              <p className="text-xs font-bold text-indigo-300 mt-1.5 tracking-widest uppercase bg-slate-800/80 inline-block px-2 py-1 rounded-md border border-slate-700">
+                Code: MATH_2026
+              </p>
             </div>
           </div>
           
@@ -642,9 +735,24 @@ export default function AdminDashboard() {
           {/* 🟢 VIEW 2: STUDENT LIST TAB */}
           {activeTab === 'students' && (
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="bg-purple-500 w-2 h-8 rounded-full"></div>
-                <h2 className="text-2xl font-black text-[#1B2559]">Enrolled Students Roster</h2>
+              {/* 👇 NEW: Added Flex between and Export Button */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-purple-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Enrolled Students Roster</h2>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  {/* 👇 UPDATED: Added hover:bg-slate-700 hover:text-white */}
+                  <button onClick={handleExportCSV} className="px-5 py-3 bg-slate-50 text-slate-700 hover:bg-slate-700 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center gap-2 border border-slate-200">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Export CSV
+                  </button>
+                  <button onClick={handleExportPDF} className="px-5 py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center gap-2 border border-indigo-100">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Export PDF
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
