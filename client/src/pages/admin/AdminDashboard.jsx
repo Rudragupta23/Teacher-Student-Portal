@@ -982,13 +982,13 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 animate-fade-in">
               
               {/* Profile Settings */}
-              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)]">
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex flex-col">
                 <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
                   <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
                   <h2 className="text-2xl font-black text-[#1B2559]">Profile Settings</h2>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-6 flex flex-col h-full">
                   <div className="flex items-center gap-6">
                     <div className="relative group">
                       {settingsForm.profilePic ? (
@@ -1021,23 +1021,39 @@ export default function AdminDashboard() {
               </div>
 
               {/* Danger Zone: Delete Student */}
-              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex flex-col">
                 <div className="flex items-center gap-3 mb-8 border-b border-rose-100 pb-6">
                   <div className="bg-rose-500 w-2 h-8 rounded-full"></div>
                   <h2 className="text-2xl font-black text-rose-600">Danger Zone</h2>
                 </div>
 
-                <div className="space-y-6">
-                  <p className="text-sm font-bold text-slate-500">Remove a student from the platform. This action is permanent and deletes all their coursework.</p>
+                <div className="space-y-6 flex flex-col h-full">
+                  <p className="text-sm font-bold text-slate-500">Deleting a student will permanently remove all work. </p>
                   
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-rose-400 uppercase tracking-wide">Select Student to Delete</label>
-                    <select className="w-full p-4 bg-rose-50 text-rose-900 border border-rose-100 rounded-2xl outline-none focus:ring-4 focus:ring-rose-500/20 font-bold" 
-                      value={settingsForm.studentToDelete} onChange={e => setSettingsForm({...settingsForm, studentToDelete: e.target.value})}>
-                      <option value="">-- Choose a Student --</option>
-                      {students.map(s => <option key={s._id} value={s._id}>{s.name} ({s.email})</option>)}
-                    </select>
-                  </div>
+  <label className="text-xs font-black text-rose-400 uppercase tracking-wide">
+    Select a Student to Delete
+  </label>
+  <select
+    className="w-full p-4 bg-rose-50 text-rose-900 border border-rose-100 rounded-2xl outline-none focus:ring-4 focus:ring-rose-500/20 font-bold"
+    value={settingsForm.studentToDelete}
+    onChange={e => setSettingsForm({...settingsForm, studentToDelete: e.target.value})}
+  >
+    <option value="">-- Choose a Student --</option>
+    {students.map(s => (
+      <option key={s._id} value={s._id}>
+        {s.name} ({s.email})
+      </option>
+    ))}
+  </select>
+</div>
+
+<div className="bg-rose-50 border border-rose-100 rounded-2xl p-4">
+  <p className="text-sm font-semibold text-rose-700">
+    Warning: This action
+    cannot be undone.
+  </p>
+</div>
 
                   <button 
                     onClick={() => {
@@ -1046,6 +1062,7 @@ export default function AdminDashboard() {
                     }} 
                     className="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white font-black rounded-2xl shadow-lg transition-transform hover:-translate-y-1"
                   >
+                    
                     Delete Selected Student
                   </button>
                 </div>
