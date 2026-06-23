@@ -254,9 +254,27 @@ export default function AdminDashboard() {
     try {
       if (modal.type === 'grade') {
         const hasScores = modal.data.score !== '' && modal.data.totalScore !== '';
+        
         if (!hasScores && !answerSheet.fileUrl) {
           return showToast("Enter marks or attach marked work!", "error");
         }
+
+        // --- NEW VALIDATION CHECK ---
+        if (hasScores) {
+          const earned = Number(modal.data.score);
+          const total = Number(modal.data.totalScore);
+          
+          if (earned < 0 || total < 0) {
+            return showToast("Scores cannot be negative numbers!", "error");
+          }
+          if (total === 0) {
+            return showToast("Total score cannot be zero!", "error");
+          }
+          if (earned > total) {
+            return showToast("Score cannot be greater than the total score!", "error");
+          }
+        }
+        // -----------------------------
         
         await api.put(`/homework/${modal.hwId}/grade`, { 
           score: modal.data.score !== '' ? Number(modal.data.score) : null, 
@@ -265,7 +283,7 @@ export default function AdminDashboard() {
         });
         
         showToast("Assignment Graded/Updated Successfully!");
-      } 
+      }
       else if (modal.type === 'extend') {
         if (!modal.data) return showToast("Select a valid date!", "error");
         await api.put(`/homework/${modal.hwId}/extend`, { newDueDate: modal.data });
@@ -808,7 +826,11 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                             </span>
                           </div>
                           
-                          <p className="text-sm text-[#A3AED0] font-bold mb-4">Assigned to: <span className="font-black text-[#1B2559]">{hw.studentId?.name || "Deleted User"}</span></p>
+                          <p className="text-sm text-[#A3AED0] font-bold mb-4">
+                          Assigned to: <span className="font-black text-[#1B2559]">
+                          {hw.studentId ? `${hw.studentId.registrationName || hw.studentId.name} ${hw.studentId.yearGroup ? `- ${hw.studentId.yearGroup}` : ''}` : "Deleted User"}
+                          </span>
+                          </p>
                           
                           <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1.5 bg-[#F4F7FE] text-[#A3AED0] px-3 py-1.5 rounded-xl text-xs font-black">
@@ -1132,7 +1154,9 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         <p className="text-xs font-black text-emerald-600 mb-2">Read by {ann.readBy.length} student(s):</p>
                         <div className="flex flex-wrap gap-2">
                           {ann.readBy.map(student => (
-                            <span key={student._id} className="bg-white text-slate-700 text-xs px-2 py-1 rounded-md font-bold shadow-sm">{student.name}</span>
+                            <span key={student._id} className="bg-white text-slate-700 text-xs px-2 py-1 rounded-md font-bold shadow-sm">
+                              {student.registrationName || student.name} {student.yearGroup ? `- ${student.yearGroup}` : ''}
+                            </span>
                           ))}
                           {ann.readBy.length === 0 && <span className="text-slate-400 text-xs font-bold">No reads yet</span>}
                         </div>
@@ -1214,7 +1238,11 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         onChange={e => setSelectedStudentForChart(e.target.value)}
                       >
                         <option value="all">Entire Class</option>
-                        {students.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                        {students.map(s => (
+                          <option key={s._id} value={s._id}>
+                            {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     

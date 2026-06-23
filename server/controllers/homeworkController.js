@@ -44,9 +44,7 @@ exports.assignHomework = async (req, res) => {
 
 exports.getAdminHomework = async (req, res) => {
   try {
-    const homeworks = await Homework.find()
-                                    .populate('studentId', 'name email') // Gets student details
-                                    .sort({ createdAt: -1 }); // Newest first
+    const homeworks = await Homework.find().populate('studentId', 'name email registrationName yearGroup').sort({ createdAt: -1 });
     res.status(200).json(homeworks);
   } catch (error) {
     res.status(500).json({ message: error.message });

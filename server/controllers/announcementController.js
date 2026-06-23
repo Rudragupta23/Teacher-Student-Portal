@@ -13,7 +13,7 @@ exports.createAnnouncement = async (req, res) => {
 
 exports.getAdminAnnouncements = async (req, res) => {
     try {
-        const announcements = await Announcement.find().populate('readBy', 'name').sort({ createdAt: -1 });
+        const announcements = await Announcement.find().populate('readBy', 'name registrationName yearGroup').sort({ createdAt: -1 });
         res.status(200).json(announcements);
     } catch (error) {
         res.status(500).json({ message: "Error fetching announcements" });
