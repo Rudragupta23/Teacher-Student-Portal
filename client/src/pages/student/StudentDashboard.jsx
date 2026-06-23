@@ -26,9 +26,10 @@ export default function StudentDashboard() {
   const [userId, setUserId] = useState(null); 
   const [announcements, setAnnouncements] = useState([]);
 
-  // Chat States
+// Chat States
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
+  const [chatRoom, setChatRoom] = useState('admin'); // NEW: Tracks Mentor vs Global Chat
 
   // Study Library States
   const [resources, setResources] = useState([]);
@@ -82,7 +83,6 @@ export default function StudentDashboard() {
       setIsLoading(false); 
     }
   };
-  
 
   const fetchAssignments = async () => {
     try {
@@ -93,26 +93,33 @@ export default function StudentDashboard() {
     }
   };
 
-  const fetchMessages = async () => {
+  // UPDATED: Now fetches based on which room is active
+  const fetchMessages = async (room = chatRoom) => {
     try {
-      const res = await api.get('/messages'); 
+      const url = room === 'all' ? '/messages/all' : '/messages';
+      const res = await api.get(url); 
       setMessages(res.data);
     } catch (e) { console.error("Error fetching messages"); }
   };
 
+  // UPDATED: Re-fetches when switching chat rooms
   useEffect(() => {
     if (activeTab === 'messages') {
-      fetchMessages();
+      fetchMessages(chatRoom);
     }
-  }, [activeTab]);
+  }, [activeTab, chatRoom]);
 
+  // UPDATED: Tells the backend if this is a global message
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
     try {
-      await api.post('/messages', { content: chatInput }); 
+      const payload = { content: chatInput };
+      if (chatRoom === 'all') payload.receiverId = 'all';
+      
+      await api.post('/messages', payload); 
       setChatInput('');
-      fetchMessages(); 
+      fetchMessages(chatRoom); 
     } catch (e) { showToast("Failed to send message", "error"); }
   }; 
 
@@ -754,32 +761,72 @@ export default function StudentDashboard() {
           {/* STUDENT VIEW: MESSAGES TAB */}
           {activeTab === 'messages' && (
             <div className="bg-white p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-[700px] flex flex-col animate-fade-in relative overflow-hidden">
-              <div className="bg-emerald-500 text-white p-6 rounded-2xl mb-4 font-black flex items-center gap-3 shadow-lg shadow-emerald-500/20">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl">👨‍🏫</div>
+              
+              {/* --- NEW CHAT TOGGLE BUTTONS --- */}
+              <div className="flex gap-4 mb-4 shrink-0">
+                <button 
+                  onClick={() => setChatRoom('admin')}
+                  className={`flex-1 py-3 rounded-2xl font-black transition-colors ${chatRoom === 'admin' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                >
+                  👨‍🏫 Mentor Chat
+                </button>
+                <button 
+                  onClick={() => setChatRoom('all')}
+                  className={`flex-1 py-3 rounded-2xl font-black transition-colors ${chatRoom === 'all' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                >
+                  🌍 Global Class Chat
+                </button>
+              </div>
+
+              {/* Dynamic Header */}
+              <div className={`${chatRoom === 'admin' ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-indigo-500 shadow-indigo-500/20'} text-white p-6 rounded-2xl mb-4 font-black flex items-center gap-3 shadow-lg transition-colors shrink-0`}>
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl">
+                  {chatRoom === 'admin' ? '👨‍🏫' : '🌍'}
+                </div>
                 <div>
-                  <h2 className="text-xl">Mentor Support Chat</h2>
-                  <p className="text-xs font-medium text-emerald-100">Ask your doubts directly here!</p>
+                  <h2 className="text-xl">{chatRoom === 'admin' ? 'Mentor Support Chat' : 'Global Class Chat'}</h2>
+                  <p className="text-xs font-medium text-white/80">
+                    {chatRoom === 'admin' ? 'Ask your doubts directly here!' : 'Chat with your mentor and all other students!'}
+                  </p>
                 </div>
               </div>
 
+              {/* Chat Area */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#F4F7FE]/50 rounded-2xl border border-slate-100">
-                {messages.map(msg => (
-                  <div key={msg._id} className={`flex ${msg.sender === userId ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[75%] p-4 rounded-2xl shadow-sm ${msg.sender === userId ? 'bg-emerald-500 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none'}`}>
-                      <p className="font-bold">{msg.content}</p>
-                      <span className={`text-[10px] block mt-1 ${msg.sender === userId ? 'text-emerald-100' : 'text-slate-400'}`}>
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                {messages.map(msg => {
+                  const isMe = typeof msg.sender === 'object' ? msg.sender._id === userId : msg.sender === userId;
+
+                  return (
+                    <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[75%] p-4 rounded-2xl shadow-sm ${isMe ? (chatRoom === 'admin' ? 'bg-emerald-500 text-white rounded-br-none' : 'bg-indigo-500 text-white rounded-br-none') : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none'}`}>
+                        
+                        {/* Show sender name if it's Global Chat and not the current user */}
+                        {chatRoom === 'all' && !isMe && msg.sender?.name && (
+                          <span className={`text-[10px] font-black mb-1 block uppercase ${chatRoom === 'admin' ? 'text-emerald-500' : 'text-indigo-500'}`}>
+                            {msg.sender.registrationName || msg.sender.name}
+                          </span>
+                        )}
+
+                        <p className="font-bold">{msg.content}</p>
+                        <span className={`text-[10px] block mt-1 ${isMe ? (chatRoom === 'admin' ? 'text-emerald-100' : 'text-indigo-100') : 'text-slate-400'}`}>
+                          {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
                     </div>
+                  );
+                })}
+                {messages.length === 0 && (
+                  <div className="text-center text-slate-400 font-bold mt-20">
+                    <p className="text-4xl mb-2">👋</p>
+                    <p>No messages yet. {chatRoom === 'admin' ? 'Drop your mentor a question!' : 'Say hello to the class!'}</p>
                   </div>
-                ))}
-                {messages.length === 0 && <div className="text-center text-slate-400 font-bold mt-20"><p className="text-4xl mb-2">👋</p><p>No messages yet. Drop your mentor a question!</p></div>}
+                )}
               </div>
 
-              <form onSubmit={handleSendMessage} className="mt-4 flex gap-2">
-                <input type="text" className="flex-1 p-5 bg-[#F4F7FE] border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20 font-bold text-[#1B2559]" 
-                  placeholder="Type your question..." value={chatInput} onChange={e => setChatInput(e.target.value)} />
-                <button className="px-8 bg-[#1B2559] hover:bg-emerald-600 text-white font-black rounded-2xl transition-all shadow-lg transform hover:-translate-y-1">Send</button>
+              <form onSubmit={handleSendMessage} className="mt-4 flex gap-2 shrink-0">
+                <input type="text" className={`flex-1 p-5 bg-[#F4F7FE] border border-slate-200 rounded-2xl outline-none focus:ring-4 ${chatRoom === 'admin' ? 'focus:ring-emerald-500/20' : 'focus:ring-indigo-500/20'} font-bold text-[#1B2559]`} 
+                  placeholder="Type your message..." value={chatInput} onChange={e => setChatInput(e.target.value)} />
+                <button className={`px-8 bg-[#1B2559] ${chatRoom === 'admin' ? 'hover:bg-emerald-600' : 'hover:bg-indigo-600'} text-white font-black rounded-2xl transition-all shadow-lg transform hover:-translate-y-1`}>Send</button>
               </form>
             </div>
           )}

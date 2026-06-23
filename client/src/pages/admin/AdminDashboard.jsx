@@ -1279,6 +1279,16 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
               <div className="w-1/3 border-r border-slate-100 pr-4 flex flex-col">
                 <h2 className="text-xl font-black text-[#1B2559] mb-6">Conversations</h2>
                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-2">
+                  {/* --- NEW GLOBAL CHAT BUTTON --- */}
+                  <button 
+                    onClick={() => { setSelectedStudentForChat({ _id: 'all', name: 'Entire Class', registrationName: 'Entire Class', yearGroup: '' }); fetchMessages('all'); }}
+                    className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 mb-4 border-2 ${selectedStudentForChat?._id === 'all' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'border-transparent text-slate-600 hover:bg-slate-50'}`}>
+                    <div className="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-500 text-white rounded-full flex items-center justify-center font-black text-xl">🌍</div>
+                    <div className="truncate">
+                      <p className="flex items-center gap-2 text-[#1B2559]">Global Class Chat</p>
+                      <p className="text-xs text-indigo-400 font-medium truncate">Message everyone</p>
+                    </div>
+                  </button>
                   {students.map(student => (
                     <button key={student._id} 
                       onClick={() => { setSelectedStudentForChat(student); fetchMessages(student._id); }}
@@ -1306,16 +1316,28 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     </div>
                     
                     <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
-                      {messages.map(msg => (
-                        <div key={msg._id} className={`flex ${msg.sender === userId ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[70%] p-4 rounded-2xl ${msg.sender === userId ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none shadow-sm'}`}>
-                            <p className="font-bold">{msg.content}</p>
-                            <span className={`text-[10px] block mt-1 ${msg.sender === userId ? 'text-indigo-200' : 'text-slate-400'}`}>
-                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                      
+                      {messages.map(msg => {
+                        const isMe = typeof msg.sender === 'object' ? msg.sender._id === userId : msg.sender === userId;
+                        
+                        return (
+                          <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[70%] p-4 rounded-2xl ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none shadow-sm'}`}>
+                              
+                              {selectedStudentForChat?._id === 'all' && !isMe && msg.sender?.name && (
+                                <span className="text-[10px] text-indigo-500 font-black mb-1 block uppercase">
+                                  {msg.sender.registrationName || msg.sender.name}
+                                </span>
+                              )}
+                              
+                              <p className="font-bold">{msg.content}</p>
+                              <span className={`text-[10px] block mt-1 ${isMe ? 'text-indigo-200' : 'text-slate-400'}`}>
+                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {messages.length === 0 && <p className="text-center text-slate-400 font-bold mt-10">No messages yet. Say hello!</p>}
                     </div>
 
