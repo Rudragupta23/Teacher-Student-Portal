@@ -12,7 +12,6 @@ const ProtectedRoute = ({ children, allowedRole }) => {
   }
 
   if (allowedRole && user.role !== allowedRole) {
-    // If a student tries to access admin pages, send them to their own dashboard
     return <Navigate to={user.role === 'admin' ? '/admin-dashboard' : '/student-dashboard'} replace />;
   }
 

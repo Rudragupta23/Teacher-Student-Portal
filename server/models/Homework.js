@@ -1,4 +1,3 @@
-// server/models/Homework.js
 const mongoose = require('mongoose');
 
 const homeworkSchema = new mongoose.Schema({
@@ -10,17 +9,16 @@ const homeworkSchema = new mongoose.Schema({
   
   difficulty: { type: String, enum: ['Easy', 'Medium', 'Hard'], default: 'Medium' },
   
-  // Dynamic Content Fields based on 'type'
   fileUrl: { type: String }, 
-  content: { type: String }, // For text-based questions
+  content: { type: String }, 
   mcqs: [{
     question: String,
     options: [String],
-    correctOption: Number // Index of the correct option (0-3)
+    correctOption: Number 
   }],
   
   status: { type: String, enum: ['Pending', 'Submitted', 'Graded'], default: 'Pending' },
-  dueDate: { type: Date, required: true }, // Direct date from frontend calendar
+  dueDate: { type: Date, required: true }, 
   
   submission: {
     answerText: { type: String },

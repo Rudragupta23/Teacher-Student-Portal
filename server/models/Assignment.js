@@ -6,10 +6,10 @@ const assignmentSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'submitted', 'graded'], default: 'pending' },
   studentAnswers: [{ 
     questionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Question' },
-    answer: { type: String } // What the student typed or uploaded
+    answer: { type: String } 
   }],
   dueDate: { type: Date, required: true },
-  score: { type: Number, default: null } // Null means not graded yet
+  score: { type: Number, default: null } 
 }, { timestamps: true });
 
 module.exports = mongoose.model('Assignment', assignmentSchema);

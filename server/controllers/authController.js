@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
 
-// Helper function to generate a 6-digit OTP
+// generate a 6-digit OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 // @desc    Register a new user & Send OTP
@@ -12,13 +12,11 @@ exports.register = async (req, res) => {
   const { name, email, password, phone, classCode } = req.body;
 
   try {
-    // 1. Email Format Validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: 'Invalid email format' });
     }
 
-    // 2. Phone Number Validation
     const cleanPhone = phone.replace(/[\s-]/g, '');
     const phoneRegex = /^\+?[0-9]{7,15}$/;
     if (phone && !phoneRegex.test(cleanPhone)) {
@@ -37,14 +35,12 @@ exports.register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Generate OTP and set expiration for 10 minutes from now
     const otp = generateOTP();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); 
 
-    // Create User (Unverified)
     const user = await User.create({
       name, 
-      registrationName: name, // 🌟 NEW: Save original name here
+      registrationName: name, 
       email, 
       password: hashedPassword, 
       phone: cleanPhone, 
@@ -99,14 +95,11 @@ exports.verifyOTP = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'User not found' });
 
-    // Check if already verified
     if (user.isVerified) return res.status(400).json({ message: 'Account is already verified' });
 
-    // Check if OTP matches and is not expired
     if (user.otp !== otp) return res.status(400).json({ message: 'Invalid OTP' });
     if (user.otpExpires < new Date()) return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
 
-    // Mark user as verified and clear OTP fields
     user.isVerified = true;
     user.otp = undefined;
     user.otpExpires = undefined;
@@ -149,15 +142,12 @@ exports.forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Generate a new 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Save to database
     user.resetPasswordOtp = otp;
     user.resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
     await user.save();
 
-    // UPGRADED BEAUTIFUL EMAIL HTML
     const emailHtml = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 16px;">
         <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
@@ -203,11 +193,9 @@ exports.resetPassword = async (req, res) => {
     if (user.resetPasswordOtp !== otp) return res.status(400).json({ message: 'Invalid OTP' });
     if (user.resetPasswordExpires < new Date()) return res.status(400).json({ message: 'OTP has expired' });
 
-    // Hash the new password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
     
-    // Clear the OTP fields so it can't be reused
     user.resetPasswordOtp = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
@@ -217,7 +205,6 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
-// 🌟 NEW: Fetch User Profile from Database
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
@@ -228,7 +215,6 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// 🌟 NEW: Save Profile Updates to Database
 exports.updateProfile = async (req, res) => {
   try {
     const { name, profilePic } = req.body;
@@ -236,7 +222,6 @@ exports.updateProfile = async (req, res) => {
     
     if (!user) return res.status(404).json({ message: 'User not found' });
     
-    // 🌟 Only update the display 'name'. 'registrationName' stays the same forever.
     if (name) user.name = name; 
     if (profilePic !== undefined) {
       user.profilePic = profilePic;

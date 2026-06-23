@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 
 export default function StudentDashboard() {
-  // 🌟 NEW: Tab Navigation
+  // Tab Navigation
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [assignments, setAssignments] = useState([]);
@@ -11,7 +11,7 @@ export default function StudentDashboard() {
   // UI States
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [modalTask, setModalTask] = useState(null); 
-  const [isLoading, setIsLoading] = useState(true); // 🌟 ADD THIS
+  const [isLoading, setIsLoading] = useState(true); 
   
   // Submission Form State
   const [submitForm, setSubmitForm] = useState({ answerFileUrl: '', answerText: '' });
@@ -19,27 +19,26 @@ export default function StudentDashboard() {
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
-  // 🌟 NEW: Student Profile & Settings State
+  //  Student Profile & Settings State
   const [studentProfile, setStudentProfile] = useState({ name: 'Scholar', profilePic: '' });
   const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '' });
   const [isProfileUploading, setIsProfileUploading] = useState(false);
-  const [userId, setUserId] = useState(null); // 🌟 ADDED USER ID STATE
+  const [userId, setUserId] = useState(null); 
   const [announcements, setAnnouncements] = useState([]);
 
-  // 🌟 NEW: Chat States
+  // Chat States
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
 
-  // 🌟 NEW: Study Library States
+  // Study Library States
   const [resources, setResources] = useState([]);
 
   useEffect(() => {
     fetchAssignments();
     fetchProfile(); 
-    fetchAnnouncements(); // 🌟 NEW: Fetch announcements on load
+    fetchAnnouncements(); 
     fetchResources();
     
-    // 🌟 NEW: Extract userId from token so we know who is reading the notice
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -51,7 +50,7 @@ export default function StudentDashboard() {
     }
   }, []);
 
-  // 👇 NEW: Function to fetch announcements
+  // Function to fetch announcements
   const fetchAnnouncements = async () => {
     try {
       const res = await api.get('/announcements/student');
@@ -61,18 +60,18 @@ export default function StudentDashboard() {
     }
   };
 
-  // 👇 NEW: Function to mark announcement as read
+  // Function to mark announcement as read
   const markAnnouncementAsRead = async (id) => {
     try {
       await api.put(`/announcements/${id}/read`);
-      fetchAnnouncements(); // Refresh the list to update the UI
+      fetchAnnouncements(); 
     } catch(e) {
       console.error("Error marking as read");
     }
   };
 
   const fetchProfile = async () => {
-    setIsLoading(true); // 🌟 Set to loading when starting
+    setIsLoading(true); 
     try {
       const res = await api.get('/auth/profile');
       setStudentProfile({ name: res.data.name, profilePic: res.data.profilePic || '' });
@@ -80,7 +79,7 @@ export default function StudentDashboard() {
     } catch (error) {
       console.error("Error fetching profile from DB");
     } finally {
-      setIsLoading(false); // 🌟 Set to false when done
+      setIsLoading(false); 
     }
   };
   
@@ -96,7 +95,7 @@ export default function StudentDashboard() {
 
   const fetchMessages = async () => {
     try {
-      const res = await api.get('/messages'); // Backend automatically resolves to Admin chat
+      const res = await api.get('/messages'); 
       setMessages(res.data);
     } catch (e) { console.error("Error fetching messages"); }
   };
@@ -111,9 +110,9 @@ export default function StudentDashboard() {
     e.preventDefault();
     if (!chatInput.trim()) return;
     try {
-      await api.post('/messages', { content: chatInput }); // Defaults to Admin receiver
+      await api.post('/messages', { content: chatInput }); 
       setChatInput('');
-      fetchMessages(); // Refresh chat
+      fetchMessages(); 
     } catch (e) { showToast("Failed to send message", "error"); }
   }; 
 
@@ -134,7 +133,6 @@ export default function StudentDashboard() {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  // Convert Student's file to Base64
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -156,7 +154,6 @@ export default function StudentDashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Check validation based on type
     if (modalTask.type === 'MCQ') {
       if (Object.keys(mcqAnswers).length !== modalTask.mcqs.length) {
         return showToast("Please answer all MCQ questions before submitting!", "error");
@@ -166,12 +163,11 @@ export default function StudentDashboard() {
     }
 
     try {
-      // 🌟 Send mcqAnswers alongside the standard form
       await api.post(`/homework/${modalTask._id}/submit`, { ...submitForm, mcqAnswers });
       showToast('🎉 Assignment submitted successfully!');
       setModalTask(null); 
       setSubmitForm({ answerFileUrl: '', answerText: '' }); 
-      setMcqAnswers({}); // Reset MCQs
+      setMcqAnswers({}); 
       setFileName('');
       fetchAssignments();
     } catch (err) {
@@ -183,12 +179,12 @@ export default function StudentDashboard() {
     hw.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
-  // 🌟 Calculate Student Analytics
+  // Calculate Student Analytics
   const gradedHw = assignments.filter(h => h.status === 'Graded');
   const pendingHw = assignments.filter(h => h.status === 'Pending');
   const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
 
-  // 🌟 Handle Profile Picture Upload
+  // Handle Profile Picture Upload
   const handleProfilePicUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -203,7 +199,7 @@ export default function StudentDashboard() {
     }
   };
 
-  // 🌟 Save Profile Settings to Database
+  // Save Profile Settings to Database
   const handleSaveSettings = async () => {
     try {
       const res = await api.put('/auth/profile', settingsForm);
@@ -217,7 +213,7 @@ export default function StudentDashboard() {
   return (
     <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
       
-      {/* 🌟 CUSTOM TOAST NOTIFICATION */}
+      {/* CUSTOM TOAST NOTIFICATION */}
       <div className={`absolute top-6 right-6 z-50 transform transition-all duration-500 ease-out flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl font-bold text-white
         ${toast.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
         ${toast.type === 'error' ? 'bg-rose-500' : 'bg-slate-900'}`}>
@@ -225,7 +221,7 @@ export default function StudentDashboard() {
         {toast.message}
       </div>
 
-      {/* 🌟 TASK VIEWER & SUBMISSION MODAL */}
+      {/* TASK VIEWER & SUBMISSION MODAL */}
       {modalTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white rounded-[2rem] p-8 w-full max-w-2xl shadow-2xl transform scale-100 animate-slide-up max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col">
@@ -240,7 +236,7 @@ export default function StudentDashboard() {
               </button>
             </div>
 
-            {/* 1. Show Assignment Content to Student (🌟 NEW: Hidden if Graded) */}
+            {/* 1. Show Assignment Content to Student */}
             {modalTask.status !== 'Graded' && (
               <div className="bg-[#F4F7FE] p-6 rounded-3xl mb-8">
                 <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-4">Assignment Details</h4>
@@ -249,7 +245,6 @@ export default function StudentDashboard() {
   <div className="flex flex-col gap-4 w-full">
     <p className="text-sm font-black text-[#1B2559] uppercase tracking-wide">Attachment Preview</p>
     
-    {/* 1. Inline Preview Box */}
     <div className="w-full max-h-[400px] overflow-auto border-2 border-slate-200 rounded-2xl bg-white p-2 shadow-inner">
       {modalTask.fileUrl.startsWith('data:image') ? (
         <img src={modalTask.fileUrl} alt="Assignment" className="w-full h-auto rounded-xl object-contain" />
@@ -260,13 +255,11 @@ export default function StudentDashboard() {
       )}
     </div>
 
-    {/* 2. Download Prompt */}
     <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
       <p className="font-bold text-indigo-800 text-sm">Do you want to download this file?</p>
       <button 
         type="button"
         onClick={() => {
-          // Programmatic download bypasses the browser's new-tab block
           const a = document.createElement('a');
           a.href = modalTask.fileUrl;
           a.download = `${modalTask.title.replace(/\s+/g, '_')}_Attachment`;
@@ -303,7 +296,6 @@ export default function StudentDashboard() {
                         </div>
                       </div>
                     ))}
-                    {/* 🌟 Add an immediate submit button for MCQs to avoid confusing the user with the file attachment box */}
                     <button onClick={handleSubmit} className="w-full bg-[#1B2559] hover:bg-indigo-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg mt-6 transform hover:-translate-y-1">
                       Submit Quiz
                     </button>
@@ -312,7 +304,6 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* 2. Status Specific UI (Submit Form OR Grade Result) */}
             {modalTask.status === 'Pending' ? (
               new Date() > new Date(modalTask.dueDate) ? (
                 <div className="bg-rose-50 border border-rose-200 p-6 rounded-3xl text-center">
@@ -351,7 +342,6 @@ export default function StudentDashboard() {
               </div>
             ) : (
               <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-3xl text-center flex flex-col items-center">
-                {/* 🌟 NEW ADDITION: Disclaimer that original content was removed */}
                 <p className="text-emerald-600 font-bold text-sm mb-4 bg-emerald-100/50 px-4 py-2 rounded-full">Note: Original assignment content has been removed post-grading.</p>
 
                 <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center text-3xl font-black mb-4 shadow-lg shadow-emerald-500/30">
@@ -363,7 +353,6 @@ export default function StudentDashboard() {
                 <div className="flex flex-col gap-3 w-full mt-6 text-left">
                   <h4 className="text-xs font-black text-emerald-600 uppercase tracking-wide">Mentor's Answer Sheet</h4>
                   
-                  {/* 🌟 Inline Preview Box */}
                   <div className="w-full max-h-[400px] overflow-auto border-2 border-emerald-200 rounded-2xl bg-white p-2 shadow-inner">
                     {modalTask.grading.adminAnswerSheetUrl.startsWith('data:image') ? (
                       <img src={modalTask.grading.adminAnswerSheetUrl} alt="Answer Sheet" className="w-full h-auto rounded-xl object-contain" />
@@ -374,7 +363,6 @@ export default function StudentDashboard() {
                     )}
                   </div>
 
-                  {/* 🌟 Safe Programmatic Download Button */}
                   <button type="button" onClick={() => {
                       const a = document.createElement('a');
                       a.href = modalTask.grading.adminAnswerSheetUrl;
@@ -398,10 +386,10 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* 🟢 SLEEK SIDEBAR */}
+      {/* SIDEBAR */}
       <aside className="w-72 bg-[#0B1437] text-slate-300 flex flex-col shadow-2xl z-20 hidden lg:flex rounded-r-[2rem] my-4 ml-4 overflow-hidden">
         
-        {/* 1. Header (Fixed at top) */}
+        {/* 1. Header */}
         <div className="p-8 flex items-center gap-4 border-b border-slate-700/50 shrink-0">
           {studentProfile.profilePic ? (
             <img src={studentProfile.profilePic} alt="Profile" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-emerald-500/30" />
@@ -415,7 +403,7 @@ export default function StudentDashboard() {
           </div>
         </div>
         
-        {/* 2. Navigation Links (Scrollable Middle Area) */}
+        {/* 2. Navigation Links */}
         <div className="p-6 space-y-3 flex-1 overflow-y-auto custom-scrollbar">
           <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
@@ -448,7 +436,7 @@ export default function StudentDashboard() {
           </button>
         </div>
         
-        {/* 3. Sign Out (Fixed at bottom) */}
+        {/* 3. Sign Out */}
         <div className="p-6 border-t border-slate-700/50 shrink-0">
           <button onClick={handleLogout} className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-rose-500 text-slate-300 hover:text-white px-5 py-4 rounded-2xl font-bold transition-all shadow-sm group">
             <svg className="w-5 h-5 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
@@ -457,7 +445,7 @@ export default function StudentDashboard() {
         </div>
       </aside>
 
-      {/* 🟢 MAIN CONTENT */}
+      {/* MAIN CONTENT */}
       <div className="flex-1 overflow-y-auto scroll-smooth p-6 lg:p-10">
         <div className="max-w-[1600px] mx-auto">
           
@@ -488,7 +476,6 @@ export default function StudentDashboard() {
                 </div>
               </div>
               
-              {/* 🌟 NEW ADDITION: Average Score Card */}
               <div className="bg-white px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4">
                 <div className="bg-indigo-50 p-3 rounded-full text-indigo-500">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
@@ -506,7 +493,7 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* 🟢 VIEW 1: DASHBOARD */}
+          {/* VIEW 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-100 pb-6">
@@ -576,7 +563,7 @@ export default function StudentDashboard() {
           </div>
           )}
 
-          {/* 🟢 VIEW 2: SETTINGS TAB */}
+          {/* VIEW 2: SETTINGS TAB */}
           {activeTab === 'settings' && (
             <div className="animate-fade-in max-w-2xl mx-auto">
               <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)]">
@@ -618,7 +605,7 @@ export default function StudentDashboard() {
               </div>
             </div>
           )}
-        {/* 🟢 STUDENT VIEW: ANNOUNCEMENTS TAB (👇 NEW CODE HERE) */}
+        {/* STUDENT VIEW: ANNOUNCEMENTS TAB */}
           {activeTab === 'announcements' && (
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
               <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
@@ -685,7 +672,6 @@ export default function StudentDashboard() {
             return (
               <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
                 
-                {/* Calendar Header Controls */}
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 border-b border-slate-100 pb-6 gap-4">
                   <div className="flex items-center gap-3">
                     <div className="bg-blue-500 w-2 h-8 rounded-full"></div>
@@ -705,21 +691,17 @@ export default function StudentDashboard() {
                   </div>
                 </div>
 
-                {/* Calendar Grid Header */}
                 <div className="grid grid-cols-7 gap-2 md:gap-4 mb-4">
                   {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                     <div key={day} className="text-center font-black text-[#A3AED0] uppercase text-xs tracking-wider">{day}</div>
                   ))}
                 </div>
                 
-                {/* Calendar Grid Body */}
                 <div className="grid grid-cols-7 gap-2 md:gap-4">
-                  {/* Empty cells for offset */}
                   {Array.from({ length: firstDayOfMonth }).map((_, i) => (
                     <div key={`empty-${i}`} className="min-h-[100px] md:min-h-[120px] bg-slate-50/50 rounded-2xl border border-dashed border-slate-200"></div>
                   ))}
                   
-                  {/* Days of the month */}
                   {Array.from({ length: daysInMonth }).map((_, i) => {
                     const day = i + 1;
                     const dayAssignments = getAssignmentsForDay(day);
@@ -763,7 +745,7 @@ export default function StudentDashboard() {
             );
           })()}
 
-          {/* 🟢 STUDENT VIEW: MESSAGES TAB */}
+          {/* STUDENT VIEW: MESSAGES TAB */}
           {activeTab === 'messages' && (
             <div className="bg-white p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-[700px] flex flex-col animate-fade-in relative overflow-hidden">
               <div className="bg-emerald-500 text-white p-6 rounded-2xl mb-4 font-black flex items-center gap-3 shadow-lg shadow-emerald-500/20">
@@ -796,7 +778,7 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* 🟢 STUDENT VIEW: STUDY LIBRARY */}
+          {/* STUDENT VIEW: STUDY LIBRARY */}
           {activeTab === 'library' && (
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
               

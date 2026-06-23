@@ -13,7 +13,6 @@ exports.createAnnouncement = async (req, res) => {
 
 exports.getAdminAnnouncements = async (req, res) => {
     try {
-        // Admin sees everything and who read it
         const announcements = await Announcement.find().populate('readBy', 'name').sort({ createdAt: -1 });
         res.status(200).json(announcements);
     } catch (error) {
@@ -24,7 +23,6 @@ exports.getAdminAnnouncements = async (req, res) => {
 exports.getStudentAnnouncements = async (req, res) => {
     try {
         const studentId = req.user.id; 
-        // Student only sees global announcements OR ones targeted specifically to them
         const announcements = await Announcement.find({
             $or: [{ targetAudience: 'all' }, { targetAudience: studentId }]
         }).sort({ createdAt: -1 });

@@ -1,4 +1,3 @@
-// server/controllers/resourceController.js
 const Resource = require('../models/Resource');
 
 exports.createResource = async (req, res) => {
@@ -14,7 +13,6 @@ exports.createResource = async (req, res) => {
 
 exports.getResources = async (req, res) => {
     try {
-        // Both Admin and Student can fetch resources
         const resources = await Resource.find().sort({ createdAt: -1 });
         res.status(200).json(resources);
     } catch (error) {

@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// 1. Protect Middleware (Checks if user is logged in)
 exports.protect = async (req, res, next) => {
   let token;
 
@@ -26,10 +25,9 @@ exports.protect = async (req, res, next) => {
   }
 };
 
-// 2. Admin Middleware (Checks if the logged-in user is an Admin)
 exports.admin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
-    next(); // User is admin, let them proceed
+    next(); 
   } else {
     res.status(403).json({ message: 'Not authorized as an admin' });
   }

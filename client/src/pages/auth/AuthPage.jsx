@@ -4,14 +4,12 @@ import { Mail, Lock, User, Phone, Key, ShieldCheck, ArrowLeft, AlertCircle, Send
 import api from '../../services/api';
 import { AuthContext } from '../../context/AuthContext';
 
-// Background Floating Math Symbols Animation
-// Background Floating Math Symbols Animation
+
 const FloatingMath = () => {
   const symbols = ['π', '∞', '∑', '∫', '√', '≈', '÷', '×'];
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
       {symbols.map((sym, i) => {
-        // Space them evenly across the width (5% to 90%) so they don't fly off-screen
         const xPosition = (i * 11) + 5; 
         
         return (
@@ -24,9 +22,9 @@ const FloatingMath = () => {
               top: ['100%', '-20%'], 
             }}
             transition={{ 
-              duration: Math.random() * 10 + 12, // Slow, elegant floating (12-22 seconds)
+              duration: Math.random() * 10 + 12, 
               repeat: Infinity, 
-              delay: Math.random() * 8, // Stagger when they appear
+              delay: Math.random() * 8, 
               ease: "linear"
             }}
           >
@@ -38,8 +36,7 @@ const FloatingMath = () => {
   );
 };
 
-// Helper Validation Function
-// Helper Validation Function
+
 const validateData = (email, phone, view) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return 'Please enter a valid email address.';
@@ -57,7 +54,7 @@ const AuthPage = () => {
   const { loginUser } = useContext(AuthContext);
 
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' }); 
-  const [isLoading, setIsLoading] = useState(false); // <--- ADDED LOADING STATE
+  const [isLoading, setIsLoading] = useState(false); 
 
   const [formData, setFormData] = useState({
     name: '', email: '', password: '', phone: '', classCode: '', otp: '', newPassword: ''
@@ -91,9 +88,8 @@ const AuthPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatusMsg({ type: '', text: '' }); 
-    setIsLoading(true); // <--- TURN ON LOADER
+    setIsLoading(true);
 
-    // Trigger Frontend Validation before making the API request
     const errorMsg = validateData(formData.email, formData.phone, view);
     if (errorMsg && (view === 'login' || view === 'signup' || view === 'forgot' || view === 'reset')) {
       setStatusMsg({ type: 'error', text: errorMsg });
@@ -137,7 +133,7 @@ const AuthPage = () => {
         text: error.response?.data?.message || 'An error occurred. Please try again.' 
       });
     } finally {
-      setIsLoading(false); // <--- TURN OFF LOADER IMMEDIATELY WHEN DONE
+      setIsLoading(false); 
     }
   };
 

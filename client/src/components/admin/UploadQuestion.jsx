@@ -24,7 +24,6 @@ const UploadQuestion = () => {
     try {
       const res = await api.post('/admin/questions', formData);
       toast.success(res.data.message);
-      // Clear the content fields but keep the categories so the teacher can upload rapidly
       setFormData({ ...formData, content: '', correctAnswer: '' });
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to upload question');

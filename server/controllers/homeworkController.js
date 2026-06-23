@@ -1,15 +1,12 @@
-// server/controllers/homeworkController.js
 const Homework = require('../models/Homework');
 const User = require('../models/User');
 
-// 1. Assign Work (Handles Direct Due Date, Text, File, and MCQ Formats)
 exports.assignHomework = async (req, res) => {
   const { title, description, type, studentId, difficulty, dueDate, fileUrl, content, mcqs } = req.body;
   
   try {
     let targetStudents = [];
     
-    // Check if assigned to all or a specific student
     if (studentId === 'all') {
       targetStudents = await User.find({ role: 'student' });
     } else {
@@ -19,7 +16,6 @@ exports.assignHomework = async (req, res) => {
 
     if (targetStudents.length === 0) return res.status(404).json({ message: 'No students found!' });
 
-    // Validate the due date is in the future
     if (new Date(dueDate) <= new Date()) {
       return res.status(400).json({ message: 'Due date must be in the future!' });
     }
@@ -46,7 +42,6 @@ exports.assignHomework = async (req, res) => {
   }
 };
 
-// 2. Admin: Get all homeworks for the dashboard
 exports.getAdminHomework = async (req, res) => {
   try {
     const homeworks = await Homework.find()
@@ -58,7 +53,6 @@ exports.getAdminHomework = async (req, res) => {
   }
 };
 
-// 3. Student: Get ONLY their own homework
 exports.getStudentHomework = async (req, res) => {
   try {
     const homeworks = await Homework.find({ studentId: req.user._id })
@@ -69,7 +63,6 @@ exports.getStudentHomework = async (req, res) => {
   }
 };
 
-// 4. Student: Submit Homework (With Late Block & Auto-grade MCQ)
 exports.submitHomework = async (req, res) => {
   const { id } = req.params;
   const { answerText, answerFileUrl, mcqAnswers } = req.body;
@@ -78,17 +71,14 @@ exports.submitHomework = async (req, res) => {
     const homework = await Homework.findOne({ _id: id, studentId: req.user._id });
     if (!homework) return res.status(404).json({ message: 'Homework not found' });
 
-    // Block submission if deadline is missed
     if (new Date() > new Date(homework.dueDate)) {
       return res.status(403).json({ message: 'You are late! The deadline has passed. Please contact your teacher to extend the duration.' });
     }
 
-    // 🌟 Auto-grade if it's an MCQ Assignment
     if (homework.type === 'MCQ') {
       let correctCount = 0;
       const totalQuestions = homework.mcqs.length;
 
-      // Check answers
       homework.mcqs.forEach((mcq, idx) => {
         if (mcqAnswers && parseInt(mcqAnswers[idx]) === mcq.correctOption) {
           correctCount++;
@@ -97,7 +87,6 @@ exports.submitHomework = async (req, res) => {
 
       const score = Math.round((correctCount / totalQuestions) * 100);
 
-      // Auto-publish grade and delete content
       homework.status = 'Graded';
       homework.grading = { score, feedback: 'Auto-graded MCQ Submission', gradedAt: new Date() };
       homework.submission = { submittedAt: new Date() };
@@ -107,7 +96,6 @@ exports.submitHomework = async (req, res) => {
       return res.status(200).json({ message: 'MCQ auto-graded successfully!', homework });
     }
 
-    // Standard File/Text Submission
     homework.status = 'Submitted';
     homework.submission = { answerText, answerFileUrl, submittedAt: new Date() };
     await homework.save();
@@ -118,7 +106,6 @@ exports.submitHomework = async (req, res) => {
   }
 };
 
-// 5. Admin: Grades & Uploads Answer Sheet
 exports.gradeHomework = async (req, res) => {
   const { id } = req.params;
   const { score, feedback, adminAnswerSheetUrl } = req.body;
@@ -130,19 +117,16 @@ exports.gradeHomework = async (req, res) => {
     homework.status = 'Graded';
     homework.grading = { score, feedback, adminAnswerSheetUrl, gradedAt: new Date() };
     
-    // 🌟 THIS TELLS MONGODB TO FORCE SAVE THE ANSWER SHEET
     homework.markModified('grading'); 
     
-    // Delete the original assigned work when grading is published
     homework.fileUrl = undefined;
     homework.content = undefined;
     homework.mcqs = [];
 
-    // 🌟 NEW ADDITION: Delete the student's submitted work from the database
     if (homework.submission) {
       homework.submission.answerText = undefined;
       homework.submission.answerFileUrl = undefined;
-      homework.markModified('submission'); // Force MongoDB to save the cleared submission
+      homework.markModified('submission'); 
     }
 
     await homework.save();
@@ -153,23 +137,20 @@ exports.gradeHomework = async (req, res) => {
   }
 };
 
-// 6. Admin: Extends Deadline (UPDATED TO USE REAL DATES)
 exports.extendDeadline = async (req, res) => {
   const { id } = req.params;
-  const { newDueDate } = req.body; // Now expects a direct date from the calendar
+  const { newDueDate } = req.body; 
 
   try {
     const homework = await Homework.findById(id);
     if (!homework) return res.status(404).json({ message: 'Homework not found' });
 
-    // Validate the new due date is in the future
     if (new Date(newDueDate) <= new Date()) {
       return res.status(400).json({ message: 'New due date must be in the future!' });
     }
 
     homework.dueDate = new Date(newDueDate);
     
-    // If student was stuck, keep it pending so they can submit again
     if (homework.status !== 'Graded') homework.status = 'Pending';
     
     await homework.save();
@@ -179,7 +160,6 @@ exports.extendDeadline = async (req, res) => {
   }
 };
 
-// Feature 7: Admin Deletes an Assignment
 exports.deleteHomework = async (req, res) => {
   try {
     const homework = await Homework.findById(req.params.id);

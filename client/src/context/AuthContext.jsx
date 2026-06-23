@@ -9,7 +9,6 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is already logged in when the app loads
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
     
@@ -24,7 +23,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', token);
     setUser(userData);
     
-    // Redirect based on role
     if (userData.role === 'admin') {
       navigate('/admin-dashboard');
     } else {

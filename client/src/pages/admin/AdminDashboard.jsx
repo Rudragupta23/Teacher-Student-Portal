@@ -26,43 +26,39 @@ export default function AdminDashboard() {
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
-  // 🌟 NEW ADDITION: State for optional answer sheet upload
+  // State for optional answer sheet upload
   const [answerSheet, setAnswerSheet] = useState({ fileUrl: '', fileName: '', isUploading: false });
 
-  // 🌟 NEW: Custom UI States (Toasts & Modals)
+  // Custom UI States
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [modal, setModal] = useState({ type: null, hwId: null, studentId: null, data: '' }); 
-  const [isLoading, setIsLoading] = useState(true); // 🌟 ADD THIS
+  const [isLoading, setIsLoading] = useState(true); 
 
-  // 🌟 NEW: Admin Profile & Settings State
+  // Admin Profile & Settings State
   const [adminProfile, setAdminProfile] = useState({ name: 'Mentor', profilePic: '' });
   const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '', studentToDelete: '' });
   const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [userId, setUserId] = useState(null); // 🌟 ADDED USER ID STATE
 
-  // 🌟 NEW: Chat States
+  // Chat States
   const [messages, setMessages] = useState([]);
   const [selectedStudentForChat, setSelectedStudentForChat] = useState(null);
   const [chatInput, setChatInput] = useState('');
 
-  // 🌟 NEW: Study Library States
+  // Study Library States
   const [resources, setResources] = useState([]);
   const [resourceForm, setResourceForm] = useState({ title: '', description: '', type: 'Document', url: '' });
   const [isResourceUploading, setIsResourceUploading] = useState(false);
 
   useEffect(() => {
-    // 1. Fetch main dashboard data (homeworks, students)
     fetchData();
     
-    // 2. Fetch specific admin profile from DATABASE
     fetchProfile(); 
 
-    // 3. Set minimum date for assignment picker
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     setMinDateTime(now.toISOString().slice(0, 16));
     
-    // 4. Set the unique Admin ID from token for future API calls
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -74,9 +70,8 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  // 🌟 This function now talks to your Database
   const fetchProfile = async () => {
-    setIsLoading(true); // 🌟 Set to loading when starting
+    setIsLoading(true); 
     try {
       const res = await api.get('/auth/profile');
       setAdminProfile({ name: res.data.name, profilePic: res.data.profilePic || '' });
@@ -84,29 +79,27 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error("Error fetching profile from DB");
     } finally {
-      setIsLoading(false); // 🌟 Set to false when done
+      setIsLoading(false); 
     }
   };
 
-  // Update your fetchData function to also fetch resources:
   const fetchData = async () => {
     try {
       const [studentRes, hwRes, annRes, resRes] = await Promise.all([
         api.get('/admin/students'),
         api.get('/homework/admin'),
         api.get('/announcements/admin'),
-        api.get('/resources') // 🌟 ADDED THIS
+        api.get('/resources') 
       ]);
       setStudents(studentRes.data);
       setHomeworks(hwRes.data);
       setAnnouncements(annRes.data);
-      setResources(resRes.data); // 🌟 ADDED THIS
+      setResources(resRes.data); 
     } catch (error) {
       showToast("Error fetching dashboard data.", "error");
     }
   };
 
-  // 🌟 ADD THESE HANDLERS BELOW YOUR OTHER HANDLERS:
   const handleResourceFile = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -189,7 +182,7 @@ export default function AdminDashboard() {
     try {
       await api.post('/messages', { receiverId: selectedStudentForChat._id, content: chatInput });
       setChatInput('');
-      fetchMessages(selectedStudentForChat._id); // Refresh chat
+      fetchMessages(selectedStudentForChat._id); 
     } catch (e) { showToast("Failed to send message", "error"); }
   };
 
@@ -198,7 +191,6 @@ export default function AdminDashboard() {
     window.location.href = '/'; 
   };
 
-  // 🌟 Custom Notification System
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
@@ -222,7 +214,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🌟 NEW ADDITION: Handler for answer sheet upload
   const handleAnswerSheetUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -259,11 +250,9 @@ export default function AdminDashboard() {
     setAssignForm({ ...assignForm, mcqs: updatedMcqs });
   };
 
-  // 🌟 Modal Actions Executions
   const executeModalAction = async () => {
     try {
       if (modal.type === 'grade') {
-        // 🌟 Fix: Safely handle 0 and empty strings
         if ((modal.data !== '' && (modal.data < 0 || modal.data > 100)) || (modal.data === '' && !answerSheet.fileUrl)) {
           return showToast("Enter a valid score (0-100) or attach an answer sheet!", "error");
         }
@@ -309,7 +298,6 @@ export default function AdminDashboard() {
     hw.studentId?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // 🌟 Handle Profile Picture Upload
   const handleProfilePicUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -324,7 +312,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 🌟 Save Profile Settings to Database
   const handleSaveSettings = async () => {
     try {
       const res = await api.put('/auth/profile', { name: settingsForm.name, profilePic: settingsForm.profilePic });
@@ -335,14 +322,11 @@ export default function AdminDashboard() {
     }
   };
   
-  // 🌟 NEW: Export Student Grades to CSV
   const handleExportCSV = () => {
     if (students.length === 0) return showToast("No students to export", "error");
 
-    // Create CSV Headers
     const headers = ["Student Name", "Email", "Completed Tasks", "Pending Review", "Average Score (%)"];
     
-    // Generate Rows
     const rows = students.map(student => {
       const studentHw = homeworks.filter(h => h.studentId?._id === student._id);
       const completedCount = studentHw.filter(h => h.status === 'Graded').length;
@@ -351,7 +335,6 @@ export default function AdminDashboard() {
       const gradedHw = studentHw.filter(h => h.status === 'Graded');
       const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
 
-      // Wrap strings in quotes to handle commas inside names
       return `"${student.name}","${student.email}",${completedCount},${pendingCount},${avgScore}`;
     });
 
@@ -359,7 +342,6 @@ export default function AdminDashboard() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     
-    // Trigger Download
     const link = document.createElement("a");
     link.href = url;
     link.download = `Student_Grades_${new Date().toISOString().split('T')[0]}.csv`;
@@ -369,14 +351,12 @@ export default function AdminDashboard() {
     
     showToast("Grades successfully exported to CSV!");
   };
-  // 🌟 UPDATED: Export Student Grades AND Charts to PDF
-  const handleExportPDF = async () => { // Note the 'async' here
+  const handleExportPDF = async () => { 
     if (students.length === 0) return showToast("No students to export", "error");
 
     try {
       const doc = new jsPDF();
       
-      // 1. Generate the Table (Same as before)
       doc.setFontSize(18);
       doc.text("Student Performance Report", 14, 22);
       doc.setFontSize(11);
@@ -405,22 +385,18 @@ export default function AdminDashboard() {
         headStyles: { fillColor: [79, 70, 229] },
       });
 
-      // 2. NEW: Capture and Append Charts if they exist in the DOM
       const chartContainer = document.getElementById('analytics-export-area');
       
       if (chartContainer) {
-        // Add a new page for the charts
         doc.addPage();
         doc.setFontSize(18);
         doc.setTextColor(27, 37, 89);
         doc.text("Visual Analytics", 14, 22);
 
-        // Take a screenshot of the charts
         const canvas = await html2canvas(chartContainer, { scale: 2, backgroundColor: '#ffffff' });
         const imgData = canvas.toDataURL('image/png');
         
-        // Calculate image dimensions to fit A4 paper perfectly
-        const pdfWidth = 190; // mm
+        const pdfWidth = 190; 
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
         
         doc.addImage(imgData, 'PNG', 10, 30, pdfWidth, pdfHeight);
@@ -433,9 +409,8 @@ export default function AdminDashboard() {
       showToast("Error generating PDF. Check console.", "error");
     }
   };
-  // 🌟 NEW: Calculate Data for Analytics Chart
+
   const chartData = Object.values(homeworks.reduce((acc, hw) => {
-    // Only include graded assignments that have a score
     if (hw.status === 'Graded' && hw.grading?.score != null) {
       if (!acc[hw.title]) {
         acc[hw.title] = { title: hw.title, totalScore: 0, count: 0 };
@@ -445,7 +420,6 @@ export default function AdminDashboard() {
     }
     return acc;
   }, {})).map(item => ({
-    // Shorten very long titles so they fit on the chart axis
     name: item.title.length > 15 ? item.title.substring(0, 15) + '...' : item.title,
     avgScore: Number((item.totalScore / item.count).toFixed(1))
   }));
@@ -453,7 +427,6 @@ export default function AdminDashboard() {
     return (
       <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
         
-        {/* 🌟 CUSTOM TOAST NOTIFICATION */}
         <div className={`absolute top-6 right-6 z-50 transform transition-all duration-500 ease-out flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl font-bold text-white
           ${toast.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
           ${toast.type === 'error' ? 'bg-rose-500' : 'bg-slate-900'}`}>
@@ -461,7 +434,6 @@ export default function AdminDashboard() {
           {toast.message}
         </div>
 
-      {/* 🌟 CUSTOM MODAL OVERLAY */}
       {modal.type && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl transform scale-100 animate-slide-up">
@@ -473,7 +445,6 @@ export default function AdminDashboard() {
                 <input type="number" min="0" max="100" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-black text-2xl text-center mb-6" 
                   value={modal.data} onChange={e => setModal({...modal, data: e.target.value})} placeholder="0 - 100 (Optional)" />
                   
-                {/* 🌟 NEW ADDITION: Optional Answer Sheet Form */}
                 <p className="text-slate-500 text-sm mb-2 font-bold">Attach Answer Sheet (Optional)</p>
                 <div className="relative border-2 border-dashed border-slate-300 bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer mb-6 group">
                   <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAnswerSheetUpload} />
@@ -504,7 +475,6 @@ export default function AdminDashboard() {
               </>
             )}
 
-            {/* 🌟 NEW: View Work Inline Preview Modal */}
             {modal.type === 'viewWork' && (
               <>
                 <h3 className="text-2xl font-black text-[#1B2559] mb-4 text-left border-b border-slate-100 pb-4">Student's Submission</h3>
@@ -550,7 +520,6 @@ export default function AdminDashboard() {
               </>
             )}
 
-            {/* 🌟 Dynamic Footer layout based on modal type */}
             <div className="flex gap-4">
               {modal.type === 'viewWork' ? (
                 <button onClick={() => setModal({ type: null, hwId: null, studentId: null, data: '' })} className="w-full py-4 bg-slate-100 text-slate-700 hover:bg-slate-200 font-black rounded-2xl transition-colors">
@@ -574,10 +543,10 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* 🟢 SLEEK SIDEBAR */}
+      {/* SIDEBAR */}
       <aside className="w-72 bg-[#0B1437] text-slate-300 flex flex-col shadow-2xl z-20 hidden lg:flex rounded-r-[2rem] my-4 ml-4 overflow-hidden">
         
-        {/* 1. Header (Fixed at top) */}
+        {/* 1. Header */}
         <div className="p-8 flex items-center gap-4 border-b border-slate-700/50 shrink-0">
           {adminProfile?.profilePic ? (
             <img src={adminProfile.profilePic} alt="Profile" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-indigo-500/30" />
@@ -594,9 +563,8 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        {/* 2. Navigation Links (Scrollable Middle Area) */}
+        {/* 2. Navigation Links */}
         <div className="relative flex-1 flex flex-col overflow-hidden">
-          {/* Top Shadow Fade */}
           <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#0B1437] to-transparent pointer-events-none z-10"></div>
           
           <div className="p-6 space-y-3 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -635,7 +603,6 @@ export default function AdminDashboard() {
             Settings
           </button>
         </div>
-        {/* 🌟 MINIMALIST BOTTOM SCROLL INDICATOR */}
           <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#0B1437] to-transparent pointer-events-none z-10 flex items-end justify-center pb-1">
             <svg className="w-5 h-5 text-slate-500/60 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path>
@@ -643,7 +610,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        {/* 3. Sign Out (Fixed at bottom) */}
+        {/* 3. Sign Out */}
         <div className="p-6 border-t border-slate-700/50 shrink-0">
           <button onClick={handleLogout} className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-rose-500 text-slate-300 hover:text-white px-5 py-4 rounded-2xl font-bold transition-all shadow-sm group">
             <svg className="w-5 h-5 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
@@ -652,14 +619,13 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* 🟢 MAIN CONTENT */}
+      {/* MAIN CONTENT */}
       <div className="flex-1 overflow-y-auto scroll-smooth p-6 lg:p-10">
         <div className="max-w-[1600px] mx-auto">
           
           {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
             <div>
-              {/* 🌟 dynamically injects your registered name */}
               <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, {adminProfile.name} 👋</h1>
               <p className="text-[#A3AED0] mt-2 font-bold tracking-wide">Here is what is happening in your classes today.</p>
             </div>
@@ -677,11 +643,10 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* 🟢 VIEW 1: DASHBOARD TAB */}
+          {/* VIEW 1: DASHBOARD TAB */}
           {activeTab === 'dashboard' && (
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
               
-              {/* ASSIGN WORK FORM */}
               <div className="xl:col-span-5 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
                 <div className="flex items-center gap-3 mb-8">
                   <div className="bg-indigo-600 w-2 h-8 rounded-full"></div>
@@ -854,7 +819,7 @@ export default function AdminDashboard() {
                           
                           {hw.status === 'Graded' && (
                             <div className="flex items-center gap-2">
-                              {/* 🌟 NEW: Editable Score Button - Click to update grade or add score later! */}
+                              {/* Editable Score Button - Click to update grade or add score later! */}
                               <button 
                                 onClick={() => {
                                   setModal({ type: 'grade', hwId: hw._id, data: hw.grading?.score != null ? hw.grading.score : '' });
@@ -898,10 +863,9 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* 🟢 VIEW 2: STUDENT LIST TAB */}
+          {/* VIEW 2: STUDENT LIST TAB */}
           {activeTab === 'students' && (
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
-              {/* 👇 NEW: Added Flex between and Export Button */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div className="flex items-center gap-3">
                   <div className="bg-purple-500 w-2 h-8 rounded-full"></div>
@@ -909,7 +873,6 @@ export default function AdminDashboard() {
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  {/* 👇 UPDATED: Added hover:bg-slate-700 hover:text-white */}
                   <button onClick={handleExportCSV} className="px-5 py-3 bg-slate-50 text-slate-700 hover:bg-slate-700 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center gap-2 border border-slate-200">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Export CSV
@@ -923,12 +886,10 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {students.map(student => {
-                  // Calculate Stats for this specific student
                   const studentHw = homeworks.filter(h => h.studentId?._id === student._id);
                   const completedCount = studentHw.filter(h => h.status === 'Graded').length;
                   const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
 
-                  // 🌟 NEW ADDITION: Calculate Average Score and Progress Bar Width
                   const gradedHw = studentHw.filter(h => h.status === 'Graded');
                   const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
                   const progressWidth = `${avgScore}%`;
@@ -953,7 +914,6 @@ export default function AdminDashboard() {
                         
                         </div>
 
-                      {/* 🌟 NEW ADDITION: Progress Bar based on Avg Score */}
                       <div className="w-full bg-white p-3 rounded-2xl shadow-sm mt-2">
                         <div className="flex justify-between text-xs font-black text-[#A3AED0] mb-2">
                           <span>Average Performance</span>
@@ -977,11 +937,10 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* 🟢 VIEW 3: SETTINGS TAB (Profile & Danger Zone) */}
+          {/* VIEW 3: SETTINGS TAB (Profile & Danger Zone) */}
           {activeTab === 'settings' && (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 animate-fade-in">
               
-              {/* Profile Settings */}
               <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex flex-col">
                 <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
                   <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
@@ -1073,7 +1032,6 @@ export default function AdminDashboard() {
           {/* 🟢 VIEW 3.5: ANNOUNCEMENTS TAB */}
           {activeTab === 'announcements' && (
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
-              {/* Post Form */}
               <div className="xl:col-span-5 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
                 <div className="flex items-center gap-3 mb-8">
                   <div className="bg-amber-500 w-2 h-8 rounded-full"></div>
@@ -1153,9 +1111,8 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
-          {/* 🟢 VIEW 4: ANALYTICS TAB */}
+          {/* VIEW 4: ANALYTICS TAB */}
           {activeTab === 'analytics' && (() => {
-            // Calculate Pie Chart Data based on dropdown selection
             const studentHwForPie = selectedStudentForChart === 'all' 
               ? homeworks 
               : homeworks.filter(h => h.studentId?._id === selectedStudentForChart);
@@ -1181,7 +1138,6 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
-                {/* 🌟 The Area html2canvas will Screenshot for the PDF */}
                 <div id="analytics-export-area" className="space-y-8 bg-white p-2">
                   
                   {/* BAR CHART SECTION */}
@@ -1254,7 +1210,7 @@ export default function AdminDashboard() {
             );
           })()}
 
-          {/* 🟢 VIEW 5: MESSAGES TAB */}
+          {/* VIEW 5: MESSAGES TAB */}
           {activeTab === 'messages' && (
             <div className="bg-white p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] flex overflow-hidden animate-fade-in gap-6">
               
@@ -1315,7 +1271,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* 🟢 VIEW 6: STUDY LIBRARY (ADMIN) */}
+          {/* VIEW 6: STUDY LIBRARY (ADMIN) */}
           {activeTab === 'library' && (
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
               

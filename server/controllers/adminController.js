@@ -1,7 +1,7 @@
 const Question = require('../models/Question');
 const Assignment = require('../models/Assignment');
 const User = require('../models/User');
-const Homework = require('../models/Homework'); // 🌟 Imported Homework to delete student's tasks
+const Homework = require('../models/Homework'); 
 
 // @desc    Upload a single question to the Question Bank
 // @route   POST /api/admin/questions
@@ -72,7 +72,6 @@ exports.getAllStudents = async (req, res) => {
   }
 };
 
-// 🌟 NEW: Delete Student Controller
 // @desc    Delete a student and their coursework
 // @route   DELETE /api/admin/students/:id
 exports.deleteStudent = async (req, res) => {

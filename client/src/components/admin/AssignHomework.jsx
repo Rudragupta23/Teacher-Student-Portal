@@ -42,7 +42,6 @@ const AssignHomework = () => {
     try {
       const res = await api.post('/admin/assign-homework', formData);
       toast.success(res.data.message);
-      // Reset form slightly
       setFormData({ ...formData, topic: '' });
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error assigning homework');

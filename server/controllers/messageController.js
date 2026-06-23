@@ -1,4 +1,3 @@
-// server/controllers/messageController.js
 const Message = require('../models/Message');
 const User = require('../models/User');
 
@@ -7,7 +6,6 @@ exports.sendMessage = async (req, res) => {
         const { receiverId, content } = req.body;
         let finalReceiverId = receiverId;
 
-        // If a student sends a message without a receiverId, default to the Admin
         if (req.user.role === 'student' && !receiverId) {
             const admin = await User.findOne({ role: 'admin' });
             if (!admin) return res.status(404).json({ message: "Admin not found" });
@@ -26,7 +24,6 @@ exports.getConversation = async (req, res) => {
     try {
         let otherUserId = req.params.otherUserId;
 
-        // If student is fetching conversation, default to chatting with the Admin
         if (req.user.role === 'student' && !otherUserId) {
             const admin = await User.findOne({ role: 'admin' });
             otherUserId = admin._id;

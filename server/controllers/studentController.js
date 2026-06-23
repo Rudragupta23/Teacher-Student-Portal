@@ -4,10 +4,9 @@ const Assignment = require('../models/Assignment');
 // @route   GET /api/student/assignments
 exports.getMyAssignments = async (req, res) => {
   try {
-    // req.user.id comes from our authentication middleware
     const assignments = await Assignment.find({ studentId: req.user.id })
-      .populate('questions', '-correctAnswer') // Hide the correct answer from the student!
-      .sort({ dueDate: 1 }); // Show closest due dates first
+      .populate('questions', '-correctAnswer') 
+      .sort({ dueDate: 1 }); 
 
     res.status(200).json(assignments);
   } catch (error) {
@@ -18,7 +17,7 @@ exports.getMyAssignments = async (req, res) => {
 // @desc    Submit homework answers
 // @route   POST /api/student/assignments/:id/submit
 exports.submitAssignment = async (req, res) => {
-  const { studentAnswers } = req.body; // Array of { questionId, answer }
+  const { studentAnswers } = req.body; 
 
   try {
     const assignment = await Assignment.findOne({ _id: req.params.id, studentId: req.user.id });
@@ -26,13 +25,10 @@ exports.submitAssignment = async (req, res) => {
     if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
     if (assignment.status !== 'pending') return res.status(400).json({ message: 'Assignment already submitted' });
 
-    // Save the student's answers and update status
     assignment.studentAnswers = studentAnswers;
     assignment.status = 'submitted';
     
     await assignment.save();
-
-    // OPTIONAL: You could trigger the Auto-Grader function right here!
     
     res.status(200).json({ message: 'Homework submitted successfully!', assignment });
   } catch (error) {

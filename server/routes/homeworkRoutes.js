@@ -7,7 +7,7 @@ const {
   getAdminHomework, 
   gradeHomework,
   extendDeadline,
-  deleteHomework // <-- ADD THIS
+  deleteHomework
 } = require('../controllers/homeworkController');
 
 const { protect } = require('../middlewares/authMiddleware'); 
@@ -17,7 +17,7 @@ router.post('/assign', protect, assignHomework);
 router.get('/admin', protect, getAdminHomework);
 router.put('/:id/grade', protect, gradeHomework);
 router.put('/:id/extend', protect, extendDeadline);
-router.delete('/:id', protect, deleteHomework); // <-- NEW DELETE ROUTE
+router.delete('/:id', protect, deleteHomework); 
 
 // Student Routes
 router.get('/student', protect, getStudentHomework);

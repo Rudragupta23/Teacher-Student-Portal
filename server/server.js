@@ -13,13 +13,13 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173', // Your React frontend URL
+  origin: 'http://localhost:5173', // React frontend URL
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'] // 👈 THIS IS THE MAGIC LINE
+  allowedHeaders: ['Content-Type', 'Authorization'] 
 }));
 
-// 2. Setup JSON limits (MUST BE EXACTLY LIKE THIS AND BEFORE ROUTES)
+// Setup JSON limits 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
