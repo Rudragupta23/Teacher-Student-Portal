@@ -364,7 +364,7 @@ export default function AdminDashboard() {
   });
       const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : "0.0";
 
-      return `"${student.name}","${student.email}",${completedCount},${pendingCount},${avgScore}`;
+      return `"${student.registrationName || student.name} ${student.yearGroup ? `- ${student.yearGroup}` : ''}","${student.email}",${completedCount},${pendingCount},${avgScore}`;
     });
 
     const csvContent = [headers.join(","), ...rows].join("\n");
@@ -410,7 +410,7 @@ gradedHw.forEach(h => {
 });
 const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : "0.0";
 
-        tableRows.push([student.name, student.email, completedCount.toString(), pendingCount.toString(), `${avgScore}%`]);
+        tableRows.push([`${student.registrationName || student.name} ${student.yearGroup ? `- ${student.yearGroup}` : ''}`, student.email, completedCount.toString(), pendingCount.toString(), `${avgScore}%`]);
       });
 
       autoTable(doc, {
