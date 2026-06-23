@@ -26,6 +26,10 @@ export default function StudentDashboard() {
   const [userId, setUserId] = useState(null); // 🌟 ADDED USER ID STATE
   const [announcements, setAnnouncements] = useState([]);
 
+  // 🌟 NEW: Chat States
+  const [messages, setMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+
   useEffect(() => {
     fetchAssignments();
     fetchProfile(); 
@@ -83,6 +87,29 @@ export default function StudentDashboard() {
     } catch (error) {
       showToast("Error fetching your assignments.", "error");
     }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      const res = await api.get('/messages'); // Backend automatically resolves to Admin chat
+      setMessages(res.data);
+    } catch (e) { console.error("Error fetching messages"); }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'messages') {
+      fetchMessages();
+    }
+  }, [activeTab]);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    try {
+      await api.post('/messages', { content: chatInput }); // Defaults to Admin receiver
+      setChatInput('');
+      fetchMessages(); // Refresh chat
+    } catch (e) { showToast("Failed to send message", "error"); }
   };
 
   const handleLogout = () => {
@@ -382,6 +409,10 @@ export default function StudentDashboard() {
             <button onClick={() => setActiveTab('announcements')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
               Notice Board
+            </button>
+            <button onClick={() => setActiveTab('messages')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+              Message Mentor
             </button>
             <button onClick={() => setActiveTab('calendar')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'calendar' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -707,6 +738,39 @@ export default function StudentDashboard() {
               </div>
             );
           })()}
+
+          {/* 🟢 STUDENT VIEW: MESSAGES TAB */}
+          {activeTab === 'messages' && (
+            <div className="bg-white p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-[700px] flex flex-col animate-fade-in relative overflow-hidden">
+              <div className="bg-emerald-500 text-white p-6 rounded-2xl mb-4 font-black flex items-center gap-3 shadow-lg shadow-emerald-500/20">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl">👨‍🏫</div>
+                <div>
+                  <h2 className="text-xl">Mentor Support Chat</h2>
+                  <p className="text-xs font-medium text-emerald-100">Ask your doubts directly here!</p>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#F4F7FE]/50 rounded-2xl border border-slate-100">
+                {messages.map(msg => (
+                  <div key={msg._id} className={`flex ${msg.sender === userId ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[75%] p-4 rounded-2xl shadow-sm ${msg.sender === userId ? 'bg-emerald-500 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none'}`}>
+                      <p className="font-bold">{msg.content}</p>
+                      <span className={`text-[10px] block mt-1 ${msg.sender === userId ? 'text-emerald-100' : 'text-slate-400'}`}>
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {messages.length === 0 && <div className="text-center text-slate-400 font-bold mt-20"><p className="text-4xl mb-2">👋</p><p>No messages yet. Drop your mentor a question!</p></div>}
+              </div>
+
+              <form onSubmit={handleSendMessage} className="mt-4 flex gap-2">
+                <input type="text" className="flex-1 p-5 bg-[#F4F7FE] border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20 font-bold text-[#1B2559]" 
+                  placeholder="Type your question..." value={chatInput} onChange={e => setChatInput(e.target.value)} />
+                <button className="px-8 bg-[#1B2559] hover:bg-emerald-600 text-white font-black rounded-2xl transition-all shadow-lg transform hover:-translate-y-1">Send</button>
+              </form>
+            </div>
+          )}
 
         </div>
       </div>

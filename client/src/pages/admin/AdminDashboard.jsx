@@ -40,6 +40,11 @@ export default function AdminDashboard() {
   const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [userId, setUserId] = useState(null); // 🌟 ADDED USER ID STATE
 
+  // 🌟 NEW: Chat States
+  const [messages, setMessages] = useState([]);
+  const [selectedStudentForChat, setSelectedStudentForChat] = useState(null);
+  const [chatInput, setChatInput] = useState('');
+
   useEffect(() => {
     // 1. Fetch main dashboard data (homeworks, students)
     fetchData();
@@ -128,6 +133,22 @@ export default function AdminDashboard() {
     } catch(e) {
       showToast("Failed to delete", "error");
     }
+  };
+  const fetchMessages = async (studentId) => {
+    try {
+      const res = await api.get(`/messages/${studentId}`);
+      setMessages(res.data);
+    } catch (e) { console.error("Error fetching messages"); }
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !selectedStudentForChat) return;
+    try {
+      await api.post('/messages', { receiverId: selectedStudentForChat._id, content: chatInput });
+      setChatInput('');
+      fetchMessages(selectedStudentForChat._id); // Refresh chat
+    } catch (e) { showToast("Failed to send message", "error"); }
   };
 
   const handleLogout = () => {
@@ -546,6 +567,11 @@ export default function AdminDashboard() {
               ${activeTab === 'announcements' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
               Announcements
+            </button>
+            <button onClick={() => setActiveTab('messages')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all
+              ${activeTab === 'messages' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+              Direct Messages
             </button>
             <button onClick={() => setActiveTab('analytics')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all
               ${activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
@@ -1152,6 +1178,67 @@ export default function AdminDashboard() {
               </div>
             );
           })()}
+
+          {/* 🟢 VIEW 5: MESSAGES TAB */}
+          {activeTab === 'messages' && (
+            <div className="bg-white p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] flex overflow-hidden animate-fade-in gap-6">
+              
+              {/* Left Side: Student List */}
+              <div className="w-1/3 border-r border-slate-100 pr-4 flex flex-col">
+                <h2 className="text-xl font-black text-[#1B2559] mb-6">Conversations</h2>
+                <div className="overflow-y-auto custom-scrollbar flex-1 space-y-2">
+                  {students.map(student => (
+                    <button key={student._id} 
+                      onClick={() => { setSelectedStudentForChat(student); fetchMessages(student._id); }}
+                      className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 ${selectedStudentForChat?._id === student._id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}>
+                      <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black">{student.name.charAt(0)}</div>
+                      <div className="truncate">
+                        <p>{student.name}</p>
+                        <p className="text-xs text-slate-400 font-medium truncate">{student.email}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Side: Chat Window */}
+              <div className="w-2/3 flex flex-col bg-[#F4F7FE]/50 rounded-3xl overflow-hidden relative">
+                {selectedStudentForChat ? (
+                  <>
+                    <div className="bg-white p-4 border-b border-slate-100 font-black text-[#1B2559] flex items-center gap-3 shadow-sm z-10">
+                      <div className="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center">{selectedStudentForChat.name.charAt(0)}</div>
+                      Chatting with {selectedStudentForChat.name}
+                    </div>
+                    
+                    <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
+                      {messages.map(msg => (
+                        <div key={msg._id} className={`flex ${msg.sender === userId ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[70%] p-4 rounded-2xl ${msg.sender === userId ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none shadow-sm'}`}>
+                            <p className="font-bold">{msg.content}</p>
+                            <span className={`text-[10px] block mt-1 ${msg.sender === userId ? 'text-indigo-200' : 'text-slate-400'}`}>
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {messages.length === 0 && <p className="text-center text-slate-400 font-bold mt-10">No messages yet. Say hello!</p>}
+                    </div>
+
+                    <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-slate-100 flex gap-2">
+                      <input type="text" className="flex-1 p-4 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-[#1B2559]" 
+                        placeholder="Type your message..." value={chatInput} onChange={e => setChatInput(e.target.value)} />
+                      <button className="px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all shadow-md">Send</button>
+                    </form>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+                    <div className="text-6xl mb-4 opacity-30">💬</div>
+                    <p className="font-bold">Select a student from the left to start chatting.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
         </div>
       </div>
