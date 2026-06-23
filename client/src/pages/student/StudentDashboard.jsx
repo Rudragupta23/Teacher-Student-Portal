@@ -779,15 +779,21 @@ export default function StudentDashboard() {
               </div>
 
               {/* Dynamic Header */}
-              <div className={`${chatRoom === 'admin' ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-indigo-500 shadow-indigo-500/20'} text-white p-6 rounded-2xl mb-4 font-black flex items-center gap-3 shadow-lg transition-colors shrink-0`}>
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl">
-                  {chatRoom === 'admin' ? '👨‍🏫' : '🌍'}
+              <div className={`${chatRoom === 'admin' ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-indigo-500 shadow-indigo-500/20'} text-white p-6 rounded-2xl mb-4 font-black flex items-center justify-between shadow-lg transition-colors shrink-0`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl">
+                    {chatRoom === 'admin' ? '👨‍🏫' : '🌍'}
+                  </div>
+                  <div>
+                    <h2 className="text-xl">{chatRoom === 'admin' ? 'Mentor Support Chat' : 'Global Class Chat'}</h2>
+                    <p className="text-xs font-medium text-white/80">
+                      {chatRoom === 'admin' ? 'Ask your doubts directly here!' : 'Chat with your mentor and all other students!'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-xl">{chatRoom === 'admin' ? 'Mentor Support Chat' : 'Global Class Chat'}</h2>
-                  <p className="text-xs font-medium text-white/80">
-                    {chatRoom === 'admin' ? 'Ask your doubts directly here!' : 'Chat with your mentor and all other students!'}
-                  </p>
+                <div className="bg-white/20 px-3 py-1.5 rounded-full border border-white/30 text-[10px] font-bold flex items-center gap-1.5 backdrop-blur-sm shadow-sm">
+                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                   Chats delete after 24 hours
                 </div>
               </div>
 

@@ -3,13 +3,19 @@ const User = require('../models/User');
 
 exports.sendMessage = async (req, res) => {
     try {
-        const { receiverId, content } = req.body;
+        let { receiverId, content } = req.body; // Changed to 'let' so we can modify it
         
         // --- GLOBAL CHAT LOGIC ---
         if (receiverId === 'all') {
             let newMsg = await Message.create({ sender: req.user.id, content, isGlobal: true });
             newMsg = await newMsg.populate('sender', 'name registrationName'); 
             return res.status(201).json(newMsg);
+        }
+
+        // --- NEW: AUTO-ASSIGN ADMIN RECEIVER FOR STUDENTS ---
+        if (req.user.role === 'student' && !receiverId) {
+            const admin = await User.findOne({ role: 'admin' });
+            receiverId = admin._id;
         }
 
         // --- REGULAR DIRECT MESSAGE LOGIC ---
