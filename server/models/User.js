@@ -12,6 +12,10 @@ const userSchema = new mongoose.Schema({
   profilePic: { type: String, default: '' },
   phone: { type: String },
   classCode: { type: String },
+  yearGroup: { 
+    type: String, 
+    enum: ['Y6', 'Y7', 'Y8', 'Y9', 'Y10', 'Y11', 'AS Level', 'A level'] 
+  },
   resetPasswordOtp: { type: String },
   resetPasswordExpires: { type: Date },
   

@@ -182,7 +182,15 @@ export default function StudentDashboard() {
   // Calculate Student Analytics
   const gradedHw = assignments.filter(h => h.status === 'Graded');
   const pendingHw = assignments.filter(h => h.status === 'Pending');
-  const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
+  // const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
+  let totalEarned = 0; let totalPossible = 0;
+  gradedHw.forEach(h => {
+    if(h.grading?.score != null && h.grading?.totalScore) {
+        totalEarned += h.grading.score;
+        totalPossible += h.grading.totalScore;
+    }
+  });
+  const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : 0;
 
   // Handle Profile Picture Upload
   const handleProfilePicUpload = (e) => {
@@ -344,14 +352,14 @@ export default function StudentDashboard() {
               <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-3xl text-center flex flex-col items-center">
                 <p className="text-emerald-600 font-bold text-sm mb-4 bg-emerald-100/50 px-4 py-2 rounded-full">Note: Original assignment content has been removed post-grading.</p>
 
-                <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center text-3xl font-black mb-4 shadow-lg shadow-emerald-500/30">
-                {modalTask.grading?.score != null ? modalTask.grading.score : 'N/A'}
+                <div className="w-auto px-6 h-20 bg-emerald-500 text-white rounded-full inline-flex items-center justify-center text-3xl font-black mb-4 shadow-lg shadow-emerald-500/30">
+                {modalTask.grading?.score != null ? `${modalTask.grading.score} / ${modalTask.grading.totalScore}` : 'N/A'}
               </div>
               <h4 className="text-xl font-black text-emerald-800 mb-2">Graded Successfully!</h4>
               
               {modalTask.grading?.adminAnswerSheetUrl ? (
                 <div className="flex flex-col gap-3 w-full mt-6 text-left">
-                  <h4 className="text-xs font-black text-emerald-600 uppercase tracking-wide">Mentor's Answer Sheet</h4>
+                  <h4 className="text-xs font-black text-emerald-600 uppercase tracking-wide">Mentor's Marked/Checked work</h4>
                   
                   <div className="w-full max-h-[400px] overflow-auto border-2 border-emerald-200 rounded-2xl bg-white p-2 shadow-inner">
                     {modalTask.grading.adminAnswerSheetUrl.startsWith('data:image') ? (
@@ -366,7 +374,7 @@ export default function StudentDashboard() {
                   <button type="button" onClick={() => {
                       const a = document.createElement('a');
                       a.href = modalTask.grading.adminAnswerSheetUrl;
-                      a.download = `${modalTask.title.replace(/\s+/g, '_')}_Answer_Sheet`;
+                      a.download = `${modalTask.title.replace(/\s+/g, '_')}_Marked_Work`;
                       document.body.appendChild(a);
                       a.click();
                       document.body.removeChild(a);
@@ -374,11 +382,11 @@ export default function StudentDashboard() {
                     className="w-full mt-2 px-6 py-4 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-black rounded-2xl transition-all border-2 border-dashed border-emerald-200 flex items-center justify-center gap-2"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    Download Answer Sheet
+                    Download Marked/Checked work
                   </button>
                 </div>
               ) : (
-                <p className="text-emerald-600 font-medium text-sm mt-2">No answer sheet provided by mentor.</p>
+                <p className="text-emerald-600 font-medium text-sm mt-2">No marked/checked work provided by mentor.</p>
               )}
             </div>
             )}
@@ -483,9 +491,7 @@ export default function StudentDashboard() {
                 <div>
                   <p className="text-xs font-black text-[#A3AED0] uppercase tracking-wider">Avg Score</p>
                   <p className="text-2xl font-black text-[#1B2559]">
-                    {assignments.filter(h => h.status === 'Graded').length > 0 ? 
-                      (assignments.filter(h => h.status === 'Graded').reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / assignments.filter(h => h.status === 'Graded').length).toFixed(1) 
-                      : 0}%
+                    {avgScore}%
                   </p>
                 </div>
               </div>

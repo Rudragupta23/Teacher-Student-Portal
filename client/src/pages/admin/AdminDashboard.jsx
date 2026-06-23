@@ -253,12 +253,14 @@ export default function AdminDashboard() {
   const executeModalAction = async () => {
     try {
       if (modal.type === 'grade') {
-        if ((modal.data !== '' && (modal.data < 0 || modal.data > 100)) || (modal.data === '' && !answerSheet.fileUrl)) {
-          return showToast("Enter a valid score (0-100) or attach an answer sheet!", "error");
+        const hasScores = modal.data.score !== '' && modal.data.totalScore !== '';
+        if (!hasScores && !answerSheet.fileUrl) {
+          return showToast("Enter marks or attach marked work!", "error");
         }
         
         await api.put(`/homework/${modal.hwId}/grade`, { 
-          score: modal.data !== '' ? Number(modal.data) : null, 
+          score: modal.data.score !== '' ? Number(modal.data.score) : null, 
+          totalScore: modal.data.totalScore !== '' ? Number(modal.data.totalScore) : null, 
           adminAnswerSheetUrl: answerSheet.fileUrl 
         });
         
@@ -280,9 +282,10 @@ export default function AdminDashboard() {
       else if (modal.type === 'deleteAnsSheet') {
         await api.put(`/homework/${modal.hwId}/grade`, { 
           score: modal.data.score != null ? Number(modal.data.score) : null, 
+          totalScore: modal.data.totalScore != null ? Number(modal.data.totalScore) : null,
           adminAnswerSheetUrl: '' 
         });
-        showToast("Answer Sheet Removed!");
+        showToast("Marked Work Removed!");
       }
       
       setModal({ type: null, hwId: null, studentId: null, data: '' });
@@ -333,7 +336,15 @@ export default function AdminDashboard() {
       const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
       
       const gradedHw = studentHw.filter(h => h.status === 'Graded');
-      const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
+      // const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
+      let totalEarned = 0; let totalPossible = 0;
+      gradedHw.forEach(h => {
+      if(h.grading?.score != null && h.grading?.totalScore) {
+      totalEarned += h.grading.score;
+      totalPossible += h.grading.totalScore;
+    }
+  });
+      const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : "0.0";
 
       return `"${student.name}","${student.email}",${completedCount},${pendingCount},${avgScore}`;
     });
@@ -372,7 +383,14 @@ export default function AdminDashboard() {
         const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
         
         const gradedHw = studentHw.filter(h => h.status === 'Graded');
-        const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : "0.0";
+        let totalEarned = 0; let totalPossible = 0;
+gradedHw.forEach(h => {
+  if(h.grading?.score != null && h.grading?.totalScore) {
+      totalEarned += h.grading.score;
+      totalPossible += h.grading.totalScore;
+  }
+});
+const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : "0.0";
 
         tableRows.push([student.name, student.email, completedCount.toString(), pendingCount.toString(), `${avgScore}%`]);
       });
@@ -411,17 +429,17 @@ export default function AdminDashboard() {
   };
 
   const chartData = Object.values(homeworks.reduce((acc, hw) => {
-    if (hw.status === 'Graded' && hw.grading?.score != null) {
+    if (hw.status === 'Graded' && hw.grading?.score != null && hw.grading?.totalScore) {
       if (!acc[hw.title]) {
-        acc[hw.title] = { title: hw.title, totalScore: 0, count: 0 };
+        acc[hw.title] = { title: hw.title, totalEarned: 0, totalPossible: 0 };
       }
-      acc[hw.title].totalScore += hw.grading.score;
-      acc[hw.title].count += 1;
+      acc[hw.title].totalEarned += hw.grading.score;
+      acc[hw.title].totalPossible += hw.grading.totalScore;
     }
     return acc;
   }, {})).map(item => ({
     name: item.title.length > 15 ? item.title.substring(0, 15) + '...' : item.title,
-    avgScore: Number((item.totalScore / item.count).toFixed(1))
+    avgScore: Number(((item.totalEarned / item.totalPossible) * 100).toFixed(1))
   }));
 
     return (
@@ -441,11 +459,16 @@ export default function AdminDashboard() {
             {modal.type === 'grade' && (
               <>
                 <h3 className="text-2xl font-black text-slate-800 mb-2">Grade Assignment</h3>
-                <p className="text-slate-500 text-sm mb-6">Enter a score out of 100 (Optional if attaching file).</p>
-                <input type="number" min="0" max="100" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-black text-2xl text-center mb-6" 
-                  value={modal.data} onChange={e => setModal({...modal, data: e.target.value})} placeholder="0 - 100 (Optional)" />
+                <p className="text-slate-500 text-sm mb-6">Enter score and total marks (Optional if attaching file).</p>
+                <div className="flex gap-4 mb-6">
+                  <input type="number" min="0" className="w-1/2 p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-black text-2xl text-center" 
+                    value={modal.data?.score || ''} onChange={e => setModal({...modal, data: { ...modal.data, score: e.target.value }})} placeholder="Score (e.g. 7)" />
+                  <span className="text-3xl font-black text-slate-400 self-center">/</span>
+                  <input type="number" min="0" className="w-1/2 p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-black text-2xl text-center" 
+                    value={modal.data?.totalScore || ''} onChange={e => setModal({...modal, data: { ...modal.data, totalScore: e.target.value }})} placeholder="Total (e.g. 10)" />
+                </div>
                   
-                <p className="text-slate-500 text-sm mb-2 font-bold">Attach Answer Sheet (Optional)</p>
+                <p className="text-slate-500 text-sm mb-2 font-bold">Attach Marked/Checked work (Optional)</p>
                 <div className="relative border-2 border-dashed border-slate-300 bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer mb-6 group">
                   <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAnswerSheetUpload} />
                   <p className="font-bold text-slate-600 text-sm">{answerSheet.fileName ? `📎 ${answerSheet.fileName}` : 'Click to upload PDF/Image'}</p>
@@ -467,10 +490,10 @@ export default function AdminDashboard() {
               <>
                 <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mb-4 text-3xl mx-auto">🗑️</div>
                 <h3 className="text-2xl font-black text-slate-800 mb-2 text-center">
-                  {modal.type === 'deleteStudent' ? 'Remove Student?' : modal.type === 'deleteAnsSheet' ? 'Delete Answer Sheet?' : 'Delete Assignment?'}
+                  {modal.type === 'deleteStudent' ? 'Remove Student?' : modal.type === 'deleteAnsSheet' ? 'Delete Marked/Checked work?' : 'Delete Assignment?'}
                 </h3>
                 <p className="text-slate-500 text-sm mb-6 text-center">
-                  {modal.type === 'deleteAnsSheet' ? 'This will remove your uploaded answer sheet from this graded assignment.' : 'This action is permanent and cannot be undone.'}
+                  {modal.type === 'deleteAnsSheet' ? 'This will remove your uploaded marked/checked work from this graded assignment.' : 'This action is permanent and cannot be undone.'}
                 </p>
               </>
             )}
@@ -811,7 +834,7 @@ export default function AdminDashboard() {
                                   View Work
                                 </button>
                               )}
-                              <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: '' })} className="px-5 py-3 bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-md text-sm flex items-center gap-2">
+                              <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '' } })} className="px-5 py-3 bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-md text-sm flex items-center gap-2">
                                 Grade
                               </button>
                             </>
@@ -822,22 +845,22 @@ export default function AdminDashboard() {
                               {/* Editable Score Button - Click to update grade or add score later! */}
                               <button 
                                 onClick={() => {
-                                  setModal({ type: 'grade', hwId: hw._id, data: hw.grading?.score != null ? hw.grading.score : '' });
+                                  setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '' } });
                                   if (hw.grading?.adminAnswerSheetUrl) {
-                                    setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl, fileName: 'Existing Answer Sheet Attached', isUploading: false });
+                                    setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl, fileName: 'Existing Marked/Checked work Attached', isUploading: false });
                                   } else {
                                     setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false });
                                   }
                                 }}
                                 className="px-6 py-3 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-2xl font-black border border-emerald-200 text-lg transition-colors shadow-sm"
-                                title="Edit Grade or Answer Sheet"
+                                title="Edit Grade or Marked Work"
                               >
-                                {hw.grading?.score != null ? `${hw.grading.score}/100 ✏️` : '➕ Add Score'}
+                                {hw.grading?.score != null ? `${hw.grading.score}/${hw.grading.totalScore} ✏️` : '➕ Add Score'}
                               </button>
                               
                               {hw.grading?.adminAnswerSheetUrl && (
-                                <button onClick={() => setModal({ type: 'deleteAnsSheet', hwId: hw._id, data: { score: hw.grading.score } })} className="p-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-colors shadow-sm text-sm font-bold" title="Delete Answer Sheet">
-                                  Remove Ans Sheet
+                                <button onClick={() => setModal({ type: 'deleteAnsSheet', hwId: hw._id, data: { score: hw.grading.score, totalScore: hw.grading.totalScore } })} className="p-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-colors shadow-sm text-sm font-bold" title="Delete Marked Work">
+                                  Remove Marked Work
                                 </button>
                               )}
                             </div>
@@ -891,7 +914,14 @@ export default function AdminDashboard() {
                   const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
 
                   const gradedHw = studentHw.filter(h => h.status === 'Graded');
-                  const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
+                  let totalEarned = 0; let totalPossible = 0;
+gradedHw.forEach(h => {
+  if(h.grading?.score != null && h.grading?.totalScore) {
+      totalEarned += h.grading.score;
+      totalPossible += h.grading.totalScore;
+  }
+});
+const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : "0.0";
                   const progressWidth = `${avgScore}%`;
 
                   return (
@@ -902,9 +932,12 @@ export default function AdminDashboard() {
                           {student.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <h3 className="font-black text-[#1B2559] text-xl">
-                            {student.registrationName || student.name}
-                          </h3>
+                          <div className="flex items-center gap-3">
+                            <h3 className="font-black text-[#1B2559] text-xl">
+                              {student.registrationName || student.name}
+                            </h3>
+                            {student.yearGroup && <span className="bg-indigo-100 text-indigo-700 text-xs font-black px-2 py-1 rounded-md">{student.yearGroup}</span>}
+                          </div>
                           <p className="text-sm font-bold text-[#A3AED0] mb-2">{student.email}</p>
                           <div className="flex gap-2">
                             <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-lg">{completedCount} Completed</span>

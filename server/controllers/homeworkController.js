@@ -85,10 +85,10 @@ exports.submitHomework = async (req, res) => {
         }
       });
 
-      const score = Math.round((correctCount / totalQuestions) * 100);
+      // const score = Math.round((correctCount / totalQuestions) * 100);
 
       homework.status = 'Graded';
-      homework.grading = { score, feedback: 'Auto-graded MCQ Submission', gradedAt: new Date() };
+      homework.grading = { score: correctCount, totalScore: totalQuestions, feedback: 'Auto-graded MCQ Submission', gradedAt: new Date() };
       homework.submission = { submittedAt: new Date() };
       homework.mcqs = []; 
       
@@ -108,14 +108,14 @@ exports.submitHomework = async (req, res) => {
 
 exports.gradeHomework = async (req, res) => {
   const { id } = req.params;
-  const { score, feedback, adminAnswerSheetUrl } = req.body;
+  const { score, totalScore, feedback, adminAnswerSheetUrl } = req.body;
   
   try {
     const homework = await Homework.findById(id);
     if (!homework) return res.status(404).json({ message: 'Homework not found' });
 
     homework.status = 'Graded';
-    homework.grading = { score, feedback, adminAnswerSheetUrl, gradedAt: new Date() };
+    homework.grading = { score, totalScore, feedback, adminAnswerSheetUrl, gradedAt: new Date() };
     
     homework.markModified('grading'); 
     

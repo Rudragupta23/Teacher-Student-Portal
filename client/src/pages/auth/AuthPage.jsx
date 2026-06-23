@@ -57,7 +57,7 @@ const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false); 
 
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', phone: '', classCode: '', otp: '', newPassword: ''
+    name: '', email: '', password: '', phone: '', classCode: '', otp: '', newPassword: '', yearGroup: ''
   });
 
   const handleChange = (e) => {
@@ -295,6 +295,21 @@ const AuthPage = () => {
                     <Key className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
                     <input type="text" name="classCode" placeholder="Class Code (From Admin)" required onChange={handleChange}
                       className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                  </motion.div>
+                  <motion.div variants={itemVariants} className="relative group">
+                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                    <select name="yearGroup" required onChange={handleChange} value={formData.yearGroup}
+                      className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all appearance-none cursor-pointer">
+                      <option value="" disabled>Select Year Group</option>
+                      <option value="Y6">Y6</option>
+                      <option value="Y7">Y7</option>
+                      <option value="Y8">Y8</option>
+                      <option value="Y9">Y9</option>
+                      <option value="Y10">Y10</option>
+                      <option value="Y11">Y11</option>
+                      <option value="AS Level">AS Level</option>
+                      <option value="A level">A level</option>
+                    </select>
                   </motion.div>
                 </>
               )}

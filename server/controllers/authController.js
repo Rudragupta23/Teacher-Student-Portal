@@ -9,7 +9,7 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 // @desc    Register a new user & Send OTP
 // @route   POST /api/auth/register
 exports.register = async (req, res) => {
-  const { name, email, password, phone, classCode } = req.body;
+  const { name, email, password, phone, classCode, yearGroup } = req.body;
 
   try {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,6 +46,7 @@ exports.register = async (req, res) => {
       phone: cleanPhone, 
       role,
       classCode: role === 'admin' ? process.env.ADMIN_CLASS_CODE : classCode,
+      yearGroup: role === 'student' ? yearGroup : undefined,
       isVerified: false,
       otp,
       otpExpires

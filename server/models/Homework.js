@@ -28,6 +28,7 @@ const homeworkSchema = new mongoose.Schema({
   
   grading: {
     score: { type: Number },
+    totalScore: { type: Number },
     feedback: { type: String },
     adminAnswerSheetUrl: { type: String },
     gradedAt: { type: Date }
