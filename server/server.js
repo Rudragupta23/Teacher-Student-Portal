@@ -4,6 +4,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const announcementRoutes = require('./routes/announcementRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const resourceRoutes = require('./routes/resourceRoutes');
 
 // Connect to Database
 connectDB();
@@ -29,6 +30,7 @@ app.use('/api/student', require('./routes/studentRoutes'));
 app.use('/api/homework', require('./routes/homeworkRoutes'));
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/resources', resourceRoutes);
 
 const PORT = process.env.PORT || 5000;
 
