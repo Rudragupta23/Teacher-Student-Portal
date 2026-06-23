@@ -4,7 +4,7 @@ import api from '../../services/api';
 export default function StudentDashboard() {
   // 🌟 NEW: Tab Navigation
   const [activeTab, setActiveTab] = useState('dashboard');
-
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [assignments, setAssignments] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -383,6 +383,10 @@ export default function StudentDashboard() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
               Notice Board
             </button>
+            <button onClick={() => setActiveTab('calendar')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'calendar' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              Calendar
+            </button>
             <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
               Settings
@@ -608,6 +612,101 @@ export default function StudentDashboard() {
               </div>
             </div>
           )}
+
+          {activeTab === 'calendar' && (() => {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+            const getAssignmentsForDay = (day) => {
+              return assignments.filter(hw => {
+                const d = new Date(hw.dueDate);
+                return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
+              });
+            };
+
+            return (
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+                
+                {/* Calendar Header Controls */}
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-8 border-b border-slate-100 pb-6 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Monthly Planner</h2>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 bg-[#F4F7FE] p-2 rounded-2xl">
+                    <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-3 bg-white hover:bg-slate-100 rounded-xl transition-colors shadow-sm">
+                      <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <h3 className="text-xl font-black text-[#1B2559] min-w-[160px] text-center">
+                      {monthNames[month]} {year}
+                    </h3>
+                    <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-3 bg-white hover:bg-slate-100 rounded-xl transition-colors shadow-sm">
+                      <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Calendar Grid Header */}
+                <div className="grid grid-cols-7 gap-2 md:gap-4 mb-4">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} className="text-center font-black text-[#A3AED0] uppercase text-xs tracking-wider">{day}</div>
+                  ))}
+                </div>
+                
+                {/* Calendar Grid Body */}
+                <div className="grid grid-cols-7 gap-2 md:gap-4">
+                  {/* Empty cells for offset */}
+                  {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                    <div key={`empty-${i}`} className="min-h-[100px] md:min-h-[120px] bg-slate-50/50 rounded-2xl border border-dashed border-slate-200"></div>
+                  ))}
+                  
+                  {/* Days of the month */}
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const day = i + 1;
+                    const dayAssignments = getAssignmentsForDay(day);
+                    const isToday = new Date().getDate() === day && new Date().getMonth() === month && new Date().getFullYear() === year;
+
+                    return (
+                      <div key={day} className={`min-h-[100px] md:min-h-[120px] p-2 md:p-3 rounded-2xl border transition-all 
+                        ${isToday ? 'bg-indigo-50 border-indigo-200 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
+                        
+                        <div className={`text-xs md:text-sm font-black w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full mb-2 
+                          ${isToday ? 'bg-indigo-500 text-white shadow-md' : 'text-[#1B2559]'}`}>
+                          {day}
+                        </div>
+                        
+                        <div className="space-y-1.5 overflow-y-auto max-h-[70px] custom-scrollbar pr-1">
+                          {dayAssignments.map(hw => (
+                            <div key={hw._id} 
+                              onClick={() => setModalTask(hw)}
+                              className={`text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg truncate cursor-pointer transition-transform hover:scale-105 shadow-sm
+                              ${hw.status === 'Graded' ? 'bg-emerald-100 text-emerald-700' : 
+                                hw.status === 'Submitted' ? 'bg-amber-100 text-amber-700' : 
+                                'bg-[#1B2559] text-white'}`}
+                              title={hw.title}
+                            >
+                              {hw.title}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-8 flex items-center justify-center gap-6 text-xs font-bold text-slate-500">
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#1B2559]"></span> Pending</div>
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-300"></span> Under Review</div>
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-300"></span> Graded</div>
+                </div>
+
+              </div>
+            );
+          })()}
 
         </div>
       </div>
