@@ -690,7 +690,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
                         onChange={e => setAssignForm({...assignForm, studentId: e.target.value})}>
                         <option value="all">All Students</option>
-                        {students.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                        {students.map(s => <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1">
@@ -1034,7 +1034,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
     <option value="">-- Choose a Student --</option>
     {students.map(s => (
       <option key={s._id} value={s._id}>
-        {s.name} ({s.email})
+        {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''} ({s.email})
       </option>
     ))}
   </select>
@@ -1084,7 +1084,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
                       value={announcementForm.targetAudience} onChange={e => setAnnouncementForm({...announcementForm, targetAudience: e.target.value})}>
                       <option value="all">📢 Share to Everyone</option>
-                      {students.map(s => <option key={s._id} value={s._id}>👤 {s.name}</option>)}
+                      {students.map(s => <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>)}
                     </select>
                   </div>
 
@@ -1255,9 +1255,12 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     <button key={student._id} 
                       onClick={() => { setSelectedStudentForChat(student); fetchMessages(student._id); }}
                       className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 ${selectedStudentForChat?._id === student._id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}>
-                      <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black">{student.name.charAt(0)}</div>
+                      <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black">{(student.registrationName || student.name).charAt(0)}</div>
                       <div className="truncate">
-                        <p>{student.name}</p>
+                        <p className="flex items-center gap-2">
+                          {student.registrationName || student.name}
+                          {student.yearGroup && <span className="text-[10px] bg-indigo-200/50 text-indigo-700 px-1.5 py-0.5 rounded-md">{student.yearGroup}</span>}
+                        </p>
                         <p className="text-xs text-slate-400 font-medium truncate">{student.email}</p>
                       </div>
                     </button>
@@ -1270,8 +1273,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 {selectedStudentForChat ? (
                   <>
                     <div className="bg-white p-4 border-b border-slate-100 font-black text-[#1B2559] flex items-center gap-3 shadow-sm z-10">
-                      <div className="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center">{selectedStudentForChat.name.charAt(0)}</div>
-                      Chatting with {selectedStudentForChat.name}
+                      <div className="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center">{(selectedStudentForChat.registrationName || selectedStudentForChat.name).charAt(0)}</div>
+                      Chatting with {selectedStudentForChat.registrationName || selectedStudentForChat.name} {selectedStudentForChat.yearGroup ? `(${selectedStudentForChat.yearGroup})` : ''}
                     </div>
                     
                     <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
