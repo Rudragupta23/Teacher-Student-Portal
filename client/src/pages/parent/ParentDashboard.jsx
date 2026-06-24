@@ -77,39 +77,92 @@ export default function ParentDashboard() {
 
   // 3. EXPORT LOGIC
   const handleExportCSV = () => {
-    if (!childData || !assignments || assignments.length === 0) return showToast('No data to export', 'error');
-    const headers = ['Assignment Title', 'Type', 'Status', 'Marks', 'Feedback'];
-    const rows = assignments.map(a => [
-      a.homeworkId?.title || 'N/A',
-      a.homeworkId?.type || 'N/A',
-      a.status || 'N/A',
-      a.marks ? `${a.marks}` : 'Not Graded',
-      a.feedback || 'None'
-    ]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join("\n");
-    const encodedUri = encodeURI(csvContent);
+    if (!assignments || assignments.length === 0) return showToast("No data to export", "error");
+
+    const headers = ["Assignment Title", "Format/Type", "Due Date", "Status", "Score"];
+    
+    const rows = assignments.map(hw => {
+      // Safely map the properties from your database
+      const title = hw.title || "N/A";
+      const type = hw.type || "File";
+      const dueDate = new Date(hw.dueDate).toLocaleDateString();
+      const status = hw.status || "Pending";
+      
+      let score = "N/A";
+      if (hw.grading?.score != null && hw.grading?.totalScore) {
+        score = `${hw.grading.score}/${hw.grading.totalScore}`;
+      }
+
+      return `"${title}","${type}","${dueDate}","${status}","${score}"`;
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${childData.name}_Performance.csv`);
+    link.href = url;
+    
+    // 🌟 FIX: Prioritize Registration Name for the downloaded file
+    const studentName = childData?.registrationName || childData?.name || "Student";
+    link.download = `${studentName}_Grades_${new Date().toISOString().split('T')[0]}.csv`;
+    
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    showToast("CSV successfully exported!");
   };
 
-  const handleExportPDF = () => {
-    if (!childData || !assignments || assignments.length === 0) return showToast('No data to export', 'error');
-    const doc = new jsPDF();
-    doc.text(`${childData.name}'s Performance Report`, 14, 15);
-    const tableColumn = ["Assignment Title", "Type", "Status", "Score", "Feedback"];
-    const tableRows = assignments.map(a => [
-      a.homeworkId?.title || 'N/A',
-      a.homeworkId?.type || 'N/A',
-      a.status || 'N/A',
-      a.marks ? `${a.marks}` : 'Not Graded',
-      a.feedback || 'None'
-    ]);
-    autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
-    doc.save(`${childData.name}_Performance.pdf`);
+  const handleExportPDF = async () => {
+    if (!assignments || assignments.length === 0) return showToast("No data to export", "error");
+
+    try {
+      const doc = new jsPDF();
+      
+      // 🌟 FIX: Prioritize Registration Name for the PDF Header and File Name
+      const studentName = childData?.registrationName || childData?.name || "Student";
+      
+      doc.setFontSize(18);
+      doc.setTextColor(27, 37, 89); // Matches your #1B2559 theme
+      doc.text(`${studentName} - Performance Report`, 14, 22);
+      
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+
+      const tableColumn = ["Assignment Title", "Format/Type", "Due Date", "Status", "Score"];
+      const tableRows = [];
+
+      assignments.forEach(hw => {
+        // 🌟 FIX: Map the title and type correctly for the rows
+        const title = hw.title || "N/A";
+        const type = hw.type || "File";
+        const dueDate = new Date(hw.dueDate).toLocaleDateString();
+        const status = hw.status || "Pending";
+        
+        let score = "-";
+        if (hw.grading?.score != null && hw.grading?.totalScore) {
+          score = `${hw.grading.score}/${hw.grading.totalScore}`;
+        }
+
+        tableRows.push([title, type, dueDate, status, score]);
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 40,
+        theme: 'grid',
+        headStyles: { fillColor: [139, 92, 246] }, // Violet color to match parent dashboard
+      });
+
+      doc.save(`${studentName}_Grades_${new Date().toISOString().split('T')[0]}.pdf`);
+      showToast("PDF successfully exported!");
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      showToast("Error generating PDF.", "error");
+    }
   };
 
   useEffect(() => {
@@ -129,7 +182,11 @@ export default function ParentDashboard() {
       setChildData(res.data.childProfile);
       setAssignments(res.data.assignments);
     } catch (error) {
-      showToast("Error fetching child data", "error");
+      // 🚨 FIX: This will now show the EXACT error message from the backend!
+      // (e.g., "No linked student found." or "Child profile not found.")
+      const errorMsg = error.response?.data?.message || "Server Error fetching data";
+      console.error("Child Data Error:", errorMsg);
+      showToast(errorMsg, "error");
     }
   };
 
