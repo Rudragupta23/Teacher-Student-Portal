@@ -34,7 +34,8 @@ export default function ParentDashboard() {
   // 1. FETCH PROFILE
   const fetchProfile = async () => {
     try {
-      const res = await api.get('/api/auth/profile');
+      // FIX: Removed the extra '/api' so it correctly matches the backend route
+      const res = await api.get('/auth/profile');
       setParentProfile({ name: res.data.name, profilePic: res.data.profilePic || '' });
       setSettingsForm({ name: res.data.name, profilePic: res.data.profilePic || '' });
     } catch (error) {
@@ -46,10 +47,14 @@ export default function ParentDashboard() {
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.put('/api/auth/profile', settingsForm);
-      setParentProfile({ name: res.data.user.name, profilePic: res.data.user.profilePic });
+      // FIX: Removed the extra '/api' here as well
+      const res = await api.put('/auth/profile', settingsForm);
+      
+      const updatedData = res.data.user ? res.data.user : res.data;
+      setParentProfile({ name: updatedData.name, profilePic: updatedData.profilePic || '' });
       showToast('Profile updated successfully!');
     } catch (err) {
+      console.error("Update Error:", err.response || err); // Logs exact error in your browser console
       showToast(err.response?.data?.message || 'Failed to update profile', 'error');
     }
   };
@@ -57,6 +62,11 @@ export default function ParentDashboard() {
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // FIX: Prevents massive images from crashing your server! 
+      if (file.size > 2000000) {
+        return showToast("Image is too large! Please choose a file under 2MB.", "error");
+      }
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setSettingsForm({ ...settingsForm, profilePic: reader.result }); // Saves as Base64 string
@@ -145,28 +155,6 @@ export default function ParentDashboard() {
     window.location.href = '/'; 
   };
 
-  const downloadCSV = () => {
-    if (!childData || assignments.length === 0) return;
-    
-    const headers = ["Assignment Title", "Due Date", "Status", "Score", "Total Possible"];
-    const rows = assignments.map(hw => [
-      `"${hw.title}"`, 
-      new Date(hw.dueDate).toLocaleDateString(), 
-      hw.status, 
-      hw.grading?.score !== undefined ? hw.grading.score : "N/A",
-      hw.grading?.totalScore !== undefined ? hw.grading.totalScore : "N/A"
-    ]);
-
-    const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${childData.name.replace(/\s+/g, '_')}_Report.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   return (
     <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
       
@@ -181,9 +169,13 @@ export default function ParentDashboard() {
       {/* SIDEBAR */}
       <aside className="w-72 bg-[#0B1437] text-slate-300 flex flex-col shadow-2xl z-20 hidden lg:flex rounded-r-[2rem] my-4 ml-4 overflow-hidden">
         <div className="p-8 flex items-center gap-4 border-b border-slate-700/50 shrink-0">
-          <div className="bg-gradient-to-tr from-violet-400 to-indigo-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-violet-500/30">
-            P
-          </div>
+          {parentProfile.profilePic ? (
+            <img src={parentProfile.profilePic} alt="Profile" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-violet-500/30" />
+          ) : (
+            <div className="bg-gradient-to-tr from-violet-400 to-indigo-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-violet-500/30">
+              {parentProfile.name ? parentProfile.name.charAt(0).toUpperCase() : 'P'}
+            </div>
+          )}
           <div>
             <h1 className="text-lg font-black text-white tracking-wide leading-tight">Parent<br/>Portal</h1>
           </div>
@@ -229,13 +221,6 @@ export default function ParentDashboard() {
                   ID: {childData?.studentId || 'N/A'}
                 </div>
               </div>
-            </div>
-            
-            <div className="flex gap-4 mt-6 md:mt-0">
-              <button onClick={downloadCSV} className="bg-white hover:bg-violet-50 text-violet-600 px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4 font-black transition-colors border border-transparent hover:border-violet-200">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                Download CSV Report
-              </button>
             </div>
           </div>
 
@@ -351,65 +336,48 @@ export default function ParentDashboard() {
             </div>
           )}
 
+          {/* VIEW 3: SETTINGS TAB */}
           {activeTab === 'settings' && (
-  <div className="bg-white rounded-[2rem] p-8 shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in border border-slate-100">
-    
-    {/* Header Section Matching Student Dashboard */}
-    <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
-      <div className="bg-violet-500 w-2 h-8 rounded-full"></div>
-      <h2 className="text-2xl font-black text-[#1B2559]">Profile Settings</h2>
-    </div>
-    
-    <form onSubmit={handleProfileUpdate} className="max-w-2xl space-y-8">
-      
-      {/* Profile Picture Section */}
-      <div className="bg-[#F4F7FE] p-6 rounded-2xl flex items-center gap-6">
-        <div className="h-24 w-24 rounded-full bg-white overflow-hidden border-4 border-white shadow-lg shrink-0">
-          {settingsForm.profilePic ? (
-            <img src={settingsForm.profilePic} alt="Profile" className="h-full w-full object-cover" />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center text-3xl text-slate-400 font-bold">
-              {settingsForm.name?.charAt(0) || 'P'}
+            <div className="animate-fade-in max-w-2xl mx-auto">
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)]">
+                <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                  <div className="bg-violet-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Profile Settings</h2>
+                </div>
+
+                <form onSubmit={handleProfileUpdate} className="space-y-8">
+                  <div className="flex items-center gap-6">
+                    <div className="relative group">
+                      {settingsForm.profilePic ? (
+                        <img src={settingsForm.profilePic} alt="Profile" className="w-24 h-24 rounded-3xl object-cover shadow-md" />
+                      ) : (
+                        <div className="w-24 h-24 bg-slate-100 text-slate-400 rounded-3xl flex items-center justify-center text-4xl shadow-md">👤</div>
+                      )}
+                      {/* Hidden file input wrapped in a sleek hover overlay */}
+                      <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white rounded-3xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                        <input type="file" accept="image/*" className="hidden" onChange={handleProfilePicChange} />
+                        <span className="text-xs font-bold">Upload</span>
+                      </label>
+                    </div>
+                    <div>
+                      <h3 className="font-black text-[#1B2559] text-lg">Profile Picture</h3>
+                      <p className="text-sm font-bold text-[#A3AED0]">JPG, PNG under 2MB</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Display Name</label>
+                    <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-violet-500/20 font-bold text-[#1B2559]" 
+                      value={settingsForm.name || ''} onChange={e => setSettingsForm({...settingsForm, name: e.target.value})} required />
+                  </div>
+
+                  <button type="submit" className="w-full py-4 bg-violet-500 hover:bg-violet-600 text-white font-black rounded-2xl shadow-lg transition-transform hover:-translate-y-1">
+                    Save Profile Update
+                  </button>
+                </form>
+              </div>
             </div>
           )}
-        </div>
-        <div>
-          <h3 className="text-[#1B2559] font-black text-lg">Profile Picture</h3>
-          <p className="text-[#A3AED0] text-sm font-bold mb-3">Update your display photo</p>
-          <input 
-            type="file" 
-            accept="image/*" 
-            onChange={handleProfilePicChange} 
-            className="text-sm font-bold file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-500 file:text-white hover:file:bg-violet-600 cursor-pointer text-slate-500" 
-          />
-        </div>
-      </div>
-
-      {/* Account Info Section */}
-      <div className="space-y-6">
-        <h3 className="text-[#1B2559] font-black text-lg">Account Information</h3>
-        <div>
-          <label className="block text-sm font-bold text-[#A3AED0] mb-2">Display Name</label>
-          <input 
-            type="text" 
-            required 
-            value={settingsForm.name} 
-            onChange={(e) => setSettingsForm({...settingsForm, name: e.target.value})} 
-            className="w-full p-5 bg-[#F4F7FE] border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-violet-500/20 font-bold text-[#1B2559]" 
-          />
-        </div>
-      </div>
-
-      {/* Submit Button */}
-      <button 
-        type="submit" 
-        className="px-8 py-4 bg-[#1B2559] hover:bg-violet-600 text-white font-black rounded-2xl transition-all shadow-lg hover:shadow-violet-500/30 w-full md:w-auto"
-      >
-        Save Changes
-      </button>
-    </form>
-  </div>
-)}
 
         </div>
       </div>

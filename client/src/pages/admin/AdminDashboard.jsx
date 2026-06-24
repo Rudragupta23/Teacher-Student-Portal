@@ -1364,10 +1364,10 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         </div>
                         
                         {chatTarget === 'parent' && selectedParent && (
-                          <div className="text-xs font-bold text-violet-700 bg-violet-100 px-3 py-1.5 rounded-lg border border-violet-200 shadow-sm">
-                            Messaging Parent: {selectedParent.name}
-                          </div>
-                        )}
+  <div className="text-xs font-bold text-violet-700 bg-violet-100 px-3 py-1.5 rounded-lg border border-violet-200 shadow-sm">
+    Messaging Parent: {selectedParent.registrationName || selectedParent.name}
+  </div>
+)}
                       </div>
                     )}
                     {/* --- END OF PARENT TOGGLE UI --- */}
