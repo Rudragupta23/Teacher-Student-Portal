@@ -12,7 +12,13 @@ const ProtectedRoute = ({ children, allowedRole }) => {
   }
 
   if (allowedRole && user.role !== allowedRole) {
-    return <Navigate to={user.role === 'admin' ? '/admin-dashboard' : '/student-dashboard'} replace />;
+    if (user.role === 'admin') {
+      return <Navigate to="/admin-dashboard" replace />;
+    } else if (user.role === 'parent') {
+      return <Navigate to="/parent-dashboard" replace />;
+    } else {
+      return <Navigate to="/student-dashboard" replace />;
+    }
   }
 
   return children;

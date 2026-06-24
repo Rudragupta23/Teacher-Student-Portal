@@ -170,7 +170,7 @@ const AuthPage = () => {
               transition={{ duration: 0.7 }}
               className="text-4xl xl:text-5xl font-extrabold mb-6 tracking-tight drop-shadow-xl whitespace-nowrap"
             >
-              MathCom Mentors
+              <span className="text-white">MathCom</span> <span className="text-sky-400">Mentors</span>
             </motion.h1>
             <motion.p 
               initial={{ opacity: 0 }}
