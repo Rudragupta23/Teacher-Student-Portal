@@ -199,11 +199,13 @@ export default function ParentDashboard() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
             Message Admin
           </button>
-        </div>
+          
+          {/* Settings button properly grouped inside the navbar list with SVG icon */}
           <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-            <span className="text-xl">⚙️</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             Settings
           </button>
+        </div>
         
         <div className="p-6 border-t border-slate-700/50 shrink-0">
           <button onClick={handleLogout} className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-rose-500 text-slate-300 hover:text-white px-5 py-4 rounded-2xl font-bold transition-all shadow-sm group">
@@ -349,56 +351,65 @@ export default function ParentDashboard() {
             </div>
           )}
 
-          {/* STEP 6: VIEW 3: SETTINGS ADDED HERE */}
           {activeTab === 'settings' && (
-            <div className="bg-white rounded-[2rem] p-8 shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in border border-slate-100">
-              <h2 className="text-2xl font-black text-[#1B2559] mb-6 border-b border-slate-100 pb-4">Profile Settings</h2>
-              
-              <form onSubmit={handleProfileUpdate} className="max-w-md space-y-6">
-                {/* Profile Picture Upload */}
-                <div className="flex items-center gap-6">
-                  <div className="h-24 w-24 rounded-full bg-slate-200 overflow-hidden border-4 border-white shadow-lg shrink-0">
-                    {settingsForm.profilePic ? (
-                      <img src={settingsForm.profilePic} alt="Profile" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-3xl text-slate-400 font-bold bg-[#F4F7FE]">
-                        {settingsForm.name?.charAt(0) || 'P'}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-[#A3AED0] mb-2">Profile Picture</label>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleProfilePicChange} 
-                      className="text-sm font-bold file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100 cursor-pointer" 
-                    />
-                  </div>
-                </div>
-
-                {/* Name Input */}
-                <div>
-                  <label className="block text-sm font-bold text-[#A3AED0] mb-2">Display Name</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={settingsForm.name} 
-                    onChange={(e) => setSettingsForm({...settingsForm, name: e.target.value})} 
-                    className="w-full p-4 bg-[#F4F7FE] border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-violet-500/20 font-bold text-[#1B2559]" 
-                  />
-                </div>
-
-                {/* Submit Button */}
-                <button 
-                  type="submit" 
-                  className="px-8 py-4 bg-[#1B2559] hover:bg-violet-600 text-white font-black rounded-2xl transition-all shadow-lg hover:shadow-violet-500/30"
-                >
-                  Save Changes
-                </button>
-              </form>
+  <div className="bg-white rounded-[2rem] p-8 shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in border border-slate-100">
+    
+    {/* Header Section Matching Student Dashboard */}
+    <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+      <div className="bg-violet-500 w-2 h-8 rounded-full"></div>
+      <h2 className="text-2xl font-black text-[#1B2559]">Profile Settings</h2>
+    </div>
+    
+    <form onSubmit={handleProfileUpdate} className="max-w-2xl space-y-8">
+      
+      {/* Profile Picture Section */}
+      <div className="bg-[#F4F7FE] p-6 rounded-2xl flex items-center gap-6">
+        <div className="h-24 w-24 rounded-full bg-white overflow-hidden border-4 border-white shadow-lg shrink-0">
+          {settingsForm.profilePic ? (
+            <img src={settingsForm.profilePic} alt="Profile" className="h-full w-full object-cover" />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center text-3xl text-slate-400 font-bold">
+              {settingsForm.name?.charAt(0) || 'P'}
             </div>
           )}
+        </div>
+        <div>
+          <h3 className="text-[#1B2559] font-black text-lg">Profile Picture</h3>
+          <p className="text-[#A3AED0] text-sm font-bold mb-3">Update your display photo</p>
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={handleProfilePicChange} 
+            className="text-sm font-bold file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-500 file:text-white hover:file:bg-violet-600 cursor-pointer text-slate-500" 
+          />
+        </div>
+      </div>
+
+      {/* Account Info Section */}
+      <div className="space-y-6">
+        <h3 className="text-[#1B2559] font-black text-lg">Account Information</h3>
+        <div>
+          <label className="block text-sm font-bold text-[#A3AED0] mb-2">Display Name</label>
+          <input 
+            type="text" 
+            required 
+            value={settingsForm.name} 
+            onChange={(e) => setSettingsForm({...settingsForm, name: e.target.value})} 
+            className="w-full p-5 bg-[#F4F7FE] border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-violet-500/20 font-bold text-[#1B2559]" 
+          />
+        </div>
+      </div>
+
+      {/* Submit Button */}
+      <button 
+        type="submit" 
+        className="px-8 py-4 bg-[#1B2559] hover:bg-violet-600 text-white font-black rounded-2xl transition-all shadow-lg hover:shadow-violet-500/30 w-full md:w-auto"
+      >
+        Save Changes
+      </button>
+    </form>
+  </div>
+)}
 
         </div>
       </div>
