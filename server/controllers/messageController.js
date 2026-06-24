@@ -1,58 +1,56 @@
 const Message = require('../models/Message');
 const User = require('../models/User');
 
-exports.sendMessage = async (req, res) => {
-    try {
-        let { receiverId, content } = req.body; // Changed to 'let' so we can modify it
-        
-        // --- GLOBAL CHAT LOGIC ---
-        if (receiverId === 'all') {
-            let newMsg = await Message.create({ sender: req.user.id, content, isGlobal: true });
-            newMsg = await newMsg.populate('sender', 'name registrationName'); 
-            return res.status(201).json(newMsg);
-        }
-
-        // --- NEW: AUTO-ASSIGN ADMIN RECEIVER FOR STUDENTS ---
-        if (req.user.role === 'student' && !receiverId) {
-            const admin = await User.findOne({ role: 'admin' });
-            receiverId = admin._id;
-        }
-
-        // --- REGULAR DIRECT MESSAGE LOGIC ---
-        const newMsg = await Message.create({ sender: req.user.id, receiver: receiverId, content });
-        res.status(201).json(newMsg);
-    } catch (error) {
-        res.status(500).json({ message: "Error sending message" });
+// @desc    Get messages for a user
+// @route   GET /api/messages/:id?
+exports.getMessages = async (req, res) => {
+  try {
+    let targetId;
+    
+    // If Admin, use the ID passed in the URL
+    if (req.user.role === 'admin') {
+      targetId = req.params.id; 
+      if (!targetId) return res.status(400).json({ message: "Student or Parent ID required" });
+    } else {
+      // If Student OR Parent, use their own logged-in ID
+      targetId = req.user._id;
     }
+
+    const messages = await Message.find({
+      $or: [
+        { sender: targetId },
+        { receiver: targetId }
+      ]
+    }).populate('sender', 'name role registrationName').sort('createdAt');
+
+    res.status(200).json(messages);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
 };
 
-exports.getConversation = async (req, res) => {
-    try {
-        let otherUserId = req.params.otherUserId;
+// @desc    Send a message
+// @route   POST /api/messages
+exports.sendMessage = async (req, res) => {
+  try {
+    const { content, receiverId } = req.body;
+    let finalReceiverId = receiverId;
 
-        // --- GLOBAL CHAT LOGIC ---
-        if (otherUserId === 'all') {
-            const globalMessages = await Message.find({ isGlobal: true })
-                                                .populate('sender', 'name registrationName')
-                                                .sort({ createdAt: 1 });
-            return res.status(200).json(globalMessages);
-        }
-
-        // --- REGULAR DIRECT MESSAGE LOGIC ---
-        if (req.user.role === 'student' && !otherUserId) {
-            const admin = await User.findOne({ role: 'admin' });
-            otherUserId = admin._id;
-        }
-
-        const messages = await Message.find({
-            $or: [
-                { sender: req.user.id, receiver: otherUserId },
-                { sender: otherUserId, receiver: req.user.id }
-            ]
-        }).sort({ createdAt: 1 });
-
-        res.status(200).json(messages);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching conversation" });
+    // If Student or Parent is sending without specifying a receiver, route directly to Admin
+    if (req.user.role !== 'admin' && !finalReceiverId) {
+      const admin = await User.findOne({ role: 'admin' });
+      if (!admin) return res.status(404).json({ message: "Admin not found" });
+      finalReceiverId = admin._id;
     }
+
+    const newMessage = await Message.create({
+      sender: req.user._id,
+      receiver: finalReceiverId,
+      content
+    });
+
+    res.status(201).json(newMessage);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
 };

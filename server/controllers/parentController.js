@@ -10,13 +10,11 @@ exports.getChildData = async (req, res) => {
       return res.status(400).json({ message: 'No linked student found.' });
     }
 
-    // Find the child
     const child = await User.findOne({ studentId: parent.linkedStudentId, role: 'student' });
     if (!child) {
       return res.status(404).json({ message: 'Child profile not found.' });
     }
 
-    // Find all homework assigned to this child's class/year
     const assignments = await Homework.find({
       $or: [
         { assignTo: 'all' },
@@ -25,7 +23,6 @@ exports.getChildData = async (req, res) => {
       ]
     }).lean();
 
-    // Format assignments to only show child's submissions and grades
     const childAssignments = assignments.map(hw => {
       const submission = hw.submissions.find(sub => sub.student.toString() === child._id.toString());
       return {
@@ -39,7 +36,14 @@ exports.getChildData = async (req, res) => {
     });
 
     res.status(200).json({
-      childProfile: { name: child.name, yearGroup: child.yearGroup, classCode: child.classCode },
+      // ADDED REGISTRATION NAME AND STUDENT ID HERE
+      childProfile: { 
+        name: child.name, 
+        registrationName: child.registrationName || child.name, 
+        studentId: child.studentId, 
+        yearGroup: child.yearGroup, 
+        classCode: child.classCode 
+      },
       assignments: childAssignments
     });
   } catch (error) {

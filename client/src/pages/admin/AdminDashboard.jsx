@@ -50,6 +50,9 @@ export default function AdminDashboard() {
   const [resourceForm, setResourceForm] = useState({ title: '', description: '', type: 'Document', url: '' });
   const [isResourceUploading, setIsResourceUploading] = useState(false);
 
+  const [chatTarget, setChatTarget] = useState('student'); // Tracks if admin is chatting with 'student' or 'parent'
+  const [selectedParent, setSelectedParent] = useState(null); // Stores the fetched parent data
+
   useEffect(() => {
     fetchData();
     
@@ -179,10 +182,16 @@ export default function AdminDashboard() {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!chatInput.trim() || !selectedStudentForChat) return;
+
+    // Determine correct ID based on whether we are talking to Student or Parent
+    const targetId = chatTarget === 'parent' && selectedParent
+      ? selectedParent._id
+      : selectedStudentForChat._id;
+
     try {
-      await api.post('/messages', { receiverId: selectedStudentForChat._id, content: chatInput });
+      await api.post('/messages', { receiverId: targetId, content: chatInput });
       setChatInput('');
-      fetchMessages(selectedStudentForChat._id); 
+      fetchMessages(targetId); 
     } catch (e) { showToast("Failed to send message", "error"); }
   };
 
@@ -1291,7 +1300,12 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   </button>
                   {students.map(student => (
                     <button key={student._id} 
-                      onClick={() => { setSelectedStudentForChat(student); fetchMessages(student._id); }}
+                      onClick={() => { 
+                        setSelectedStudentForChat(student); 
+                        setChatTarget('student'); // Reset toggle
+                        setSelectedParent(null);  // Clear parent data
+                        fetchMessages(student._id); 
+                      }}
                       className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 ${selectedStudentForChat?._id === student._id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}>
                       <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black">{(student.registrationName || student.name).charAt(0)}</div>
                       <div className="truncate">
@@ -1320,6 +1334,43 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         Chats delete after 24 hours
                       </span>
                     </div>
+
+                    {/* --- START OF PARENT TOGGLE UI --- */}
+                    {selectedStudentForChat._id !== 'all' && (
+                      <div className="bg-[#F4F7FE] border-b border-slate-200 px-6 py-3 flex items-center justify-between z-0">
+                        <div className="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-100">
+                          <button 
+                            onClick={() => {
+                              setChatTarget('student');
+                              fetchMessages(selectedStudentForChat._id);
+                            }} 
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${chatTarget === 'student' ? 'bg-[#1B2559] text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>
+                            👨‍🎓 Chat with Student
+                          </button>
+                          <button 
+                            onClick={async () => {
+                              try {
+                                const res = await api.get(`/admin/student/${selectedStudentForChat._id}/parent`);
+                                setSelectedParent(res.data);
+                                setChatTarget('parent');
+                                fetchMessages(res.data._id); // Fetch parent's messages
+                              } catch (err) {
+                                showToast("No parent account is linked to this student yet.", "error");
+                              }
+                            }} 
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${chatTarget === 'parent' ? 'bg-violet-500 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>
+                            👨‍👩‍👦 Chat with Parent
+                          </button>
+                        </div>
+                        
+                        {chatTarget === 'parent' && selectedParent && (
+                          <div className="text-xs font-bold text-violet-700 bg-violet-100 px-3 py-1.5 rounded-lg border border-violet-200 shadow-sm">
+                            Messaging Parent: {selectedParent.name}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {/* --- END OF PARENT TOGGLE UI --- */}
                     
                     <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
                       
