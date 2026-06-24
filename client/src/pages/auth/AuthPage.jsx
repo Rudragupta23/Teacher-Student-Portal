@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, User, Phone, Key, ShieldCheck, ArrowLeft, AlertCircle, Send, CheckCircle2, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, Phone, Key, ShieldCheck, ArrowLeft, AlertCircle, Send, CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-react';
 import api from '../../services/api';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -53,6 +53,10 @@ const AuthPage = () => {
   const [view, setView] = useState('login'); 
   const { loginUser } = useContext(AuthContext);
   const [isParentMode, setIsParentMode] = useState(false); 
+  // Password visibility states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showSetPassword, setShowSetPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' }); 
   const [isLoading, setIsLoading] = useState(false); 
@@ -270,16 +274,22 @@ const AuthPage = () => {
               {(view === 'login' || view === 'signup') && (
                 <motion.div variants={itemVariants} className="relative group">
                   <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
-                  <input type="password" name="password" value={formData.password} placeholder={view === 'signup' ? 'Set password' : 'Enter your password'} required onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                  <input type={showPassword ? "text" : "password"} name="password" value={formData.password} placeholder={view === 'signup' ? 'Set password' : 'Enter your password'} required onChange={handleChange}
+                    className="w-full pl-12 pr-12 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 outline-none">
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
                 </motion.div>
               )}
 
               {view === 'reset' && (
                 <motion.div variants={itemVariants} className="relative group">
                   <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
-                  <input type="password" name="newPassword" value={formData.newPassword} placeholder="Enter New Password" required onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                  <input type={showNewPassword ? "text" : "password"} name="newPassword" value={formData.newPassword} placeholder="Enter New Password" required onChange={handleChange}
+                    className="w-full pl-12 pr-12 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                  <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 outline-none">
+                    {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
                 </motion.div>
               )}
 

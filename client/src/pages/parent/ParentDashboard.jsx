@@ -212,6 +212,22 @@ export default function ParentDashboard() {
     window.location.href = '/'; 
   };
 
+  // Calculate Child Analytics
+  const gradedHw = assignments.filter(h => h.status === 'Graded');
+  const pendingHw = assignments.filter(h => h.status === 'Pending');
+  
+  let totalEarned = 0; 
+  let totalPossible = 0;
+  
+  gradedHw.forEach(h => {
+    if(h.grading?.score != null && h.grading?.totalScore) {
+        totalEarned += h.grading.score;
+        totalPossible += h.grading.totalScore;
+    }
+  });
+  
+  const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : 0;
+
   return (
     <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
       
@@ -291,6 +307,39 @@ export default function ParentDashboard() {
                 <p className="text-[#A3AED0] font-bold tracking-wide">Stay on top of your child's coursework and grades.</p>
                 <div className="bg-violet-100 text-violet-700 px-3 py-1 rounded-full text-xs font-black tracking-widest border border-violet-200 flex items-center gap-2">
                   ID: {childData?.studentId || 'N/A'}
+                </div>
+              </div>
+            </div>
+
+            {/* Child Analytics Cards */}
+            <div className="flex gap-4 mt-6 md:mt-0">
+              <div className="bg-white px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4 border border-slate-100">
+                <div className="bg-amber-50 p-3 rounded-full text-amber-500">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div>
+                  <p className="text-xs font-black text-[#A3AED0] uppercase tracking-wider">To Do</p>
+                  <p className="text-2xl font-black text-[#1B2559]">{pendingHw.length}</p>
+                </div>
+              </div>
+              
+              <div className="bg-white px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4 border border-slate-100">
+                <div className="bg-emerald-50 p-3 rounded-full text-emerald-500">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div>
+                  <p className="text-xs font-black text-[#A3AED0] uppercase tracking-wider">Graded</p>
+                  <p className="text-2xl font-black text-[#1B2559]">{gradedHw.length}</p>
+                </div>
+              </div>
+              
+              <div className="bg-white px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4 border border-slate-100">
+                <div className="bg-violet-50 p-3 rounded-full text-violet-500">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                </div>
+                <div>
+                  <p className="text-xs font-black text-[#A3AED0] uppercase tracking-wider">Avg Score</p>
+                  <p className="text-2xl font-black text-[#1B2559]">{avgScore}%</p>
                 </div>
               </div>
             </div>
