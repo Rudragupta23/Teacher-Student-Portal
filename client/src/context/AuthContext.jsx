@@ -25,7 +25,11 @@ export const AuthProvider = ({ children }) => {
     
     if (userData.role === 'admin') {
       navigate('/admin-dashboard');
+    } else if (userData.role === 'parent') {
+      // Send parents to their new dashboard
+      navigate('/parent-dashboard');
     } else {
+      // Send students to the student dashboard
       navigate('/student-dashboard');
     }
   };

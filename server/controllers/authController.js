@@ -9,7 +9,7 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 // @desc    Register a new user & Send OTP
 // @route   POST /api/auth/register
 exports.register = async (req, res) => {
-  const { name, email, password, phone, classCode, yearGroup } = req.body;
+  const { name, email, password, phone, classCode, yearGroup, isParent, linkedStudentId } = req.body;
 
   try {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -17,7 +17,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Invalid email format' });
     }
 
-    const cleanPhone = phone.replace(/[\s-]/g, '');
+    const cleanPhone = phone ? phone.replace(/[\s-]/g, '') : '';
     const phoneRegex = /^\+?[0-9]{7,15}$/;
     if (phone && !phoneRegex.test(cleanPhone)) {
       return res.status(400).json({ message: 'Please enter a valid phone number.' });
@@ -26,10 +26,38 @@ exports.register = async (req, res) => {
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'User already exists' });
 
-    let role = email === process.env.ADMIN_EMAIL ? 'admin' : 'student';
+    // Determine Role
+    let role = email === process.env.ADMIN_EMAIL ? 'admin' : (isParent ? 'parent' : 'student');
     
     if (role === 'student' && classCode !== process.env.ADMIN_CLASS_CODE) {
       return res.status(403).json({ message: 'Invalid Class Code' });
+    }
+
+    // Logic for Student ID Generation and Parent Validation
+    let newStudentId = undefined;
+    if (role === 'student') {
+      // 1. Count how many students already exist in this specific year group
+      const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
+      
+      // 2. Add 1 for the new student, and ensure it is 2 digits (e.g., 1 becomes '01')
+      const sequenceNumber = String(studentCount + 1).padStart(2, '0');
+      
+      // 3. Remove any spaces from the year group for a clean ID (e.g., 'AS Level' becomes 'ASLevel')
+      const cleanYearGroup = yearGroup.replace(/\s+/g, '');
+      
+      // 4. Combine them into the final ID
+      newStudentId = `MCM-${cleanYearGroup}-${sequenceNumber}`;
+    }
+
+    if (role === 'parent') {
+      if (!linkedStudentId) {
+        return res.status(400).json({ message: 'Please provide your child\'s Student ID.' });
+      }
+      // Verify that the child actually exists in the database
+      const childExists = await User.findOne({ studentId: linkedStudentId, role: 'student' });
+      if (!childExists) {
+        return res.status(404).json({ message: 'Invalid Student ID. Child not found.' });
+      }
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -45,8 +73,10 @@ exports.register = async (req, res) => {
       password: hashedPassword, 
       phone: cleanPhone, 
       role,
-      classCode: role === 'admin' ? process.env.ADMIN_CLASS_CODE : classCode,
+      classCode: role === 'admin' ? process.env.ADMIN_CLASS_CODE : (role === 'student' ? classCode : undefined),
       yearGroup: role === 'student' ? yearGroup : undefined,
+      studentId: newStudentId,                                
+      linkedStudentId: role === 'parent' ? linkedStudentId : undefined, 
       isVerified: false,
       otp,
       otpExpires

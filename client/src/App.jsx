@@ -6,6 +6,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentDashboard from './pages/student/StudentDashboard'; 
 import ProtectedRoute from './components/common/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
+import ParentDashboard from './pages/parent/ParentDashboard';
 
 function App() {
   return (
@@ -32,6 +33,16 @@ function App() {
             element={
               <ProtectedRoute allowedRole="student">
                 <StudentDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Protected Parent Route */}
+          <Route 
+            path="/parent-dashboard" 
+            element={
+              <ProtectedRoute allowedRole="parent">
+                <ParentDashboard />
               </ProtectedRoute>
             } 
           />

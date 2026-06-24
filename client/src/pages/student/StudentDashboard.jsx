@@ -20,7 +20,7 @@ export default function StudentDashboard() {
   const [isUploading, setIsUploading] = useState(false);
 
   //  Student Profile & Settings State
-  const [studentProfile, setStudentProfile] = useState({ name: 'Scholar', profilePic: '' });
+  const [studentProfile, setStudentProfile] = useState({ name: 'Scholar', profilePic: '', studentId: '' });
   const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '' });
   const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [userId, setUserId] = useState(null); 
@@ -75,7 +75,7 @@ export default function StudentDashboard() {
     setIsLoading(true); 
     try {
       const res = await api.get('/auth/profile');
-      setStudentProfile({ name: res.data.name, profilePic: res.data.profilePic || '' });
+      setStudentProfile({ name: res.data.name, profilePic: res.data.profilePic || '', studentId: res.data.studentId });
       setSettingsForm({ name: res.data.name, profilePic: res.data.profilePic || '' });
     } catch (error) {
       console.error("Error fetching profile from DB");
@@ -218,7 +218,14 @@ export default function StudentDashboard() {
   const handleSaveSettings = async () => {
     try {
       const res = await api.put('/auth/profile', settingsForm);
-      setStudentProfile({ name: res.data.user.name, profilePic: res.data.user.profilePic || '' });
+      
+      // FIX: Use 'prev' to keep the existing studentId in state while updating name and pic
+      setStudentProfile(prev => ({ 
+        ...prev, 
+        name: res.data.user.name, 
+        profilePic: res.data.user.profilePic || '' 
+      }));
+      
       showToast("Profile Settings Saved to Database!");
     } catch (error) {
       showToast("Failed to save profile", "error");
@@ -468,7 +475,15 @@ export default function StudentDashboard() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
             <div>
               <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, {studentProfile.name} 👋</h1>
-              <p className="text-[#A3AED0] mt-2 font-bold tracking-wide">Stay on top of your coursework and grades.</p>
+              <div className="flex items-center gap-3 mt-2">
+                <p className="text-[#A3AED0] font-bold tracking-wide">Stay on top of your coursework and grades.</p>
+                <div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-black tracking-widest border border-indigo-200 flex items-center gap-2">
+                  ID: {studentProfile.studentId}
+                  <button onClick={() => {navigator.clipboard.writeText(studentProfile.studentId); showToast("ID Copied!");}} className="hover:text-indigo-900" title="Copy ID">
+                    📋
+                  </button>
+                </div>
+              </div>
             </div>
             
             <div className="flex gap-4 mt-6 md:mt-0">

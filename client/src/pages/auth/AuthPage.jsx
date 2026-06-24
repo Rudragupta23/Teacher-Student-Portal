@@ -52,12 +52,13 @@ const validateData = (email, phone, view) => {
 const AuthPage = () => {
   const [view, setView] = useState('login'); 
   const { loginUser } = useContext(AuthContext);
+  const [isParentMode, setIsParentMode] = useState(false); 
 
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' }); 
   const [isLoading, setIsLoading] = useState(false); 
 
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', phone: '', classCode: '', otp: '', newPassword: '', yearGroup: ''
+    name: '', email: '', password: '', phone: '', classCode: '', otp: '', newPassword: '', yearGroup: '', linkedStudentId: '' 
   });
 
   const handleChange = (e) => {
@@ -99,10 +100,12 @@ const AuthPage = () => {
 
     try {
       if (view === 'signup') {
-        const res = await api.post('/auth/register', formData);
+        // Pass the isParentMode state to the backend
+        const payload = { ...formData, isParent: isParentMode };
+        const res = await api.post('/auth/register', payload);
         setStatusMsg({ type: 'success', text: res.data.message });
         changeView('otp');
-      } 
+      }
       else if (view === 'otp') {
         const res = await api.post('/auth/verify-otp', { email: formData.email, otp: formData.otp });
         setStatusMsg({ type: 'success', text: res.data.message });
@@ -176,7 +179,8 @@ const AuthPage = () => {
               className="text-indigo-100 text-lg leading-relaxed max-w-md"
             >
               {view === 'login' ? 'Ready to master maths? Log in to access your dashboard and tackle your next challenge.' 
-               : view === 'signup' ? 'Join your class today. Experience adaptive learning tailored just for you.' 
+               : view === 'signup' && !isParentMode ? 'Join your class today. Experience adaptive learning tailored just for you.' 
+               : view === 'signup' && isParentMode ? 'Track your child\'s progress, view report cards, and connect with mentors directly.' 
                : view === 'forgot' ? 'Almost there! Verify your email ID and we will send a secure reset link instantly.'
                : view === 'reset' ? 'Check your inbox! Enter the 6-digit secure code we emailed you and pick a new password.'
                : 'Security is our priority. Please check your email for the 6-digit verification code we just sent.'}
@@ -283,34 +287,50 @@ const AuthPage = () => {
                 <>
                   <motion.div variants={itemVariants} className="relative group">
                     <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
-                    <input type="text" name="name" placeholder="Full Name" required onChange={handleChange}
+                    <input type="text" name="name" placeholder={isParentMode ? "Parent's Full Name" : "Student's Full Name"} required onChange={handleChange}
                       className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
                   </motion.div>
+                  
                   <motion.div variants={itemVariants} className="relative group">
                     <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
                     <input type="tel" name="phone" placeholder="Phone Number" onChange={handleChange}
                       className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
                   </motion.div>
-                  <motion.div variants={itemVariants} className="relative group">
-                    <Key className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
-                    <input type="text" name="classCode" placeholder="Class Code (From Admin)" required onChange={handleChange}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
-                  </motion.div>
-                  <motion.div variants={itemVariants} className="relative group">
-                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
-                    <select name="yearGroup" required onChange={handleChange} value={formData.yearGroup}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all appearance-none cursor-pointer">
-                      <option value="" disabled>Select Year Group</option>
-                      <option value="Y6">Y6</option>
-                      <option value="Y7">Y7</option>
-                      <option value="Y8">Y8</option>
-                      <option value="Y9">Y9</option>
-                      <option value="Y10">Y10</option>
-                      <option value="Y11">Y11</option>
-                      <option value="AS Level">AS Level</option>
-                      <option value="A level">A level</option>
-                    </select>
-                  </motion.div>
+
+                  {/* SHOW THESE ONLY FOR STUDENTS */}
+                  {!isParentMode && (
+                    <>
+                      <motion.div variants={itemVariants} className="relative group">
+                        <Key className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <input type="text" name="classCode" placeholder="Class Code (From Admin)" required onChange={handleChange}
+                          className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                      </motion.div>
+                      <motion.div variants={itemVariants} className="relative group">
+                        <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <select name="yearGroup" required onChange={handleChange} value={formData.yearGroup}
+                          className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all appearance-none cursor-pointer">
+                          <option value="" disabled>Select Year Group</option>
+                          <option value="Y6">Y6</option>
+                          <option value="Y7">Y7</option>
+                          <option value="Y8">Y8</option>
+                          <option value="Y9">Y9</option>
+                          <option value="Y10">Y10</option>
+                          <option value="Y11">Y11</option>
+                          <option value="AS Level">AS Level</option>
+                          <option value="A level">A level</option>
+                        </select>
+                      </motion.div>
+                    </>
+                  )}
+
+                  {/* SHOW THIS ONLY FOR PARENTS */}
+                  {isParentMode && (
+                    <motion.div variants={itemVariants} className="relative group">
+                      <Key className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                      <input type="text" name="linkedStudentId" placeholder="Child's Student ID (e.g., MCM-YearGroup-XX)" required onChange={handleChange}
+                        className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                    </motion.div>
+                  )}
                 </>
               )}
 
@@ -345,12 +365,25 @@ const AuthPage = () => {
               </motion.button>
 
               {(view === 'login' || view === 'signup') && (
-                <motion.div variants={itemVariants} className="text-center text-sm text-gray-500 font-medium mt-2 pt-6 border-t border-gray-100">
+                <motion.div variants={itemVariants} className="text-center text-sm text-gray-500 font-medium mt-2 pt-6 border-t border-gray-100 flex flex-col gap-3">
                   {view === 'login' ? (
                     <p>Don't have an account? <button type="button" onClick={() => changeView('signup')} className="text-violet-600 font-bold hover:underline outline-none">Sign up</button></p>
                   ) : (
                     <p>Already have an account? <button type="button" onClick={() => changeView('login')} className="text-violet-600 font-bold hover:underline outline-none">Log in</button></p>
                   )}
+                  
+                  {/* NEW PARENT/STUDENT TOGGLE */}
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setIsParentMode(!isParentMode);
+                      changeView('signup'); // Force to signup view if they toggle
+                    }} 
+                    className="inline-flex items-center justify-center gap-2 text-gray-600 hover:text-violet-700 transition-colors font-semibold"
+                  >
+                    <User size={16} />
+                    {isParentMode ? "I am a Student" : "Are you a Parent? Click here"}
+                  </button>
                 </motion.div>
               )}
             </motion.form>

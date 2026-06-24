@@ -8,7 +8,12 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false }, 
   otp: { type: String },                       
   otpExpires: { type: Date },                    
-  role: { type: String, enum: ['admin', 'student'], default: 'student' },
+  
+  role: { type: String, enum: ['admin', 'student', 'parent'], default: 'student' },
+  // NEW FIELDS FOR PARENT/STUDENT LINKING
+  studentId: { type: String, unique: true, sparse: true }, 
+  linkedStudentId: { type: String },                     
+
   profilePic: { type: String, default: '' },
   phone: { type: String },
   classCode: { type: String },
@@ -19,14 +24,11 @@ const userSchema = new mongoose.Schema({
   resetPasswordOtp: { type: String },
   resetPasswordExpires: { type: Date },
   
-  
-  
   performance: {
     canDoEasy: { type: Boolean, default: false },
     canDoMedium: { type: Boolean, default: false },
     canDoHard: { type: Boolean, default: false }
   }
 }, { timestamps: true });
-
 
 module.exports = mongoose.model('User', userSchema);
