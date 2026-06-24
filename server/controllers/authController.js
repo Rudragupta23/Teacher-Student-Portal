@@ -53,10 +53,17 @@ exports.register = async (req, res) => {
       if (!linkedStudentId) {
         return res.status(400).json({ message: 'Please provide your child\'s Student ID.' });
       }
-      // Verify that the child actually exists in the database
+      
+      // 1. Verify that the child actually exists in the database
       const childExists = await User.findOne({ studentId: linkedStudentId, role: 'student' });
       if (!childExists) {
         return res.status(404).json({ message: 'Invalid Student ID. Child not found.' });
+      }
+
+      // 2. NEW: Check if a parent is already linked to this student
+      const parentAlreadyExists = await User.findOne({ linkedStudentId: linkedStudentId, role: 'parent' });
+      if (parentAlreadyExists) {
+        return res.status(400).json({ message: 'An account for this student\'s parent already exists. Only one parent account is allowed per student.' });
       }
     }
 

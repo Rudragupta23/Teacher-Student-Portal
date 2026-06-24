@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function ParentDashboard() {
   const [childData, setChildData] = useState(null);
@@ -9,9 +11,13 @@ export default function ParentDashboard() {
   const [chatInput, setChatInput] = useState('');
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [userId, setUserId] = useState(null);
+  // Add these for the Settings Tab
+  const [parentProfile, setParentProfile] = useState({ name: 'Parent', profilePic: '' });
+  const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '' });
 
   useEffect(() => {
     fetchChildData();
+    fetchProfile();
     
     // Extract User ID from token to properly align chat bubbles
     const token = localStorage.getItem('token');
@@ -24,6 +30,77 @@ export default function ParentDashboard() {
       }
     }
   }, []);
+
+  // 1. FETCH PROFILE
+  const fetchProfile = async () => {
+    try {
+      const res = await api.get('/api/auth/profile');
+      setParentProfile({ name: res.data.name, profilePic: res.data.profilePic || '' });
+      setSettingsForm({ name: res.data.name, profilePic: res.data.profilePic || '' });
+    } catch (error) {
+      console.error("Failed to fetch profile");
+    }
+  };
+
+  // 2. PROFILE SETTINGS LOGIC
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.put('/api/auth/profile', settingsForm);
+      setParentProfile({ name: res.data.user.name, profilePic: res.data.user.profilePic });
+      showToast('Profile updated successfully!');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to update profile', 'error');
+    }
+  };
+
+  const handleProfilePicChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettingsForm({ ...settingsForm, profilePic: reader.result }); // Saves as Base64 string
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // 3. EXPORT LOGIC
+  const handleExportCSV = () => {
+    if (!childData || !assignments || assignments.length === 0) return showToast('No data to export', 'error');
+    const headers = ['Assignment Title', 'Type', 'Status', 'Marks', 'Feedback'];
+    const rows = assignments.map(a => [
+      a.homeworkId?.title || 'N/A',
+      a.homeworkId?.type || 'N/A',
+      a.status || 'N/A',
+      a.marks ? `${a.marks}` : 'Not Graded',
+      a.feedback || 'None'
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${childData.name}_Performance.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    if (!childData || !assignments || assignments.length === 0) return showToast('No data to export', 'error');
+    const doc = new jsPDF();
+    doc.text(`${childData.name}'s Performance Report`, 14, 15);
+    const tableColumn = ["Assignment Title", "Type", "Status", "Score", "Feedback"];
+    const tableRows = assignments.map(a => [
+      a.homeworkId?.title || 'N/A',
+      a.homeworkId?.type || 'N/A',
+      a.status || 'N/A',
+      a.marks ? `${a.marks}` : 'Not Graded',
+      a.feedback || 'None'
+    ]);
+    autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
+    doc.save(`${childData.name}_Performance.pdf`);
+  };
 
   useEffect(() => {
     if (activeTab === 'messages') {
@@ -123,6 +200,10 @@ export default function ParentDashboard() {
             Message Admin
           </button>
         </div>
+          <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+            <span className="text-xl">⚙️</span>
+            Settings
+          </button>
         
         <div className="p-6 border-t border-slate-700/50 shrink-0">
           <button onClick={handleLogout} className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-rose-500 text-slate-300 hover:text-white px-5 py-4 rounded-2xl font-bold transition-all shadow-sm group">
@@ -163,7 +244,18 @@ export default function ParentDashboard() {
                 <div className="bg-violet-500 w-2 h-8 rounded-full"></div>
                 <h2 className="text-2xl font-black text-[#1B2559]">Recent Assignments & Grades</h2>
               </div>
+              
 
+              {/* STEP 5: EXPORT BUTTONS ADDED HERE */}
+              <div className="flex gap-4 mb-6">
+                <button onClick={handleExportCSV} className="px-6 py-3 bg-white border-2 border-[#1B2559] text-[#1B2559] hover:bg-[#1B2559] hover:text-white font-black rounded-xl transition-all flex items-center gap-2 shadow-sm">
+                  📄 Export CSV
+                </button>
+                <button onClick={handleExportPDF} className="px-6 py-3 bg-white border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white font-black rounded-xl transition-all flex items-center gap-2 shadow-sm">
+                  📑 Export PDF
+                </button>
+              </div>
+              
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -253,6 +345,57 @@ export default function ParentDashboard() {
                 <input type="text" className="flex-1 p-5 bg-[#F4F7FE] border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-violet-500/20 font-bold text-[#1B2559]" 
                   placeholder="Type your message..." value={chatInput} onChange={e => setChatInput(e.target.value)} />
                 <button className="px-8 bg-[#1B2559] hover:bg-violet-600 text-white font-black rounded-2xl transition-all shadow-lg transform hover:-translate-y-1">Send</button>
+              </form>
+            </div>
+          )}
+
+          {/* STEP 6: VIEW 3: SETTINGS ADDED HERE */}
+          {activeTab === 'settings' && (
+            <div className="bg-white rounded-[2rem] p-8 shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in border border-slate-100">
+              <h2 className="text-2xl font-black text-[#1B2559] mb-6 border-b border-slate-100 pb-4">Profile Settings</h2>
+              
+              <form onSubmit={handleProfileUpdate} className="max-w-md space-y-6">
+                {/* Profile Picture Upload */}
+                <div className="flex items-center gap-6">
+                  <div className="h-24 w-24 rounded-full bg-slate-200 overflow-hidden border-4 border-white shadow-lg shrink-0">
+                    {settingsForm.profilePic ? (
+                      <img src={settingsForm.profilePic} alt="Profile" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-3xl text-slate-400 font-bold bg-[#F4F7FE]">
+                        {settingsForm.name?.charAt(0) || 'P'}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-[#A3AED0] mb-2">Profile Picture</label>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleProfilePicChange} 
+                      className="text-sm font-bold file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100 cursor-pointer" 
+                    />
+                  </div>
+                </div>
+
+                {/* Name Input */}
+                <div>
+                  <label className="block text-sm font-bold text-[#A3AED0] mb-2">Display Name</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={settingsForm.name} 
+                    onChange={(e) => setSettingsForm({...settingsForm, name: e.target.value})} 
+                    className="w-full p-4 bg-[#F4F7FE] border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-violet-500/20 font-bold text-[#1B2559]" 
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button 
+                  type="submit" 
+                  className="px-8 py-4 bg-[#1B2559] hover:bg-violet-600 text-white font-black rounded-2xl transition-all shadow-lg hover:shadow-violet-500/30"
+                >
+                  Save Changes
+                </button>
               </form>
             </div>
           )}

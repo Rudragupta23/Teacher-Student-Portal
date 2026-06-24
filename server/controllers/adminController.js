@@ -72,7 +72,7 @@ exports.getAllStudents = async (req, res) => {
   }
 };
 
-// @desc    Delete a student and their coursework
+// @desc    Delete a student, their parent, and their coursework
 // @route   DELETE /api/admin/students/:id
 exports.deleteStudent = async (req, res) => {
   try {
@@ -84,10 +84,19 @@ exports.deleteStudent = async (req, res) => {
     // 1. Delete all homework assigned to this student to free up database space
     await Homework.deleteMany({ studentId: studentId });
 
-    // 2. Delete the student account
+    // 2. NEW: Delete the linked parent account
+    // We check if they have a studentId (like "MCM-Y9-01") and find the matching parent
+    if (student.role === 'student' && student.studentId) {
+      await User.findOneAndDelete({ 
+        role: 'parent', 
+        linkedStudentId: student.studentId 
+      });
+    }
+
+    // 3. Delete the student account
     await User.findByIdAndDelete(studentId);
 
-    res.status(200).json({ message: 'Student and all associated coursework deleted successfully.' });
+    res.status(200).json({ message: 'Student, linked parent, and all associated coursework deleted successfully.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
