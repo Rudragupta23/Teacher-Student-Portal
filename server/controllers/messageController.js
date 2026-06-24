@@ -6,36 +6,34 @@ const User = require('../models/User');
 exports.getMessages = async (req, res) => {
   try {
     let query = {};
+    const targetId = req.params.id; // Can be 'all', a specific user ID, or undefined
     
-    // 1. IF ADMIN IS FETCHING
-    if (req.user.role === 'admin') {
-      const targetId = req.params.id; 
-      if (!targetId) return res.status(400).json({ message: "Target ID required" });
-      
-      if (targetId === 'all') {
-        // Fetch ONLY the global class chat
-        query = { isGlobal: true };
-      } else {
-        // Fetch the private conversation with a specific student/parent
-        query = {
-          $or: [
-            { sender: targetId },
-            { receiver: targetId }
-          ],
-          isGlobal: { $ne: true } // Keep global messages out of private chats
-        };
-      }
+    // 1. IF ANYONE (Admin/Student/Parent) IS FETCHING THE GLOBAL CHAT
+    if (targetId === 'all') {
+      query = { isGlobal: true };
     } 
-    // 2. IF STUDENT OR PARENT IS FETCHING
-    else {
-      const targetId = req.user._id;
-      // Fetch their private messages PLUS any global messages sent by admin
+    // 2. IF ADMIN IS FETCHING A PRIVATE CHAT WITH A SPECIFIC STUDENT/PARENT
+    else if (req.user.role === 'admin') {
+      if (!targetId) return res.status(400).json({ message: "Target ID required to fetch private chat" });
+      
       query = {
         $or: [
           { sender: targetId },
-          { receiver: targetId },
-          { isGlobal: true } 
-        ]
+          { receiver: targetId }
+        ],
+        isGlobal: { $ne: true } // Keep global messages OUT of private chats
+      };
+    } 
+    // 3. IF STUDENT OR PARENT IS FETCHING THEIR OWN PRIVATE MENTOR CHAT
+    else {
+      const myId = req.user._id;
+      // Fetch ONLY private messages involving them
+      query = {
+        $or: [
+          { sender: myId },
+          { receiver: myId }
+        ],
+        isGlobal: { $ne: true } // <--- FIX: This stops global chat from showing in Mentor tab
       };
     }
 
@@ -55,8 +53,8 @@ exports.sendMessage = async (req, res) => {
   try {
     const { content, receiverId } = req.body;
     
-    // 1. HANDLE GLOBAL CHAT (Admin sending to 'all')
-    if (receiverId === 'all' && req.user.role === 'admin') {
+    // 1. HANDLE GLOBAL CHAT (Anyone sending to 'all')
+    if (receiverId === 'all') {
       const newMessage = await Message.create({
         sender: req.user._id,
         isGlobal: true,    // Flags this as a global message
