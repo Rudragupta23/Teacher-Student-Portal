@@ -270,7 +270,7 @@ export default function ParentDashboard() {
             
             <button onClick={() => setActiveTab('messages')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-              Message Admin
+              Message Teacher
             </button>
             
             <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
@@ -415,8 +415,8 @@ export default function ParentDashboard() {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl">👨‍🏫</div>
                   <div>
-                    <h2 className="text-xl">Admin Support Chat</h2>
-                    <p className="text-xs font-medium text-white/80">Message the mentor directly regarding {childData?.name}'s progress.</p>
+                    <h2 className="text-xl">Mentor Support Chat</h2>
+                    <p className="text-xs font-medium text-white/80">Message the mentor directly regarding {childData?.registrationName || childData?.name}'s progress.</p>
                   </div>
                 </div>
                 <div className="bg-white/20 px-3 py-1.5 rounded-full border border-white/30 text-[10px] font-bold flex items-center gap-1.5 backdrop-blur-sm shadow-sm">
@@ -444,7 +444,7 @@ export default function ParentDashboard() {
                 {messages.length === 0 && (
                   <div className="text-center text-slate-400 font-bold mt-20">
                     <p className="text-4xl mb-2">👋</p>
-                    <p>No messages yet. Send a message to the Admin!</p>
+                    <p>No messages yet. Send a message to the Mentor!</p>
                   </div>
                 )}
               </div>
