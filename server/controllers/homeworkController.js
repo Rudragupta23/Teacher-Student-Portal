@@ -156,9 +156,29 @@ exports.submitHomework = async (req, res) => {
       let correctCount = 0;
       const totalQuestions = homework.mcqs.length;
 
+      // --- FIX: Strictly parse answers whether they arrive as an Array, JSON string, or comma-separated string ---
+      let parsedAnswers = [];
+      if (Array.isArray(mcqAnswers)) {
+        parsedAnswers = mcqAnswers;
+      } else if (typeof mcqAnswers === 'string') {
+        try {
+          parsedAnswers = JSON.parse(mcqAnswers);
+        } catch (e) {
+          parsedAnswers = mcqAnswers.split(','); // Fallback for "1,2" stringified array
+        }
+      } else if (typeof mcqAnswers === 'object' && mcqAnswers !== null) {
+        parsedAnswers = mcqAnswers;
+      }
+
       homework.mcqs.forEach((mcq, idx) => {
-        if (mcqAnswers && parseInt(mcqAnswers[idx]) === mcq.correctOption) {
-          correctCount++;
+        // Support both array indices and object mappings
+        let studentAns = parsedAnswers[mcq._id] !== undefined ? parsedAnswers[mcq._id] : parsedAnswers[idx];
+
+        if (studentAns !== null && studentAns !== undefined && studentAns !== '') {
+          // Strictly compare numerical index only, preventing false text matches
+          if (parseInt(studentAns) === parseInt(mcq.correctOption)) {
+            correctCount++;
+          }
         }
       });
 

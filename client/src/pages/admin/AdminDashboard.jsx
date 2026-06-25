@@ -267,12 +267,29 @@ export default function AdminDashboard() {
     }
   };
 
-  const addMcq = () => setAssignForm({ ...assignForm, mcqs: [...assignForm.mcqs, { question: '', options: ['', '', '', ''], correctOption: 0 }] });
   const updateMcq = (index, field, value, optionIndex = null) => {
-    const updatedMcqs = [...assignForm.mcqs];
-    if (field === 'options') updatedMcqs[index].options[optionIndex] = value;
-    else updatedMcqs[index][field] = value;
+    // --- FIX: Safely deep clone the state to prevent React input freezing ---
+    const updatedMcqs = assignForm.mcqs.map((mcq, i) => {
+      if (i === index) {
+        if (field === 'options') {
+          const newOptions = [...mcq.options];
+          newOptions[optionIndex] = value;
+          return { ...mcq, options: newOptions };
+        }
+        return { ...mcq, [field]: value };
+      }
+      return mcq;
+    });
+    
     setAssignForm({ ...assignForm, mcqs: updatedMcqs });
+  };
+
+  // --- NEW FIX: Missing addMcq function ---
+  const addMcq = () => {
+    setAssignForm({
+      ...assignForm,
+      mcqs: [...assignForm.mcqs, { question: '', options: ['', '', '', ''], correctOption: 0 }]
+    });
   };
 
   const executeModalAction = async () => {
@@ -828,12 +845,24 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                                     onChange={(e) => updateMcq(qIndex, 'options', e.target.value, oIndex)} />
                                 ))}
                               </div>
-                              <div className="flex items-center gap-3">
-                                <label className="text-xs font-black text-[#A3AED0] uppercase">Correct Answer:</label>
-                                <select className="p-2 text-sm font-black border-none rounded-xl bg-emerald-100 text-emerald-800 outline-none" 
-                                  value={mcq.correctOption} onChange={(e) => updateMcq(qIndex, 'correctOption', parseInt(e.target.value))}>
-                                  <option value={0}>Option 1</option><option value={1}>Option 2</option><option value={2}>Option 3</option><option value={3}>Option 4</option>
-                                </select>
+                              <div className="flex items-center justify-between mt-2">
+                                <div className="flex items-center gap-3">
+                                  <label className="text-xs font-black text-[#A3AED0] uppercase">Correct Answer:</label>
+                                  <select className="p-2 text-sm font-black border-none rounded-xl bg-emerald-100 text-emerald-800 outline-none cursor-pointer" 
+                                    value={mcq.correctOption} onChange={(e) => updateMcq(qIndex, 'correctOption', parseInt(e.target.value))}>
+                                    <option value={0}>Option 1</option><option value={1}>Option 2</option><option value={2}>Option 3</option><option value={3}>Option 4</option>
+                                  </select>
+                                </div>
+                                
+                                {/* NEW: Allow Admin to remove accidental questions (keep at least 1) */}
+                                {assignForm.mcqs.length > 1 && (
+                                  <button type="button" onClick={() => {
+                                    const filteredMcqs = assignForm.mcqs.filter((_, i) => i !== qIndex);
+                                    setAssignForm({...assignForm, mcqs: filteredMcqs});
+                                  }} className="text-xs font-bold text-rose-500 bg-rose-50 px-3 py-2 rounded-lg hover:bg-rose-500 hover:text-white transition-colors">
+                                    🗑️ Remove
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ))}
