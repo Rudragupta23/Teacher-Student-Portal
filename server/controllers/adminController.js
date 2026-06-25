@@ -2,6 +2,8 @@ const Question = require('../models/Question');
 const Assignment = require('../models/Assignment');
 const User = require('../models/User');
 const Homework = require('../models/Homework'); 
+const bcrypt = require('bcryptjs');
+const sendEmail = require('../utils/sendEmail');
 
 // @desc    Upload a single question to the Question Bank
 // @route   POST /api/admin/questions
@@ -99,5 +101,95 @@ exports.deleteStudent = async (req, res) => {
     res.status(200).json({ message: 'Student, linked parent, and all associated coursework deleted successfully.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Create a Grader
+// @route   POST /api/admin/graders
+exports.createGrader = async (req, res) => {
+  try {
+    const { email, name } = req.body;
+    
+    const userExists = await User.findOne({ email });
+    if (userExists) return res.status(400).json({ message: 'User already exists' });
+
+    // Generate password like MCM-Grader-XXXX
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const plainPassword = `MCM-Grader-${randomNum}`;
+    
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(plainPassword, salt);
+
+    const grader = await User.create({
+      name: name || 'Grader Admin',
+      email,
+      password: hashedPassword,
+      role: 'grader',
+      isVerified: true // Auto-verify graders
+    });
+
+    // Send email to grader
+    // Send email to grader (Professionally Styled)
+    await sendEmail({
+      email,
+      subject: 'Welcome to MathCom Mentors | Grader Account Credentials',
+      html: `
+        <div style="font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px; border-radius: 24px; border: 1px solid #e2e8f0;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #0f172a; font-size: 28px; font-weight: 800; margin: 0;">
+              MathCom <span style="color: #4f46e5;">Mentors</span>
+            </h1>
+            <p style="color: #64748b; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; margin-top: 8px;">Base Admin Portal</p>
+          </div>
+          
+          <div style="background-color: #ffffff; padding: 32px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); border: 1px solid #f1f5f9;">
+            <h2 style="color: #1e293b; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 16px;">Hello Grader,</h2>
+            <p style="color: #334155; font-size: 16px; line-height: 24px; margin-bottom: 24px;">
+              You have been officially added as a Grader (Base Administrator) for the MathCom Mentors platform. Your account is verified and ready for use.
+            </p>
+            
+            <div style="background-color: #f1f5f9; padding: 20px 24px; border-radius: 16px; margin-bottom: 24px; border-left: 4px solid #4f46e5;">
+              <p style="margin: 0 0 10px 0; color: #475569; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Login Credentials</p>
+              <p style="margin: 4px 0; color: #0f172a; font-size: 16px;"><strong>Email:</strong> <span style="color: #475569;">${email}</span></p>
+              <p style="margin: 4px 0; color: #0f172a; font-size: 16px;"><strong>Password:</strong> <span style="font-family: monospace; font-weight: bold; background-color: #e2e8f0; padding: 2px 6px; border-radius: 6px; color: #4f46e5;">${plainPassword}</span></p>
+            </div>
+
+            <a href="http://localhost:5173" style="display: block; width: 100%; text-align: center; background: linear-gradient(to right, #4f46e5, #6366f1); color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; padding: 16px 0; border-radius: 16px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);">
+              Go to Portal & Login
+            </a>
+          </div>
+
+          <div style="text-align: center; margin-top: 32px; color: #94a3b8; font-size: 12px;">
+            <p style="margin: 0;">MathCom Mentors • 2026</p>
+          </div>
+        </div>
+      `
+    });
+
+    res.status(201).json({ message: 'Grader created successfully!', grader });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Get all Graders
+// @route   GET /api/admin/graders
+exports.getGraders = async (req, res) => {
+  try {
+    const graders = await User.find({ role: 'grader' }).select('-password');
+    res.status(200).json(graders);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Delete a Grader
+// @route   DELETE /api/admin/graders/:id
+exports.deleteGrader = async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: 'Grader deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };

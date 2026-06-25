@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
   otp: { type: String },                       
   otpExpires: { type: Date },                    
   
-  role: { type: String, enum: ['admin', 'student', 'parent'], default: 'student' },
+  role: { type: String, enum: ['admin', 'grader', 'student', 'parent'], default: 'student' },
   // NEW FIELDS FOR PARENT/STUDENT LINKING
   studentId: { type: String, unique: true, sparse: true }, 
   linkedStudentId: { type: String },                     

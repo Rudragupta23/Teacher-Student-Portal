@@ -32,3 +32,10 @@ exports.admin = (req, res, next) => {
     res.status(403).json({ message: 'Not authorized as an admin' });
   }
 };
+exports.graderOrAdmin = (req, res, next) => {
+  if (req.user && (req.user.role === 'grader' || req.user.role === 'admin')) {
+    next(); 
+  } else {
+    res.status(403).json({ message: 'Not authorized as a grader or admin' });
+  }
+};

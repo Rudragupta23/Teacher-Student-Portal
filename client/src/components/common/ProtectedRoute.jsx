@@ -11,8 +11,11 @@ const ProtectedRoute = ({ children, allowedRole }) => {
     return <Navigate to="/" replace />;
   }
 
-  if (allowedRole && user.role !== allowedRole) {
-    if (user.role === 'admin') {
+  // Allow graders to access the 'admin' routes as well
+  const hasAccess = user.role === allowedRole || (allowedRole === 'admin' && user.role === 'grader');
+
+  if (allowedRole && !hasAccess) {
+    if (user.role === 'admin' || user.role === 'grader') {
       return <Navigate to="/admin-dashboard" replace />;
     } else if (user.role === 'parent') {
       return <Navigate to="/parent-dashboard" replace />;

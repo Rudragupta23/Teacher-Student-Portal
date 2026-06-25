@@ -276,7 +276,14 @@ exports.gradeHomework = async (req, res) => {
     const isRemovingMarkedWork = homework.grading && homework.grading.adminAnswerSheetUrl && !adminAnswerSheetUrl;
 
     homework.status = 'Graded';
-    homework.grading = { score, totalScore, feedback, adminAnswerSheetUrl, gradedAt: new Date() };
+    homework.grading = {
+      score: score !== undefined && score !== '' ? Number(score) : null,
+      totalScore: totalScore !== undefined && totalScore !== '' ? Number(totalScore) : null,
+      feedback: feedback || '',
+      adminAnswerSheetUrl: adminAnswerSheetUrl || '',
+      gradedAt: new Date(),
+      gradedBy: req.user._id // Stores the Main Admin or Grader ID
+    };
     
     homework.markModified('grading'); 
     
@@ -448,6 +455,9 @@ exports.extendDeadline = async (req, res) => {
 
 exports.deleteHomework = async (req, res) => {
   try {
+    if (req.user.role === 'grader') {
+      return res.status(403).json({ message: 'Graders are not allowed to delete homework.' });
+    }
     const homework = await Homework.findById(req.params.id);
     if (!homework) return res.status(404).json({ message: 'Homework not found' });
 
