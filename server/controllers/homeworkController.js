@@ -270,6 +270,14 @@ exports.gradeHomework = async (req, res) => {
     const homework = await Homework.findById(id);
     if (!homework) return res.status(404).json({ message: 'Homework not found' });
 
+    // --- NEW SECURITY CHECK: Prevent graders from editing published marks ---
+    if (homework.status === 'Graded' && req.user.role === 'grader') {
+      return res.status(403).json({ message: 'Action Denied: Graders cannot edit marks once they are published. Please contact the Main Admin to request a change.' });
+    }
+    // ----------------------------------------------------------------------
+
+    // --- NEW SMART CHECK ---
+
     // --- NEW SMART CHECK ---
     // If the homework previously had a marked file, but the new request is empty, 
     // it means the admin is just clicking "Remove Marked Work".
@@ -307,6 +315,14 @@ exports.gradeHomework = async (req, res) => {
 
         // 1. NOTIFY THE STUDENT
         if (student.email) {
+          
+          // --- FIX: Define checkedWorkHtml before using it ---
+          const checkedWorkHtml = homework.grading.adminAnswerSheetUrl ? `
+            <div style="margin-bottom: 25px; padding: 15px; background-color: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 6px;">
+              <h4 style="margin: 0 0 5px 0; color: #0369a1;">📎 Marked Work Attached:</h4>
+              <p style="margin: 0; font-size: 14px; color: #0c4a6e;">Your teacher has uploaded a marked document for review.</p>
+            </div>
+          ` : '';
           const studentEmailContent = `
             <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
                 <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">

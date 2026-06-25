@@ -95,25 +95,24 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const [studentRes, hwRes, annRes, resRes] = await Promise.all([
-        api.get('/admin/students'),
-        api.get('/homework/admin'),
-        api.get('/announcements/admin'),
-        api.get('/resources') 
-      ]);
-      setStudents(studentRes.data);
-      setHomeworks(hwRes.data);
-      setAnnouncements(annRes.data);
-      setResources(resRes.data); 
-
-      // NEW: Fetch Graders only if user is admin
+      // --- FIX: Role-based data fetching to prevent 403 crashes for Graders ---
       if (user?.role === 'admin') {
-        try {
-          const graderRes = await api.get('/admin/graders');
-          setGraders(graderRes.data);
-        } catch (err) {
-          console.error("Failed to fetch graders", err);
-        }
+        const [studentRes, hwRes, annRes, resRes, graderRes] = await Promise.all([
+          api.get('/admin/students'),
+          api.get('/homework/admin'),
+          api.get('/announcements/admin'),
+          api.get('/resources'),
+          api.get('/admin/graders').catch(() => ({ data: [] })) // Prevent minor crashes
+        ]);
+        setStudents(studentRes.data);
+        setHomeworks(hwRes.data);
+        setAnnouncements(annRes.data);
+        setResources(resRes.data); 
+        setGraders(graderRes.data);
+      } else if (user?.role === 'grader') {
+        // Graders only need homework submissions
+        const hwRes = await api.get('/homework/admin');
+        setHomeworks(hwRes.data);
       }
     } catch (error) {
       showToast("Error fetching dashboard data.", "error");
@@ -726,17 +725,20 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
               <p className="text-[#A3AED0] mt-2 font-bold tracking-wide">Here is what is happening in your classes today.</p>
             </div>
             
-            <div className="flex gap-4 mt-6 md:mt-0">
-              <div className="bg-white px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4">
-                <div className="bg-indigo-50 p-3 rounded-full text-indigo-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                </div>
-                <div>
-                  <p className="text-xs font-black text-[#A3AED0] uppercase tracking-wider">Total Students</p>
-                  <p className="text-2xl font-black text-[#1B2559]">{students.length}</p>
+            {/* ONLY ADMIN CAN SEE THE TOTAL STUDENTS COUNTER */}
+            {user?.role === 'admin' && (
+              <div className="flex gap-4 mt-6 md:mt-0">
+                <div className="bg-white px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4">
+                  <div className="bg-indigo-50 p-3 rounded-full text-indigo-600">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-[#A3AED0] uppercase tracking-wider">Total Students</p>
+                    <p className="text-2xl font-black text-[#1B2559]">{students.length}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* VIEW 1: DASHBOARD TAB */}
@@ -919,26 +921,33 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                           
                           {hw.status === 'Graded' && (
                             <div className="flex items-center gap-2">
-                              {/* Editable Score Button - Click to update grade or add score later! */}
-                              <button 
-                                onClick={() => {
-                                  setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '' } });
-                                  if (hw.grading?.adminAnswerSheetUrl) {
-                                    setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl, fileName: 'Existing Marked/Checked work Attached', isUploading: false });
-                                  } else {
-                                    setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false });
-                                  }
-                                }}
-                                className="px-6 py-3 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-2xl font-black border border-emerald-200 text-lg transition-colors shadow-sm"
-                                title="Edit Grade or Marked Work"
-                              >
-                                {hw.grading?.score != null ? `${hw.grading.score}/${hw.grading.totalScore} ✏️` : '➕ Add Score'}
-                              </button>
-                              
-                              {hw.grading?.adminAnswerSheetUrl && (
-                                <button onClick={() => setModal({ type: 'deleteAnsSheet', hwId: hw._id, data: { score: hw.grading.score, totalScore: hw.grading.totalScore } })} className="p-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-colors shadow-sm text-sm font-bold" title="Delete Marked Work">
-                                  Remove Marked Work
-                                </button>
+                              {user?.role === 'admin' ? (
+                                <>
+                                  <button 
+                                    onClick={() => {
+                                      setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '' } });
+                                      if (hw.grading?.adminAnswerSheetUrl) {
+                                        setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl, fileName: 'Existing Marked/Checked work Attached', isUploading: false });
+                                      } else {
+                                        setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false });
+                                      }
+                                    }}
+                                    className="px-6 py-3 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-2xl font-black border border-emerald-200 text-lg transition-colors shadow-sm"
+                                    title="Edit Grade or Marked Work"
+                                  >
+                                    {hw.grading?.score != null ? `${hw.grading.score}/${hw.grading.totalScore} ✏️` : '➕ Add Score'}
+                                  </button>
+                                  
+                                  {hw.grading?.adminAnswerSheetUrl && (
+                                    <button onClick={() => setModal({ type: 'deleteAnsSheet', hwId: hw._id, data: { score: hw.grading.score, totalScore: hw.grading.totalScore } })} className="p-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-colors shadow-sm text-sm font-bold" title="Delete Marked Work">
+                                      Remove Marked Work
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
+                                <div className="px-6 py-3 bg-slate-50 text-slate-500 rounded-2xl font-black border border-slate-200 text-lg shadow-sm cursor-not-allowed" title="Only Admins can edit published marks">
+                                  {hw.grading?.score != null ? `${hw.grading.score}/${hw.grading.totalScore} 🔒` : 'Marked 🔒'}
+                                </div>
                               )}
                             </div>
                           )}
@@ -1666,12 +1675,18 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         )}
 
                         {hw.status === 'Graded' && (
-                          <button onClick={() => {
-                            setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '' } });
-                            if (hw.grading?.adminAnswerSheetUrl) setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl, fileName: 'Attached', isUploading: false });
-                          }} className="px-6 py-3 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-2xl font-black border border-emerald-200 text-sm">
-                            {hw.grading?.score != null ? `${hw.grading.score}/${hw.grading.totalScore} ✏️` : 'Edit Grade'}
-                          </button>
+                          user?.role === 'admin' ? (
+                            <button onClick={() => {
+                              setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '' } });
+                              if (hw.grading?.adminAnswerSheetUrl) setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl, fileName: 'Attached', isUploading: false });
+                            }} className="px-6 py-3 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-2xl font-black border border-emerald-200 text-sm">
+                              {hw.grading?.score != null ? `${hw.grading.score}/${hw.grading.totalScore} ✏️` : 'Edit Grade'}
+                            </button>
+                          ) : (
+                            <div className="px-6 py-3 bg-slate-50 text-slate-500 rounded-2xl font-black border border-slate-200 text-sm cursor-not-allowed" title="Only Admins can edit published marks">
+                              {hw.grading?.score != null ? `${hw.grading.score}/${hw.grading.totalScore} 🔒` : 'Marked 🔒'}
+                            </div>
+                          )
                         )}
                         
                         {/* Only Admin can delete submissions here */}
