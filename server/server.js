@@ -32,7 +32,7 @@ app.use('/api/homework', require('./routes/homeworkRoutes'));
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/resources', resourceRoutes);
-
+require('./jobs/reminderJob');
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {

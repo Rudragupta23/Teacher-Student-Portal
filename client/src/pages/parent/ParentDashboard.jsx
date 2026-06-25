@@ -251,7 +251,7 @@ export default function ParentDashboard() {
           )}
           <div>
             <h1 className="text-lg font-black tracking-wide leading-tight">
-              <span className="text-white">MathCom Mentor</span><br/>
+              <span className="text-white">MathCom Mentors</span><br/>
             </h1>
           </div>
         </div>

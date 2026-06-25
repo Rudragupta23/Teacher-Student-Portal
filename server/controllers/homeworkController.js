@@ -1,5 +1,6 @@
 const Homework = require('../models/Homework');
 const User = require('../models/User');
+const sendEmail = require('../utils/sendEmail'); // Add this import at the top
 
 exports.assignHomework = async (req, res) => {
   const { title, description, type, studentId, difficulty, dueDate, fileUrl, content, mcqs } = req.body;
@@ -36,6 +37,50 @@ exports.assignHomework = async (req, res) => {
     );
 
     await Promise.all(homeworkPromises);
+
+    // --- NEW EMAIL NOTIFICATION LOGIC ---
+    // Extract emails, ensuring we don't include any undefined or null emails
+    const studentEmails = targetStudents.map(student => student.email).filter(email => email);
+
+    if (studentEmails.length > 0) {
+      // Format the date to be easily readable
+      const formattedDueDate = new Date(dueDate).toLocaleString(); 
+
+      const emailContent = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                <div style="background-color: #2563eb; padding: 25px; text-align: center;">
+                    <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">📝 New Homework Assigned</h2>
+                </div>
+                <div style="padding: 30px;">
+                    <p style="font-size: 16px; margin-bottom: 20px;">Hello Student,</p>
+                    <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">Your teacher has assigned new homework for you. Please review the details below:</p>
+                    
+                    <table style="width: 100%; border-collapse: collapse; margin: 25px 0;">
+                        <tr>
+                            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280; width: 120px;"><strong>Title</strong></td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #1f2937; font-weight: 500;">${title}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280;"><strong>Deadline</strong></td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #ef4444; font-weight: 600;">${formattedDueDate}</td>
+                        </tr>
+                    </table>
+                    
+                    <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Please log in to your student dashboard to view the instructions and submit your work.</p>
+                </div>
+            </div>
+        </div>
+      `;
+
+      sendEmail({
+        email: studentEmails.join(','), // This sends to all targeted students
+        subject: `New Homework Assigned: ${title}`,
+        html: emailContent
+      });
+    }
+    // ------------------------------------
+
     res.status(201).json({ message: `Successfully assigned to ${targetStudents.length} student(s)` });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -73,6 +118,40 @@ exports.submitHomework = async (req, res) => {
       return res.status(403).json({ message: 'You are late! The deadline has passed. Please contact your teacher to extend the duration.' });
     }
 
+    // --- HELPER TO SEND EMAIL TO ADMINS ---
+    const notifyAdmins = async (studentName) => {
+      const admins = await User.find({ role: 'admin' });
+      const emailContent = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                <div style="background-color: #f97316; padding: 25px; text-align: center;">
+                    <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">📥 New Submission</h2>
+                </div>
+                <div style="padding: 30px;">
+                    <p style="font-size: 16px; margin-bottom: 20px;">Hello Admin,</p>
+                    <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">A student has just turned in their work.</p>
+                    
+                    <div style="background-color: #fff7ed; border: 1px solid #ffedd5; padding: 20px; margin: 25px 0; border-radius: 8px;">
+                        <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>Student:</strong> <span style="color: #9a3412; font-weight: bold;">${studentName}</span></p>
+                        <p style="margin: 0; font-size: 16px;"><strong>Assignment:</strong> <span style="color: #9a3412; font-weight: bold;">${homework.title}</span></p>
+                    </div>
+                    
+                    <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Please log in to your admin dashboard to review and grade it.</p>
+                </div>
+            </div>
+        </div>
+      `;
+      admins.forEach(admin => {
+        if(admin.email) {
+          sendEmail({ email: admin.email, subject: `Homework Submitted by ${studentName}`, html: emailContent });
+        }
+      });
+    };
+    // --------------------------------------
+
+    // Fetch student details for the email
+    const student = await User.findById(req.user._id);
+
     if (homework.type === 'MCQ') {
       let correctCount = 0;
       const totalQuestions = homework.mcqs.length;
@@ -83,20 +162,99 @@ exports.submitHomework = async (req, res) => {
         }
       });
 
-      // const score = Math.round((correctCount / totalQuestions) * 100);
-
       homework.status = 'Graded';
       homework.grading = { score: correctCount, totalScore: totalQuestions, feedback: 'Auto-graded MCQ Submission', gradedAt: new Date() };
       homework.submission = { submittedAt: new Date() };
       homework.mcqs = []; 
       
       await homework.save();
-      return res.status(200).json({ message: 'MCQ auto-graded successfully!', homework });
+      
+      notifyAdmins(student.registrationName || student.name); // Trigger Email to Admin
+
+      // --- NEW: NOTIFY STUDENT & PARENT OF AUTO-GRADE ---
+      const score = correctCount;
+      const totalScore = totalQuestions;
+
+      // 1. Notify Student
+      if (student.email) {
+        const studentEmailContent = `
+          <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
+              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                  <div style="background-color: #10b981; padding: 25px; text-align: center;">
+                      <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">✅ MCQ Graded</h2>
+                  </div>
+                  <div style="padding: 30px;">
+                      <p style="font-size: 16px; margin-bottom: 20px;">Hello ${student.registrationName || student.name},</p>
+                      <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">Your MCQ submission for <strong>${homework.title}</strong> has been auto-graded.</p>
+                      
+                      <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 25px; margin: 25px 0; border-radius: 8px; text-align: center;">
+                          <p style="margin: 0; font-size: 14px; color: #059669; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Your Score</p>
+                          <p style="margin: 10px 0 0 0; font-size: 36px; font-weight: 800; color: #065f46;">${score} <span style="font-size: 20px; color: #10b981;">/ ${totalScore}</span></p>
+                      </div>
+
+                      <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Log in to your student dashboard for full details.</p>
+                  </div>
+              </div>
+          </div>
+        `;
+
+        sendEmail({
+          email: student.email,
+          subject: `Your Homework has been Graded: ${homework.title}`,
+          html: studentEmailContent
+        });
+      }
+
+      // 2. Notify Parent
+      const parents = await User.find({
+        role: 'parent',
+        $or: [
+          { linkedStudentId: student._id.toString() },
+          { linkedStudentId: student.studentId }
+        ]
+      });
+
+      if (parents.length > 0) {
+        const parentEmailContent = `
+          <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
+              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                  <div style="background-color: #10b981; padding: 25px; text-align: center;">
+                      <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">📊 Academic Update</h2>
+                  </div>
+                  <div style="padding: 30px;">
+                      <p style="font-size: 16px; margin-bottom: 20px;">Hello Parent,</p>
+                      <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">A new grade has been auto-calculated for your child, <strong>${student.registrationName || student.name}</strong>, for the MCQ assignment <strong>${homework.title}</strong>.</p>
+                      
+                      <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; margin: 25px 0; border-radius: 8px;">
+                          <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>Score Achieved:</strong> <span style="color: #059669; font-weight: bold; font-size: 18px;">${score} / ${totalScore}</span></p>
+                      </div>
+
+                      <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Please log in to your Parent Dashboard for a complete overview of your child's progress.</p>
+                  </div>
+              </div>
+          </div>
+        `;
+
+        const parentEmails = parents.map(p => p.email).filter(email => email);
+
+        if (parentEmails.length > 0) {
+          sendEmail({
+            email: parentEmails.join(','),
+            subject: `Update: ${student.registrationName || student.name}'s Homework has been Graded`,
+            html: parentEmailContent
+          });
+        }
+      }
+      // --------------------------------------------------
+
+      return res.status(200).json({ message: 'MCQ - graded successfully!', homework });
     }
 
     homework.status = 'Submitted';
     homework.submission = { answerText, answerFileUrl, submittedAt: new Date() };
     await homework.save();
+
+    notifyAdmins(student.registrationName || student.name); // Trigger Email
 
     res.status(200).json({ message: 'Homework submitted successfully!', homework });
   } catch (error) {
@@ -111,6 +269,11 @@ exports.gradeHomework = async (req, res) => {
   try {
     const homework = await Homework.findById(id);
     if (!homework) return res.status(404).json({ message: 'Homework not found' });
+
+    // --- NEW SMART CHECK ---
+    // If the homework previously had a marked file, but the new request is empty, 
+    // it means the admin is just clicking "Remove Marked Work".
+    const isRemovingMarkedWork = homework.grading && homework.grading.adminAnswerSheetUrl && !adminAnswerSheetUrl;
 
     homework.status = 'Graded';
     homework.grading = { score, totalScore, feedback, adminAnswerSheetUrl, gradedAt: new Date() };
@@ -129,7 +292,93 @@ exports.gradeHomework = async (req, res) => {
 
     await homework.save();
 
-    res.status(200).json({ message: 'Graded successfully! Answer sheet uploaded.', homework });
+    // --- ONLY SEND EMAILS IF WE ARE NOT JUST REMOVING THE FILE ---
+    if (!isRemovingMarkedWork) {
+      const student = await User.findById(homework.studentId);
+
+      if (student) {
+
+        // 1. NOTIFY THE STUDENT
+        if (student.email) {
+          const studentEmailContent = `
+            <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                    <div style="background-color: #10b981; padding: 25px; text-align: center;">
+                        <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">✅ Homework Graded</h2>
+                    </div>
+                    <div style="padding: 30px;">
+                        <p style="font-size: 16px; margin-bottom: 20px;">Hello ${student.registrationName || student.name},</p>
+                        <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">Your teacher has reviewed and graded your submission for <strong>${homework.title}</strong>.</p>
+                        
+                        <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 25px; margin: 25px 0; border-radius: 8px; text-align: center;">
+                            <p style="margin: 0; font-size: 14px; color: #059669; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Your Score</p>
+                            <p style="margin: 10px 0 0 0; font-size: 36px; font-weight: 800; color: #065f46;">${score} <span style="font-size: 20px; color: #10b981;">/ ${totalScore}</span></p>
+                        </div>
+
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="margin: 0 0 10px 0; color: #374151;">Teacher's Feedback:</h4>
+                            <p style="margin: 0; color: #4b5563; font-style: italic; background: #f9fafb; padding: 15px; border-radius: 6px;">"${feedback || 'Great effort! Please check your dashboard for any detailed notes.'}"</p>
+                        </div>
+                        
+                        ${checkedWorkHtml}
+                        
+                        <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Log in to your student dashboard for full details.</p>
+                    </div>
+                </div>
+            </div>
+          `;
+
+          sendEmail({
+            email: student.email,
+            subject: `Your Homework has been Graded: ${homework.title}`,
+            html: studentEmailContent
+          });
+        }
+
+        // 2. NOTIFY THE PARENT(S)
+        const parents = await User.find({
+          role: 'parent',
+          $or: [
+            { linkedStudentId: student._id.toString() },
+            { linkedStudentId: student.studentId }
+          ]
+        });
+
+        if (parents.length > 0) {
+          const parentEmailContent = `
+            <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                    <div style="background-color: #10b981; padding: 25px; text-align: center;">
+                        <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">📊 Academic Update</h2>
+                    </div>
+                    <div style="padding: 30px;">
+                        <p style="font-size: 16px; margin-bottom: 20px;">Hello Parent,</p>
+                        <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">A new grade has been posted for your child, <strong>${student.registrationName || student.name}</strong>, for the assignment <strong>${homework.title}</strong>.</p>
+                        
+                        <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; margin: 25px 0; border-radius: 8px;">
+                            <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>Score Achieved:</strong> <span style="color: #059669; font-weight: bold; font-size: 18px;">${score} / ${totalScore}</span></p>
+                        </div>
+
+                        <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Please log in to your Parent Dashboard for a complete overview of your child's progress.</p>
+                    </div>
+                </div>
+            </div>
+          `;
+
+          const parentEmails = parents.map(p => p.email).filter(email => email);
+
+          if (parentEmails.length > 0) {
+            sendEmail({
+              email: parentEmails.join(','),
+              subject: `Update: ${student.registrationName || student.name}'s Homework has been Graded`,
+              html: parentEmailContent
+            });
+          }
+        }
+      }
+    }
+
+    res.status(200).json({ message: 'Graded successfully! Document updated.', homework });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -151,7 +400,46 @@ exports.extendDeadline = async (req, res) => {
     
     if (homework.status !== 'Graded') homework.status = 'Pending';
     
+    // Reset the reminder flag so they can get a new 24-hour reminder for the new date
+    homework.reminderSent = false;
+    
     await homework.save();
+
+    // --- NEW EMAIL NOTIFICATION LOGIC ---
+    // Fetch the specific student to get their email and name
+    const student = await User.findById(homework.studentId);
+
+    if (student && student.email) {
+      const formattedNewDate = new Date(newDueDate).toLocaleString();
+
+      const emailContent = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                <div style="background-color: #3b82f6; padding: 25px; text-align: center;">
+                    <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">📅 Deadline Extended</h2>
+                </div>
+                <div style="padding: 30px;">
+                    <p style="font-size: 16px; margin-bottom: 20px;">Hello ${student.registrationName || student.name},</p>
+                    <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">Your teacher has granted an extension for your assignment: <strong>${homework.title}</strong>.</p>
+                    
+                    <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #3b82f6; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+                        <p style="margin: 0; font-size: 16px; color: #1e3a8a;"><strong>New Deadline:</strong> <span style="color: #2563eb; font-weight: bold;">${formattedNewDate}</span></p>
+                    </div>
+                    
+                    <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Please ensure you submit your work before this new deadline.</p>
+                </div>
+            </div>
+        </div>
+      `;
+
+      sendEmail({
+        email: student.email,
+        subject: `Deadline Extended: ${homework.title}`,
+        html: emailContent
+      });
+    }
+    // ------------------------------------
+
     res.status(200).json({ message: 'Deadline extended successfully!', homework });
   } catch (error) {
     res.status(500).json({ message: error.message });

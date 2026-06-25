@@ -1,5 +1,6 @@
 const Message = require('../models/Message');
 const User = require('../models/User');
+const sendEmail = require('../utils/sendEmail'); // Add this import at the top
 
 // @desc    Get messages for a user
 // @route   GET /api/messages/:id?
@@ -79,6 +80,39 @@ exports.sendMessage = async (req, res) => {
       isGlobal: false,
       content
     });
+
+    // --- NEW EMAIL NOTIFICATION LOGIC ---
+    const receiver = await User.findById(finalReceiverId);
+    const sender = await User.findById(req.user._id);
+
+    if (receiver && receiver.email) {
+      const emailContent = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                <div style="background-color: #0ea5e9; padding: 25px; text-align: center;">
+                    <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">💬 New Message Received</h2>
+                </div>
+                <div style="padding: 30px;">
+                    <p style="font-size: 16px; margin-bottom: 20px;">Hello ${receiver.registrationName || receiver.name},</p>
+                    <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">You have a new direct message from <strong>${sender.registrationName || sender.name} (${sender.role})</strong>.</p>
+                    
+                    <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; padding: 20px; margin: 25px 0; border-radius: 8px; font-style: italic; color: #0369a1;">
+                        "${content}"
+                    </div>
+                    
+                    <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Please log in to the portal to reply.</p>
+                </div>
+            </div>
+        </div>
+      `;
+
+      sendEmail({
+        email: receiver.email,
+        subject: 'New Message Notification',
+        html: emailContent // using 'html' as defined in your sendEmail.js
+      });
+    }
+    // ------------------------------------
 
     res.status(201).json(newMessage);
   } catch (error) {

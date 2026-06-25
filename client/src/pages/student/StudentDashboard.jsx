@@ -421,7 +421,7 @@ export default function StudentDashboard() {
             </div>
           )}
           <div>
-            <h1 className="text-lg font-black text-white tracking-wide leading-tight">MathCom<br/>Mentor</h1>
+            <h1 className="text-lg font-black text-white tracking-wide leading-tight">MathCom<br/>Mentors</h1>
           </div>
         </div>
         
