@@ -176,7 +176,7 @@ exports.createGrader = async (req, res) => {
 // @route   GET /api/admin/graders
 exports.getGraders = async (req, res) => {
   try {
-    const graders = await User.find({ role: 'grader' }).select('-password');
+    const graders = await User.find({ role: 'grader' }).select('-password').populate('allocatedStudents', 'name registrationName yearGroup');
     res.status(200).json(graders);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
@@ -191,5 +191,20 @@ exports.deleteGrader = async (req, res) => {
     res.status(200).json({ message: 'Grader deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+// @desc    Allocate specific students to a grader
+// @route   PUT /api/admin/graders/:id/allocate
+exports.allocateStudentsToGrader = async (req, res) => {
+  try {
+    const { studentIds } = req.body;
+    const grader = await User.findById(req.params.id);
+    if (!grader || grader.role !== 'grader') return res.status(404).json({ message: 'Grader not found' });
+    
+    grader.allocatedStudents = studentIds;
+    await grader.save();
+    res.status(200).json({ message: 'Students successfully allocated to grader!' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

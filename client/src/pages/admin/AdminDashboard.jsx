@@ -10,7 +10,8 @@ import { AuthContext } from '../../context/AuthContext';
 export default function AdminDashboard() {
   // Navigation & Data State
   const { user } = useContext(AuthContext);
-  const [activeTab, setActiveTab] = useState(user?.role === 'grader' ? 'submitted' : 'dashboard');
+  // const [activeTab, setActiveTab] = useState(user?.role === 'grader' ? 'submitted' : 'dashboard');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [students, setStudents] = useState([]);
   const [homeworks, setHomeworks] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,9 +21,13 @@ export default function AdminDashboard() {
   const [announcementForm, setAnnouncementForm] = useState({ content: '', targetAudience: 'all', imageUrl: '' });
   const [isAnnounceUploading, setIsAnnounceUploading] = useState(false);
 
+  const [yearGroupAssign, setYearGroupAssign] = useState('all');
+  const [yearGroupAllocate, setYearGroupAllocate] = useState('all');
+  const [selectedStudentsToAllocate, setSelectedStudentsToAllocate] = useState([]);
+
   // Form State
   const [assignForm, setAssignForm] = useState({
-    title: '', type: 'File', studentId: 'all', difficulty: 'Medium', 
+    title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Medium', 
     dueDate: '', fileUrl: '', content: '', 
     mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
   });
@@ -347,6 +352,10 @@ export default function AdminDashboard() {
         });
         showToast("Marked Work Removed!");
       }
+      else if (modal.type === 'allocate') {
+        await api.put(`/admin/graders/${modal.graderId}/allocate`, { studentIds: selectedStudentsToAllocate });
+        showToast("Students successfully allocated to grader!");
+      }
       
       setModal({ type: null, hwId: null, studentId: null, data: '' });
       setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); 
@@ -536,6 +545,63 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 </div>
               </>
             )}
+            {modal.type === 'allocate' && (
+              <>
+                <h3 className="text-2xl font-black text-slate-800 mb-2">Allocate Students</h3>
+                <p className="text-slate-500 text-sm mb-4">Select the specific students this grader will mark.</p>
+                
+                {/* NEW: Grader Info & Currently Assigned Counter */}
+                {(() => {
+                  const currentGrader = graders.find(g => g._id === modal.graderId);
+                  const initiallyAssigned = currentGrader?.allocatedStudents?.length || 0;
+                  return (
+                    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 mb-4 flex justify-between items-center">
+                       <span className="text-sm font-bold text-indigo-800">Grader: <b>{currentGrader?.name}</b></span>
+                       <span className="text-xs font-black bg-indigo-200 text-indigo-800 px-2 py-1 rounded-md">
+                         {initiallyAssigned} Currently Assigned
+                       </span>
+                    </div>
+                  );
+                })()}
+
+                <select className="w-full p-3 mb-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none"
+                  value={yearGroupAllocate} onChange={e => setYearGroupAllocate(e.target.value)}>
+                  <option value="all">Filter by Year Group (All)</option>
+                  {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                    <option key={yg} value={yg}>{yg}</option>
+                  ))}
+                </select>
+
+                <div className="max-h-48 overflow-y-auto bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2 mb-6 custom-scrollbar">
+                  {students.filter(s => yearGroupAllocate === 'all' || s.yearGroup === yearGroupAllocate).map(s => {
+                    // Check if student is already in the database for this grader
+                    const isInitiallyAllocated = graders.find(g => g._id === modal.graderId)?.allocatedStudents?.some(allocated => allocated._id === s._id || allocated === s._id);
+                    
+                    return (
+                      <label key={s._id} className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${selectedStudentsToAllocate.includes(s._id) ? 'bg-indigo-50/50' : 'hover:bg-slate-200'}`}>
+                        <div className="flex items-center gap-3">
+                          <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded" 
+                            checked={selectedStudentsToAllocate.includes(s._id)}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedStudentsToAllocate([...selectedStudentsToAllocate, s._id]);
+                              else setSelectedStudentsToAllocate(selectedStudentsToAllocate.filter(id => id !== s._id));
+                            }}
+                          />
+                          <span className="font-bold text-sm text-slate-700">{s.registrationName || s.name} {s.yearGroup ? `(${s.yearGroup})` : ''}</span>
+                        </div>
+                        
+                        {/* NEW: Badge for already assigned students */}
+                        {isInitiallyAllocated && (
+                           <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md shadow-sm">
+                             Already Assigned
+                           </span>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
             {modal.type === 'extend' && (
               <>
@@ -654,20 +720,24 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
           
           <div className="p-6 space-y-3 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             
-            {/* ONLY ADMIN CAN SEE THESE TABS */}
-            {user?.role === 'admin' && (
+            {/* BOTH ADMIN AND GRADER CAN SEE THESE TABS */}
+            {(user?.role === 'admin' || user?.role === 'grader') && (
               <>
                 <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                   Create Assignment 
                 </button>
 
-                {/* 📥 Submitted Work Tab (Admin Only) - Added matching SVG Icon */}
                 <button onClick={() => setActiveTab('submitted')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'submitted' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                   Submitted Work 
                 </button>
-
+              </>
+            )}
+            
+            {/* ONLY ADMIN CAN SEE THESE TABS */}
+            {user?.role === 'admin' && (
+              <>
                 <button onClick={() => setActiveTab('students')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'students' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                   Students Enrolled
@@ -706,13 +776,13 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
               </>
             )}
 
-            {/* NEW: Grader View (Both Admin & Grader see this tab) */}
+            {/* NEW: Grader View (Both Admin & Grader see this tab)
             {user?.role === 'grader' && (
               <button onClick={() => setActiveTab('submitted')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'submitted' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 Submitted Work 
               </button>
-            )}
+            )} */}
             
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#0B1437] to-transparent pointer-events-none z-10 flex items-end justify-center pb-1">
@@ -776,15 +846,36 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       onChange={e => setAssignForm({...assignForm, title: e.target.value})} />
                   </div>
 
+                  {/* NEW WEEK AND TOPIC FIELDS */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Assign To</label>
-                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
-                        onChange={e => setAssignForm({...assignForm, studentId: e.target.value})}>
-                        <option value="all">All Students</option>
-                        {students.map(s => <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>)}
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Week No</label>
+                      <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl focus:ring-4 focus:ring-indigo-500/20 text-[#1B2559] outline-none transition-all font-bold" 
+                        placeholder="e.g. 5" value={assignForm.weekNo} onChange={e => setAssignForm({...assignForm, weekNo: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Topic Covered</label>
+                      <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl focus:ring-4 focus:ring-indigo-500/20 text-[#1B2559] outline-none transition-all font-bold" 
+                        placeholder="e.g. Algebra" value={assignForm.topic} onChange={e => setAssignForm({...assignForm, topic: e.target.value})} />
+                    </div>
+                  </div>
+
+                  {/* FILTER BY YEAR, STUDENT, AND DIFFICULTY */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    {/* 1. Year Group Filter (Top Left) */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Filter by Year</label>
+                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
+                        value={yearGroupAssign} onChange={e => setYearGroupAssign(e.target.value)}>
+                        <option value="all">All Years</option>
+                        {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                          <option key={yg} value={yg}>{yg}</option>
+                        ))}
                       </select>
                     </div>
+
+                    {/* 2. Difficulty (Top Right) */}
                     <div className="space-y-1">
                       <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Difficulty</label>
                       <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
@@ -794,6 +885,19 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         <option value="Hard">Hard 🔴</option>
                       </select>
                     </div>
+
+                    {/* 3. Student Dropdown (Bottom Row - Full Width) */}
+                    <div className="md:col-span-2 space-y-1">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Select Student</label>
+                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+                        onChange={e => setAssignForm({...assignForm, studentId: e.target.value})} value={assignForm.studentId}>
+                        <option value="all">All Filtered Students</option>
+                        {students.filter(s => yearGroupAssign === 'all' || s.yearGroup === yearGroupAssign).map(s => (
+                          <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                        ))}
+                      </select>
+                    </div>
+
                   </div>
 
                   <div className="space-y-1">
@@ -918,12 +1022,20 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                           </span>
                           </p>
                           
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1.5 bg-[#F4F7FE] text-[#A3AED0] px-3 py-1.5 rounded-xl text-xs font-black">
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-1.5 bg-[#F4F7FE] text-[#A3AED0] px-3 py-1.5 rounded-xl text-xs font-black w-fit">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                              {new Date(hw.dueDate).toLocaleString()}
+                              Due: {new Date(hw.dueDate).toLocaleString()}
                             </div>
-                            {isLate && hw.status === 'Pending' && <span className="bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl text-xs font-black">Overdue</span>}
+                            {hw.submission?.submittedAt && (
+                              <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-xl text-xs font-black w-fit">
+                                📥 Submitted: {new Date(hw.submission.submittedAt).toLocaleString()}
+                              </div>
+                            )}
+                            {isLate && hw.status === 'Pending' && <span className="bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl text-xs font-black w-fit">Overdue</span>}
+                            {hw.submission?.submittedAt && new Date(hw.submission.submittedAt) > new Date(hw.dueDate) && (
+                               <span className="bg-rose-500 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-sm animate-pulse w-fit">⚠️ LATE SUBMISSION</span>
+                            )}
                           </div>
                         </div>
                         
@@ -936,7 +1048,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                           
                           {hw.status === 'Submitted' && (
                             <>
-                              {/* 🌟 Triggers the inline preview modal instead of new tab */}
                               {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText) && (
                                 <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title })} className="px-5 py-3 bg-[#1B2559] text-white font-black rounded-2xl hover:bg-indigo-900 transition-colors shadow-md text-sm">
                                   View Work
@@ -981,9 +1092,11 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                             </div>
                           )}
 
-                          <button onClick={() => setModal({ type: 'delete', hwId: hw._id, data: '' })} className="p-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-colors shadow-sm ml-2 text-xl" title="Delete">
-                            🗑️
-                          </button>
+                          {user?.role === 'admin' && (
+                            <button onClick={() => setModal({ type: 'delete', hwId: hw._id, data: '' })} className="p-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-colors shadow-sm ml-2 text-xl" title="Delete">
+                              🗑️
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -1636,19 +1749,27 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         <p className="text-[#A3AED0] text-sm font-bold">{grader.email}</p>
                       </div>
                     </div>
-                    <button onClick={async () => {
-                      if (window.confirm(`Are you sure you want to permanently delete the grader "${grader.name}"?`)) {
-                        try {
-                          await api.delete(`/admin/graders/${grader._id}`);
-                          setGraders(graders.filter(g => g._id !== grader._id));
-                          showToast('👨‍🏫 Grader deleted successfully!');
-                        } catch (err) { 
-                          showToast(err.response?.data?.message || 'Error deleting grader', 'error'); 
+                    <div className="flex gap-2 w-full mt-4">
+                      <button onClick={() => {
+                        setSelectedStudentsToAllocate(grader.allocatedStudents?.map(s => s._id || s) || []);
+                        setModal({ type: 'allocate', graderId: grader._id, data: '' });
+                      }} className="flex-1 bg-indigo-50 text-indigo-600 font-black py-3 rounded-xl hover:bg-indigo-600 hover:text-white transition-all text-sm border border-indigo-200">
+                        👥 Allocate Students
+                      </button>
+                      <button onClick={async () => {
+                        if (window.confirm(`Are you sure you want to permanently delete the grader "${grader.name}"?`)) {
+                          try {
+                            await api.delete(`/admin/graders/${grader._id}`);
+                            setGraders(graders.filter(g => g._id !== grader._id));
+                            showToast('👨‍🏫 Grader deleted successfully!');
+                          } catch (err) { 
+                            showToast(err.response?.data?.message || 'Error deleting grader', 'error'); 
+                          }
                         }
-                      }
-                    }} className="w-full bg-rose-50 text-rose-500 font-black py-3 rounded-xl hover:bg-rose-500 hover:text-white transition-all">
-                      🗑️ Delete Grader
-                    </button>
+                      }} className="flex-1 bg-rose-50 text-rose-500 font-black py-3 rounded-xl hover:bg-rose-500 hover:text-white transition-all text-sm border border-rose-200">
+                        🗑️ Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {graders.length === 0 && <p className="text-[#A3AED0] font-bold">No graders created yet.</p>}
@@ -1680,6 +1801,11 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                           <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider ${hw.status === 'Submitted' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                             {hw.status}
                           </span>
+                          {hw.submission?.submittedAt && new Date(hw.submission.submittedAt) > new Date(hw.dueDate) && (
+                            <span className="text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider bg-rose-100 text-rose-700 shadow-sm border border-rose-200 animate-pulse">
+                              LATE
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-[#A3AED0] font-bold mb-2">
                           Student: <span className="font-black text-[#1B2559]">{hw.studentId ? `${hw.studentId.registrationName || hw.studentId.name} ${hw.studentId.yearGroup ? `- ${hw.studentId.yearGroup}` : ''}` : "Unknown"}</span>

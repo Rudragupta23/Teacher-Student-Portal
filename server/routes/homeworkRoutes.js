@@ -12,7 +12,7 @@ const {
 
 const { protect, admin, graderOrAdmin } = require('../middlewares/authMiddleware');
 // Admin Routes
-router.post('/assign', protect, assignHomework);
+router.post('/assign', protect, graderOrAdmin, assignHomework);
 router.get('/admin', protect, graderOrAdmin, getAdminHomework);
 router.put('/:id/grade', protect, graderOrAdmin, gradeHomework);
 router.put('/:id/extend', protect, extendDeadline);

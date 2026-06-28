@@ -3,7 +3,7 @@ const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail'); // Add this import at the top
 
 exports.assignHomework = async (req, res) => {
-  const { title, description, type, studentId, difficulty, dueDate, fileUrl, content, mcqs } = req.body;
+  const { title, weekNo, topic, description, type, studentId, difficulty, dueDate, fileUrl, content, mcqs } = req.body;
   
   try {
     let targetStudents = [];
@@ -24,6 +24,8 @@ exports.assignHomework = async (req, res) => {
     const homeworkPromises = targetStudents.map(student => 
       Homework.create({
         title, 
+        weekNo, 
+        topic,
         description, 
         type, 
         difficulty,
@@ -133,7 +135,8 @@ exports.submitHomework = async (req, res) => {
                     
                     <div style="background-color: #fff7ed; border: 1px solid #ffedd5; padding: 20px; margin: 25px 0; border-radius: 8px;">
                         <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>Student:</strong> <span style="color: #9a3412; font-weight: bold;">${studentName}</span></p>
-                        <p style="margin: 0; font-size: 16px;"><strong>Assignment:</strong> <span style="color: #9a3412; font-weight: bold;">${homework.title}</span></p>
+                        <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>Assignment:</strong> <span style="color: #9a3412; font-weight: bold;">${homework.title}</span></p>
+                        <p style="margin: 0; font-size: 16px;"><strong>Status:</strong> <span style="color: ${new Date() > new Date(homework.dueDate) ? '#dc2626' : '#16a34a'}; font-weight: bold;">${new Date() > new Date(homework.dueDate) ? '⚠️ Submitted LATE' : '✅ Submitted On Time'}</span></p>
                     </div>
                     
                     <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Please log in to your admin dashboard to review and grade it.</p>

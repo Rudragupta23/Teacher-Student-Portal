@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
   otpExpires: { type: Date },                    
   
   role: { type: String, enum: ['admin', 'grader', 'student', 'parent'], default: 'student' },
-  // NEW FIELDS FOR PARENT/STUDENT LINKING
+  allocatedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], 
   studentId: { type: String, unique: true, sparse: true }, 
   linkedStudentId: { type: String },                     
 

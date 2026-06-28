@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 
 const homeworkSchema = new mongoose.Schema({
   title: { type: String, required: true },
+  weekNo: { type: String }, 
+  topic: { type: String },  
   description: { type: String },
   type: { type: String, enum: ['File', 'MCQ', 'Text'], default: 'File' },
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
