@@ -293,13 +293,13 @@ export default function StudentDashboard() {
     <p className="text-sm font-black text-[#1B2559] uppercase tracking-wide">Attachment Preview</p>
     
     <div className="w-full max-h-[400px] overflow-auto border-2 border-slate-200 rounded-2xl bg-white p-2 shadow-inner">
-      {modalTask.fileUrl.startsWith('data:image') ? (
-        <img src={modalTask.fileUrl} alt="Homework Attachment" className="w-full h-auto rounded-xl object-contain" />
-      ) : modalTask.fileUrl.startsWith('data:application/pdf') ? (
-        <embed src={modalTask.fileUrl} type="application/pdf" className="w-full h-[380px] rounded-xl" />
-      ) : (
-        <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
-      )}
+      {modalTask.fileUrl.includes('image') || modalTask.fileUrl.startsWith('data:image') ? (
+  <img src={modalTask.fileUrl} alt="Homework Attachment" className="w-full h-auto rounded-xl object-contain" />
+) : modalTask.fileUrl.includes('pdf') || modalTask.fileUrl.startsWith('data:application/pdf') ? (
+  <iframe src={modalTask.fileUrl} className="w-full h-[500px] border-0 rounded-xl" title="PDF Preview"></iframe>
+) : (
+  <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
+)}
     </div>
 
     <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
@@ -406,13 +406,13 @@ export default function StudentDashboard() {
                   <h4 className="text-xs font-black text-emerald-600 uppercase tracking-wide">Mentor's Marked/Checked work</h4>
                   
                   <div className="w-full max-h-[400px] overflow-auto border-2 border-emerald-200 rounded-2xl bg-white p-2 shadow-inner">
-                    {modalTask.grading.adminAnswerSheetUrl.startsWith('data:image') ? (
-                      <img src={modalTask.grading.adminAnswerSheetUrl} alt="Answer Sheet" className="w-full h-auto rounded-xl object-contain" />
-                    ) : modalTask.grading.adminAnswerSheetUrl.startsWith('data:application/pdf') ? (
-                      <embed src={modalTask.grading.adminAnswerSheetUrl} type="application/pdf" className="w-full h-[380px] rounded-xl" />
-                    ) : (
-                      <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
-                    )}
+                    {modalTask.grading.adminAnswerSheetUrl.includes('image') || modalTask.grading.adminAnswerSheetUrl.startsWith('data:image') ? (
+  <img src={modalTask.grading.adminAnswerSheetUrl} alt="Answer Sheet" className="w-full h-auto rounded-xl object-contain" />
+) : modalTask.grading.adminAnswerSheetUrl.includes('pdf') || modalTask.grading.adminAnswerSheetUrl.startsWith('data:application/pdf') ? (
+  <iframe src={modalTask.grading.adminAnswerSheetUrl} className="w-full h-[500px] border-0 rounded-xl" title="PDF Preview"></iframe>
+) : (
+  <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
+)}
                   </div>
 
                   <button type="button" onClick={() => {
@@ -1068,8 +1068,8 @@ export default function StudentDashboard() {
               <p className="text-slate-500 font-bold mb-8">Access folders and marked work hosted on Google Drive by your mentor.</p>
                 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {driveLinks.map(link => (
-                  <div key={link._id} className="p-6 bg-white border-2 border-slate-100 hover:border-blue-300 rounded-3xl transition-all shadow-sm hover:shadow-xl flex flex-col justify-between group">
+  {driveLinks.filter(link => link.targetAudience === 'all' || link.targetAudience === userId).map(link => (
+    <div key={link._id} className="p-6 bg-white border-2 border-slate-100 hover:border-blue-300 rounded-3xl transition-all shadow-sm hover:shadow-xl flex flex-col justify-between group">
                     <div>
                       <div className="flex gap-2 mb-4">
                         <span className="text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm bg-blue-100 text-blue-700">
@@ -1086,8 +1086,8 @@ export default function StudentDashboard() {
                   </div>
                 ))}
                 
-                {driveLinks.length === 0 && (
-                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+                {driveLinks.filter(link => link.targetAudience === 'all' || link.targetAudience === userId).length === 0 && (
+    <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
                     <div className="text-6xl mb-4 opacity-50">☁️</div>
                     <h3 className="text-[#1B2559] font-black text-2xl mb-1">No Links Shared</h3>
                     <p className="text-[#A3AED0] font-bold">Your mentor hasn't shared any Drive links with you yet.</p>

@@ -757,14 +757,14 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mt-2">Attached File Preview</h4>
                       
                       <div className="w-full max-h-[400px] overflow-auto border-2 border-slate-200 rounded-2xl bg-[#F4F7FE] p-2 shadow-inner">
-                        {modal.data.answerFileUrl.startsWith('data:image') ? (
-                          <img src={modal.data.answerFileUrl} alt="Submission" className="w-full h-auto rounded-xl object-contain" />
-                        ) : modal.data.answerFileUrl.startsWith('data:application/pdf') ? (
-                          <embed src={modal.data.answerFileUrl} type="application/pdf" className="w-full h-[380px] rounded-xl" />
-                        ) : (
-                          <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
-                        )}
-                      </div>
+  {modal.data.answerFileUrl.includes('image') || modal.data.answerFileUrl.startsWith('data:image') ? (
+    <img src={modal.data.answerFileUrl} alt="Submission" className="w-full h-auto rounded-xl object-contain" />
+  ) : modal.data.answerFileUrl.includes('pdf') || modal.data.answerFileUrl.startsWith('data:application/pdf') ? (
+    <iframe src={modal.data.answerFileUrl} className="w-full h-[500px] border-0 rounded-xl" title="PDF Preview"></iframe>
+  ) : (
+    <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
+  )}
+</div>
 
                       <button type="button" onClick={() => {
     const studentName = modal.student?.registrationName || modal.student?.name || 'Unknown';
@@ -1209,8 +1209,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                           {hw.status === 'Submitted' && (
                             <>
                               {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText) && (
-                                <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title })} className="px-5 py-3 bg-[#1B2559] text-white font-black rounded-2xl hover:bg-indigo-900 transition-colors shadow-md text-sm">
-                                  View Work
+                                <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-5 py-3 bg-[#1B2559] text-white font-black rounded-2xl hover:bg-indigo-900 transition-colors shadow-md text-sm">
+                                View Work
                                 </button>
                               )}
                               <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '' } })} className="px-5 py-3 bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-md text-sm flex items-center gap-2">
@@ -2360,9 +2360,9 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         {hw.status === 'Submitted' && (
                           <>
                             {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText) && (
-                              <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title })} className="px-5 py-3 bg-[#1B2559] text-white font-black rounded-2xl hover:bg-indigo-900 transition-colors shadow-md text-sm">
-                                View Work
-                              </button>
+                              <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-5 py-3 bg-[#1B2559] text-white font-black rounded-2xl hover:bg-indigo-900 transition-colors shadow-md text-sm">
+                               View Work
+                               </button>
                             )}
                             <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '' } })} className="px-5 py-3 bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-md text-sm">
                               Grade
@@ -2424,26 +2424,40 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   </div>
 
                   <div className="space-y-2 pt-4 border-t border-slate-100">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
-                    <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
-                      value={driveForm.yearGroupFilter} onChange={e => setDriveForm({...driveForm, yearGroupFilter: e.target.value, targetAudience: 'all'})}>
-                      <option value="all">All Years</option>
-                      {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
-                        <option key={yg} value={yg}>{yg}</option>
-                      ))}
-                    </select>
-                  </div>
+  <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
+  <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
+    value={driveForm.yearGroupFilter} onChange={e => {
+      const selectedYear = e.target.value;
+      const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
+      setDriveForm({
+        ...driveForm, 
+        yearGroupFilter: selectedYear, 
+        // Automatically default to the first student in the filtered list so it doesn't default to 'all'
+        targetAudience: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
+      });
+    }}>
+    <option value="all">All Years</option>
+    {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+      <option key={yg} value={yg}>{yg}</option>
+    ))}
+  </select>
+</div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Recipient</label>
-                    <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
-                      value={driveForm.targetAudience} onChange={e => setDriveForm({...driveForm, targetAudience: e.target.value})}>
-                      <option value="all">📢 Share to Everyone</option>
-                      {students.filter(s => driveForm.yearGroupFilter === 'all' || s.yearGroup === driveForm.yearGroupFilter).map(s => (
-                        <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
-                      ))}
-                    </select>
-                  </div>
+<div className="space-y-2">
+  <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Recipient</label>
+  <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+    value={driveForm.targetAudience} onChange={e => setDriveForm({...driveForm, targetAudience: e.target.value})}>
+    
+    {/* Only show "Share to Everyone" if Year Filter is set to All */}
+    {driveForm.yearGroupFilter === 'all' && (
+      <option value="all">📢 Share to Everyone</option>
+    )}
+    
+    {students.filter(s => driveForm.yearGroupFilter === 'all' || s.yearGroup === driveForm.yearGroupFilter).map(s => (
+      <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+    ))}
+  </select>
+</div>
 
                   <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-4 rounded-2xl transition-transform hover:-translate-y-1 shadow-lg text-lg">
                     Post Link

@@ -637,16 +637,16 @@ export default function ParentDashboard() {
                   </div>
                 </div>
                 <div className="flex-1 overflow-auto bg-slate-50 rounded-2xl p-2 flex justify-center items-center min-h-[400px]">
-                   {markedWorkPreview.grading.adminAnswerSheetUrl.endsWith('.pdf') || markedWorkPreview.grading.adminAnswerSheetUrl.includes('data:application/pdf') ? (
-                     <iframe src={markedWorkPreview.grading.adminAnswerSheetUrl} className="w-full h-[500px] border-0 rounded-xl" title="Marked PDF"></iframe>
-                   ) : markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('http') || markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('data:image') ? (
-                     <img src={markedWorkPreview.grading.adminAnswerSheetUrl} alt="Marked Work" className="max-h-[500px] max-w-full object-contain rounded-xl shadow-sm" />
-                   ) : (
-                     <div className="text-center p-8">
-                       <p className="font-black text-slate-700 mb-2">Unsupported File Format</p>
-                       <a href={markedWorkPreview.grading.adminAnswerSheetUrl} target="_blank" rel="noopener noreferrer" className="text-xs bg-indigo-500 text-white px-4 py-2 rounded-xl font-black shadow-md inline-block">Open File in New Tab</a>
-                     </div>
-                   )}
+                   {markedWorkPreview.grading.adminAnswerSheetUrl.endsWith('.pdf') || markedWorkPreview.grading.adminAnswerSheetUrl.includes('pdf') || markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('data:application/pdf') ? (
+  <iframe src={markedWorkPreview.grading.adminAnswerSheetUrl} className="w-full h-[500px] border-0 rounded-xl" title="Marked PDF"></iframe>
+) : markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('http') || markedWorkPreview.grading.adminAnswerSheetUrl.includes('image') || markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('data:image') ? (
+  <img src={markedWorkPreview.grading.adminAnswerSheetUrl} alt="Marked Work" className="max-h-[500px] max-w-full object-contain rounded-xl shadow-sm" />
+) : (
+  <div className="text-center p-8">
+    <p className="font-black text-slate-700 mb-2">Unsupported File Format</p>
+    <a href={markedWorkPreview.grading.adminAnswerSheetUrl} target="_blank" rel="noopener noreferrer" className="text-xs bg-indigo-500 text-white px-4 py-2 rounded-xl font-black shadow-md inline-block">Open File in New Tab</a>
+  </div>
+)}
                 </div>
               </div>
             </div>
@@ -662,8 +662,11 @@ export default function ParentDashboard() {
               <p className="text-slate-500 font-bold mb-8">Access files and external drive folders provided for {childData?.registrationName || childData?.name}.</p>
                 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {driveLinks.map(link => (
-                  <div key={link._id} className="p-6 bg-white border-2 border-slate-100 hover:border-blue-300 rounded-3xl transition-all shadow-sm hover:shadow-xl flex flex-col justify-between group">
+  {driveLinks.filter(link => {
+    const studentId = childData?._id || childData?.id || (assignments.length > 0 ? (assignments[0].studentId?._id || assignments[0].studentId) : null);
+    return link.targetAudience === 'all' || link.targetAudience === studentId;
+  }).map(link => (
+    <div key={link._id} className="p-6 bg-white border-2 border-slate-100 hover:border-blue-300 rounded-3xl transition-all shadow-sm hover:shadow-xl flex flex-col justify-between group">
                     <div>
                       <div className="flex gap-2 mb-4">
                         <span className="text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm bg-blue-100 text-blue-700">
@@ -680,8 +683,11 @@ export default function ParentDashboard() {
                   </div>
                 ))}
                 
-                {driveLinks.length === 0 && (
-                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+                {driveLinks.filter(link => {
+    const studentId = childData?._id || childData?.id || (assignments.length > 0 ? (assignments[0].studentId?._id || assignments[0].studentId) : null);
+    return link.targetAudience === 'all' || link.targetAudience === studentId;
+  }).length === 0 && (
+    <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
                     <div className="text-6xl mb-4 opacity-50">☁️</div>
                     <h3 className="text-[#1B2559] font-black text-2xl mb-1">No Links Shared</h3>
                     <p className="text-[#A3AED0] font-bold">No external drive links have been assigned yet.</p>
