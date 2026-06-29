@@ -63,10 +63,17 @@ exports.assignAdaptiveHomework = async (req, res) => {
   }
 };
 
-// @desc    Get all registered students for the admin to view
+// @desc    Get all registered students for the admin/grader to view
 // @route   GET /api/admin/students
 exports.getAllStudents = async (req, res) => {
   try {
+    // If the user is a grader, return ONLY their allocated students
+    if (req.user.role === 'grader') {
+      const grader = await User.findById(req.user._id).populate('allocatedStudents', '-password');
+      return res.status(200).json(grader.allocatedStudents);
+    }
+    
+    // Otherwise, they are an admin, return ALL students
     const students = await User.find({ role: 'student' }).select('-password');
     res.status(200).json(students);
   } catch (error) {

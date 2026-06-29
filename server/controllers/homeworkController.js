@@ -8,14 +8,32 @@ exports.assignHomework = async (req, res) => {
   try {
     let targetStudents = [];
     
-    if (studentId === 'all') {
-      targetStudents = await User.find({ role: 'student' });
+    if (req.user.role === 'grader') {
+      // GRADER LOGIC: Only allow assignment to their allocated students
+      const grader = await User.findById(req.user._id).populate('allocatedStudents');
+      
+      if (studentId === 'all') {
+        targetStudents = grader.allocatedStudents; 
+      } else {
+        // Verify the requested student is actually in the grader's list
+        const isAllocated = grader.allocatedStudents.some(s => s._id.toString() === studentId);
+        if (!isAllocated) {
+          return res.status(403).json({ message: 'You are not authorized to assign work to this student.' });
+        }
+        const student = await User.findById(studentId);
+        if (student) targetStudents.push(student);
+      }
     } else {
-      const student = await User.findById(studentId);
-      if (student) targetStudents.push(student);
+      // MAIN ADMIN LOGIC: Can assign to anyone
+      if (studentId === 'all') {
+        targetStudents = await User.find({ role: 'student' });
+      } else {
+        const student = await User.findById(studentId);
+        if (student) targetStudents.push(student);
+      }
     }
 
-    if (targetStudents.length === 0) return res.status(404).json({ message: 'No students found!' });
+    if (targetStudents.length === 0) return res.status(404).json({ message: 'No students found or allocated!' });
 
     if (new Date(dueDate) <= new Date()) {
       return res.status(400).json({ message: 'Due date must be in the future!' });
@@ -47,44 +65,84 @@ exports.assignHomework = async (req, res) => {
     const studentEmails = targetStudents.map(student => student.email).filter(email => email);
 
     if (studentEmails.length > 0) {
-      // Format the date to be easily readable
+      // Format the dates to be easily readable
       const formattedDueDate = new Date(dueDate).toLocaleString(); 
+      const formattedStartDate = startDate ? new Date(startDate).toLocaleString() : 'N/A';
 
-      const emailContent = `
-        <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
-            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                <div style="background-color: #2563eb; padding: 25px; text-align: center;">
-                    <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">📝 New Homework Assigned</h2>
-                </div>
-                <div style="padding: 30px;">
-                    <p style="font-size: 16px; margin-bottom: 20px;">Hello Student,</p>
-                    <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">Your teacher has assigned new homework for you. Please review the details below:</p>
-                    
-                    <table style="width: 100%; border-collapse: collapse; margin: 25px 0;">
-                        <tr>
-                            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280; width: 120px;"><strong>Title</strong></td>
-                            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #1f2937; font-weight: 500;">${title}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280;"><strong>Deadline</strong></td>
-                            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #ef4444; font-weight: 600;">${formattedDueDate}</td>
-                        </tr>
-                    </table>
-                    
-                    <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Please log in to your student dashboard to view the instructions and submit your work.</p>
-                </div>
-            </div>
-        </div>
-      `;
+      let emailContent = '';
+      let emailSubject = '';
+
+      if (isTest) {
+        // 🔴 EMAIL TEMPLATE FOR TESTS
+        emailSubject = `New Test Scheduled: ${title}`;
+        emailContent = `
+          <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
+              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                  <div style="background-color: #ef4444; padding: 25px; text-align: center;">
+                      <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">📝 New Test Scheduled</h2>
+                  </div>
+                  <div style="padding: 30px;">
+                      <p style="font-size: 16px; margin-bottom: 20px;">Hello Student,</p>
+                      <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">Your teacher has scheduled a new test for you. Please review the details below:</p>
+                      
+                      <table style="width: 100%; border-collapse: collapse; margin: 25px 0;">
+                          <tr>
+                              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280; width: 120px;"><strong>Test Title</strong></td>
+                              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #1f2937; font-weight: 500;">${title}</td>
+                          </tr>
+                          <tr>
+                              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280;"><strong>Opens At</strong></td>
+                              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #10b981; font-weight: 600;">${formattedStartDate}</td>
+                          </tr>
+                          <tr>
+                              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280;"><strong>Closes At</strong></td>
+                              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #ef4444; font-weight: 600;">${formattedDueDate}</td>
+                          </tr>
+                      </table>
+                      
+                      <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Please log in to your student dashboard to take the test when it opens.</p>
+                  </div>
+              </div>
+          </div>
+        `;
+      } else {
+        // 🔵 EMAIL TEMPLATE FOR HOMEWORK
+        emailSubject = `New Homework Assigned: ${title}`;
+        emailContent = `
+          <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
+              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                  <div style="background-color: #2563eb; padding: 25px; text-align: center;">
+                      <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">📝 New Homework Assigned</h2>
+                  </div>
+                  <div style="padding: 30px;">
+                      <p style="font-size: 16px; margin-bottom: 20px;">Hello Student,</p>
+                      <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">Your teacher has assigned new homework for you. Please review the details below:</p>
+                      
+                      <table style="width: 100%; border-collapse: collapse; margin: 25px 0;">
+                          <tr>
+                              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280; width: 120px;"><strong>Title</strong></td>
+                              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #1f2937; font-weight: 500;">${title}</td>
+                          </tr>
+                          <tr>
+                              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280;"><strong>Deadline</strong></td>
+                              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #ef4444; font-weight: 600;">${formattedDueDate}</td>
+                          </tr>
+                      </table>
+                      
+                      <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Please log in to your student dashboard to view the instructions and submit your work.</p>
+                  </div>
+              </div>
+          </div>
+        `;
+      }
 
       sendEmail({
         email: studentEmails.join(','), // This sends to all targeted students
-        subject: `New Homework Assigned: ${title}`,
+        subject: emailSubject,
         html: emailContent
       });
     }
     // ------------------------------------
-
     res.status(201).json({ message: `Successfully assigned to ${targetStudents.length} student(s)` });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -93,7 +151,18 @@ exports.assignHomework = async (req, res) => {
 
 exports.getAdminHomework = async (req, res) => {
   try {
-    const homeworks = await Homework.find().populate('studentId', 'name email registrationName yearGroup').sort({ createdAt: -1 });
+    let filter = {};
+    
+    // If the user is a grader, restrict the search to their allocated students
+    if (req.user.role === 'grader') {
+      const grader = await User.findById(req.user._id);
+      filter = { studentId: { $in: grader.allocatedStudents } };
+    }
+
+    const homeworks = await Homework.find(filter)
+      .populate('studentId', 'name email registrationName yearGroup')
+      .sort({ createdAt: -1 });
+      
     res.status(200).json(homeworks);
   } catch (error) {
     res.status(500).json({ message: error.message });

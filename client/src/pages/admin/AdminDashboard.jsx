@@ -123,8 +123,12 @@ export default function AdminDashboard() {
         setResources(resRes.data); 
         setGraders(graderRes.data);
       } else if (user?.role === 'grader') {
-        // Graders only need homework submissions
-        const hwRes = await api.get('/homework/admin');
+        // Graders need their specific homework submissions AND their allocated students
+        const [studentRes, hwRes] = await Promise.all([
+          api.get('/admin/students'),
+          api.get('/homework/admin')
+        ]);
+        setStudents(studentRes.data);
         setHomeworks(hwRes.data);
       }
     } catch (error) {
@@ -1202,11 +1206,15 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Week No</label>
-                      <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold" value={testForm.weekNo} onChange={e => setTestForm({...testForm, weekNo: e.target.value})} />
+                      <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold focus:ring-4 focus:ring-rose-500/20 text-[#1B2559]" 
+                        placeholder="e.g. 5" 
+                        value={testForm.weekNo} onChange={e => setTestForm({...testForm, weekNo: e.target.value})} />
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Topic</label>
-                      <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold" value={testForm.topic} onChange={e => setTestForm({...testForm, topic: e.target.value})} />
+                      <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold focus:ring-4 focus:ring-rose-500/20 text-[#1B2559]" 
+                        placeholder="e.g. Algebra" 
+                        value={testForm.topic} onChange={e => setTestForm({...testForm, topic: e.target.value})} />
                     </div>
                   </div>
 

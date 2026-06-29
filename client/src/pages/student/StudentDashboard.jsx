@@ -331,14 +331,16 @@ export default function StudentDashboard() {
             )}
 
             {modalTask.status === 'Pending' ? (
-              new Date() > new Date(modalTask.dueDate) ? (
-                <div className="bg-rose-50 border border-rose-200 p-6 rounded-3xl text-center">
-                  <div className="text-4xl mb-2">⏰</div>
-                  <h4 className="text-xl font-black text-rose-600 mb-1">Time is Up!</h4>
-                  <p className="text-rose-500 font-medium">The deadline for this assignment has passed. Please ask your mentor to extend the date.</p>
-                </div>
-              ) : modalTask.type !== 'MCQ' && (
+              modalTask.type !== 'MCQ' && (
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  
+                  {/* NEW LATE WARNING FOR THE STUDENT */}
+                  {new Date() > new Date(modalTask.dueDate) && (
+                    <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl mb-4 text-center">
+                      <p className="text-rose-600 font-black text-sm">⚠️ This assignment is past due. Your submission will be marked as LATE.</p>
+                    </div>
+                  )}
+
                   <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Your Submission</h4>
                   
                   <textarea className="w-full p-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 outline-none font-medium text-[#1B2559] min-h-[100px]" 
