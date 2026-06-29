@@ -31,6 +31,14 @@ export default function AdminDashboard() {
     dueDate: '', fileUrl: '', content: '', 
     mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
   });
+  const [testForm, setTestForm] = useState({
+    title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Easy', 
+    startDate: '', dueDate: '', fileUrl: '', content: '', 
+    mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
+  });
+  const [testYearGroupAssign, setTestYearGroupAssign] = useState('all');
+  const [testFileName, setTestFileName] = useState('');
+
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
@@ -297,6 +305,45 @@ export default function AdminDashboard() {
     });
   };
 
+  // --- NEW HANDLERS FOR TESTS ---
+  const handleTestFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5000000) return showToast("File is too large! Max 5MB.", "error");
+      setTestFileName(file.name);
+      setIsUploading(true);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTestForm({ ...testForm, fileUrl: reader.result });
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const updateTestMcq = (index, field, value, optionIndex = null) => {
+    const updatedMcqs = testForm.mcqs.map((mcq, i) => {
+      if (i === index) {
+        if (field === 'options') {
+          const newOptions = [...mcq.options];
+          newOptions[optionIndex] = value;
+          return { ...mcq, options: newOptions };
+        }
+        return { ...mcq, [field]: value };
+      }
+      return mcq;
+    });
+    setTestForm({ ...testForm, mcqs: updatedMcqs });
+  };
+
+  const addTestMcq = () => {
+    setTestForm({
+      ...testForm,
+      mcqs: [...testForm.mcqs, { question: '', options: ['', '', '', ''], correctOption: 0 }]
+    });
+  };
+  // -----------------------------
+
   const executeModalAction = async () => {
     try {
       if (modal.type === 'grade') {
@@ -366,8 +413,13 @@ export default function AdminDashboard() {
   };
 
   const filteredHomeworks = homeworks.filter(hw => 
-    hw.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    hw.studentId?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    !hw.isTest && (hw.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    hw.studentId?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+  
+  const filteredTests = homeworks.filter(hw => 
+    hw.isTest && (hw.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    hw.studentId?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleProfilePicUpload = (e) => {
@@ -731,6 +783,11 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 <button onClick={() => setActiveTab('submitted')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'submitted' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                   Submitted Work 
+                </button>
+
+                <button onClick={() => setActiveTab('tests')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'tests' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  Schedule Tests 
                 </button>
               </>
             )}
@@ -1109,6 +1166,205 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       <p className="text-[#A3AED0] font-bold">Assign new work on the left side to get started.</p>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* NEW TAB: SCHEDULE TESTS */}
+          {activeTab === 'tests' && (
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
+              <div className="xl:col-span-4 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="bg-rose-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Schedule Test</h2>
+                </div>
+                
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!testForm.startDate || !testForm.dueDate) return showToast("Assign Start & Due Dates!", "error");
+                  if (new Date(testForm.startDate) >= new Date(testForm.dueDate)) return showToast("Due date must be after Start date!", "error");
+                  try {
+                    await api.post('/homework/assign', { ...testForm, isTest: true });
+                    showToast('🎉 Test scheduled successfully!');
+                    fetchData(); 
+                    setTestForm({ ...testForm, title: '', startDate: '', dueDate: '', fileUrl: '', content: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
+                    setTestFileName(''); // Reset file name
+                  } catch (err) { showToast('Error scheduling test.', "error"); }
+                }} className="space-y-6">
+                  
+                  <div className="space-y-1">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Test Title</label>
+                    <input className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl focus:ring-4 focus:ring-rose-500/20 text-[#1B2559] outline-none font-bold" 
+                      placeholder="e.g., Midterm Exam" required value={testForm.title} onChange={e => setTestForm({...testForm, title: e.target.value})} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Week No</label>
+                      <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold" value={testForm.weekNo} onChange={e => setTestForm({...testForm, weekNo: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Topic</label>
+                      <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold" value={testForm.topic} onChange={e => setTestForm({...testForm, topic: e.target.value})} />
+                    </div>
+                  </div>
+
+                  {/* FILTER BY YEAR, STUDENT, AND DIFFICULTY */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Filter by Year</label>
+                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
+                        value={testYearGroupAssign} onChange={e => setTestYearGroupAssign(e.target.value)}>
+                        <option value="all">All Years</option>
+                        {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                          <option key={yg} value={yg}>{yg}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Difficulty</label>
+                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+                        onChange={e => setTestForm({...testForm, difficulty: e.target.value})} value={testForm.difficulty}>
+                        <option value="Easy">Easy 🟢</option>
+                        <option value="Medium">Medium 🟡</option>
+                        <option value="Hard">Hard 🔴</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-1">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Select Student</label>
+                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+                        onChange={e => setTestForm({...testForm, studentId: e.target.value})} value={testForm.studentId}>
+                        <option value="all">All Filtered Students</option>
+                        {students.filter(s => testYearGroupAssign === 'all' || s.yearGroup === testYearGroupAssign).map(s => (
+                          <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* CALENDAR PICKERS */}
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-rose-500 uppercase tracking-wide ml-1">Start Date & Time (Unlocks)</label>
+                      <input type="datetime-local" required min={minDateTime} className="w-full p-4 bg-rose-50 text-rose-800 rounded-2xl outline-none cursor-pointer font-bold" 
+                        value={testForm.startDate} onChange={e => setTestForm({...testForm, startDate: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-black text-rose-500 uppercase tracking-wide ml-1">Deadline Date & Time</label>
+                      <input type="datetime-local" required min={testForm.startDate || minDateTime} className="w-full p-4 bg-rose-50 text-rose-800 rounded-2xl outline-none cursor-pointer font-bold" 
+                        value={testForm.dueDate} onChange={e => setTestForm({...testForm, dueDate: e.target.value})} />
+                    </div>
+                  </div>
+
+                  {/* FORMAT TYPE & BUILDER */}
+                  <div className="space-y-1 pt-4 border-t border-slate-100">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Test Format Type</label>
+                    <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl font-bold text-[#1B2559] outline-none mb-4 cursor-pointer" 
+                      value={testForm.type} onChange={e => setTestForm({...testForm, type: e.target.value})}>
+                      <option value="MCQ">Build Quiz (MCQ)</option>
+                      <option value="File">Upload File (PDF/Image)</option>
+                      <option value="Text">Write Question</option>
+                    </select>
+
+                    <div className="animate-fade-in">
+                      {testForm.type === 'File' && (
+                        <div className="relative border-2 border-dashed border-rose-300 bg-[#F4F7FE] rounded-3xl p-10 text-center hover:bg-rose-50 transition-colors cursor-pointer group">
+                          <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleTestFileUpload} />
+                          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
+                          <p className="font-black text-[#1B2559]">Drag & Drop or Click</p>
+                          <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG up to 5MB</p>
+                          {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file...</p>}
+                          {testFileName && !isUploading && <p className="mt-3 inline-block bg-white text-rose-800 px-4 py-2 rounded-full text-xs font-bold shadow-sm">{testFileName}</p>}
+                        </div>
+                      )}
+
+                      {testForm.type === 'Text' && (
+                        <textarea className="w-full p-5 bg-[#F4F7FE] border-none rounded-3xl outline-none focus:ring-4 focus:ring-rose-500/20 text-[#1B2559] font-medium min-h-[160px]" 
+                          placeholder="Type test instructions or complete text here..." 
+                          value={testForm.content} onChange={e => setTestForm({...testForm, content: e.target.value})} />
+                      )}
+
+                      {testForm.type === 'MCQ' && (
+                        <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                          {testForm.mcqs.map((mcq, qIndex) => (
+                            <div key={qIndex} className="p-5 bg-[#F4F7FE] rounded-3xl">
+                              <input className="w-full p-2 mb-3 font-black border-b-2 border-slate-200 bg-transparent outline-none focus:border-rose-500 text-[#1B2559]" 
+                                placeholder={`Question ${qIndex + 1}`} value={mcq.question} 
+                                onChange={(e) => updateTestMcq(qIndex, 'question', e.target.value)} />
+                              <div className="grid grid-cols-2 gap-3 mb-4">
+                                {mcq.options.map((opt, oIndex) => (
+                                  <input key={oIndex} className="p-3 text-sm border-none rounded-xl bg-white outline-none focus:ring-2 focus:ring-rose-400 font-bold" 
+                                    placeholder={`Option ${oIndex + 1}`} value={opt} 
+                                    onChange={(e) => updateTestMcq(qIndex, 'options', e.target.value, oIndex)} />
+                                ))}
+                              </div>
+                              <div className="flex items-center justify-between mt-2">
+                                <div className="flex items-center gap-3">
+                                  <label className="text-xs font-black text-[#A3AED0] uppercase">Correct Answer:</label>
+                                  <select className="p-2 text-sm font-black border-none rounded-xl bg-emerald-100 text-emerald-800 outline-none cursor-pointer" 
+                                    value={mcq.correctOption} onChange={(e) => updateTestMcq(qIndex, 'correctOption', parseInt(e.target.value))}>
+                                    <option value={0}>Option 1</option><option value={1}>Option 2</option><option value={2}>Option 3</option><option value={3}>Option 4</option>
+                                  </select>
+                                </div>
+                                
+                                {testForm.mcqs.length > 1 && (
+                                  <button type="button" onClick={() => {
+                                    const filteredMcqs = testForm.mcqs.filter((_, i) => i !== qIndex);
+                                    setTestForm({...testForm, mcqs: filteredMcqs});
+                                  }} className="text-xs font-bold text-rose-500 bg-rose-50 px-3 py-2 rounded-lg hover:bg-rose-500 hover:text-white transition-colors">
+                                    🗑️ Remove
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          <button type="button" onClick={addTestMcq} className="w-full py-4 border-2 border-dashed border-rose-300 text-rose-500 rounded-3xl font-black hover:bg-rose-50 transition-colors">
+                            + Add Next Question
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button type="submit" className="w-full bg-[#1B2559] hover:bg-rose-600 text-white font-black py-5 rounded-2xl transition-all shadow-lg">Schedule Test</button>
+                </form>
+              </div>
+
+              {/* TESTS TRACKER BOARD */}
+              <div className="xl:col-span-8 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
+                <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                  <div className="bg-rose-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Scheduled Tests</h2>
+                </div>
+                
+                <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+                  {filteredTests.map(hw => (
+                    <div key={hw._id} className="p-6 bg-white border border-slate-100 hover:bg-rose-50 rounded-3xl flex justify-between items-center transition-all shadow-sm">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-black text-xl text-[#1B2559]">{hw.title}</h3>
+                          <span className="text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider bg-rose-100 text-rose-700">TEST</span>
+                        </div>
+                        <p className="text-sm font-bold text-[#A3AED0] mb-2">Assigned to: {hw.studentId?.name || "All Students"}</p>
+                        <div className="flex flex-col gap-1 text-xs font-black text-slate-500">
+                           <p>🗓️ Opens: {new Date(hw.startDate).toLocaleString()}</p>
+                           <p>⏰ Closes: {new Date(hw.dueDate).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                         {user?.role === 'admin' && (
+                          <button onClick={() => setModal({ type: 'delete', hwId: hw._id, data: '' })} className="p-3 bg-rose-100 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-colors shadow-sm ml-2 text-xl" title="Delete">
+                            🗑️
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {filteredTests.length === 0 && <p className="text-center font-bold text-slate-400 py-10">No tests scheduled.</p>}
                 </div>
               </div>
             </div>

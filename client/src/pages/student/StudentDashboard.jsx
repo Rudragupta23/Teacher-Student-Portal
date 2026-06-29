@@ -183,7 +183,11 @@ export default function StudentDashboard() {
   };
 
   const filteredAssignments = assignments.filter(hw => 
-    hw.title.toLowerCase().includes(searchTerm.toLowerCase())
+    !hw.isTest && hw.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  const filteredTests = assignments.filter(hw => 
+    hw.isTest && hw.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   // Calculate Student Analytics
@@ -437,6 +441,11 @@ export default function StudentDashboard() {
               My Assignments
             </button>
             
+            <button onClick={() => setActiveTab('tests')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'tests' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+              My Tests
+            </button>
+
             <button onClick={() => setActiveTab('announcements')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
               Notice Board
@@ -602,6 +611,64 @@ export default function StudentDashboard() {
               )}
             </div>
           </div>
+          )}
+
+          {/* VIEW 1.5: TESTS TAB */}
+          {activeTab === 'tests' && (
+            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+              <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                <div className="bg-rose-400 w-2 h-8 rounded-full"></div>
+                <h2 className="text-2xl font-black text-[#1B2559]">Scheduled Tests</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredTests.map(hw => {
+                  const isOpen = new Date() >= new Date(hw.startDate);
+                  const isLate = new Date() > new Date(hw.dueDate);
+
+                  return (
+                    <div key={hw._id} className={`p-6 rounded-3xl flex flex-col justify-between transition-all border-2 
+                      ${isOpen ? 'bg-[#F4F7FE] border-transparent hover:border-emerald-200 shadow-sm' : 'bg-slate-50 border-slate-200'}`}>
+                      <div>
+                        <div className="flex justify-between items-start mb-4">
+                          <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider bg-rose-100 text-rose-700 shadow-sm`}>
+                            TEST
+                          </span>
+                        </div>
+                        
+                        <h3 className="font-black text-[#1B2559] text-xl mb-1">{hw.title}</h3>
+                        
+                        <div className="mt-4 flex flex-col gap-2 text-xs font-black">
+                          <div className={`p-2 rounded-xl ${isOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>
+                            🗓️ Opens: {new Date(hw.startDate).toLocaleString()}
+                          </div>
+                          <div className={`p-2 rounded-xl ${isLate && hw.status === 'Pending' ? 'bg-rose-100 text-rose-700' : 'bg-white text-slate-600'}`}>
+                            ⏰ Closes: {new Date(hw.dueDate).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+
+                      {isOpen ? (
+                        <button onClick={() => setModalTask(hw)} 
+                          className={`w-full mt-6 py-4 rounded-2xl font-black transition-all shadow-md
+                            ${hw.status === 'Graded' ? 'bg-emerald-500 text-white' : 
+                              hw.status === 'Submitted' ? 'bg-amber-500 text-white' : 
+                              'bg-[#1B2559] hover:bg-rose-600 text-white transform hover:-translate-y-1'}`}>
+                          {hw.status === 'Graded' ? 'View Test Grades' : hw.status === 'Submitted' ? 'Under Review' : 'Start Test Now'}
+                        </button>
+                      ) : (
+                        <button disabled className="w-full mt-6 py-4 rounded-2xl font-black bg-slate-200 text-slate-400 cursor-not-allowed flex items-center justify-center gap-2">
+                          🔒 Locked until Date
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+                {filteredTests.length === 0 && (
+                  <p className="col-span-full text-center font-bold text-slate-400 py-10">No tests scheduled for you at this time.</p>
+                )}
+              </div>
+            </div>
           )}
 
           {/* VIEW 2: SETTINGS TAB */}

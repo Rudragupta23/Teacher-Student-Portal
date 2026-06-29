@@ -22,6 +22,8 @@ const homeworkSchema = new mongoose.Schema({
   
   status: { type: String, enum: ['Pending', 'Submitted', 'Graded'], default: 'Pending' },
   dueDate: { type: Date, required: true }, 
+  startDate: { type: Date }, 
+  isTest: { type: Boolean, default: false }, 
   
   submission: {
     answerText: { type: String },

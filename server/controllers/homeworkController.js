@@ -3,7 +3,7 @@ const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail'); // Add this import at the top
 
 exports.assignHomework = async (req, res) => {
-  const { title, weekNo, topic, description, type, studentId, difficulty, dueDate, fileUrl, content, mcqs } = req.body;
+  const { title, weekNo, topic, description, type, studentId, difficulty, dueDate, startDate, isTest, fileUrl, content, mcqs } = req.body;
   
   try {
     let targetStudents = [];
@@ -33,6 +33,8 @@ exports.assignHomework = async (req, res) => {
         content: type === 'Text' ? content : undefined,
         mcqs: type === 'MCQ' ? mcqs : [],
         dueDate: new Date(dueDate),
+        startDate: startDate ? new Date(startDate) : new Date(),
+        isTest: isTest || false,
         studentId: student._id,
         adminId: req.user._id
       })
@@ -116,10 +118,6 @@ exports.submitHomework = async (req, res) => {
     const homework = await Homework.findOne({ _id: id, studentId: req.user._id });
     if (!homework) return res.status(404).json({ message: 'Homework not found' });
 
-    if (new Date() > new Date(homework.dueDate)) {
-      return res.status(403).json({ message: 'You are late! The deadline has passed. Please contact your teacher to extend the duration.' });
-    }
-
     // --- HELPER TO SEND EMAIL TO ADMINS ---
     const notifyAdmins = async (studentName) => {
       const admins = await User.find({ role: 'admin' });
@@ -136,6 +134,7 @@ exports.submitHomework = async (req, res) => {
                     <div style="background-color: #fff7ed; border: 1px solid #ffedd5; padding: 20px; margin: 25px 0; border-radius: 8px;">
                         <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>Student:</strong> <span style="color: #9a3412; font-weight: bold;">${studentName}</span></p>
                         <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>Assignment:</strong> <span style="color: #9a3412; font-weight: bold;">${homework.title}</span></p>
+                        <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>Time of Submission:</strong> <span style="font-weight: bold; color: #1f2937;">${new Date().toLocaleString()}</span></p>
                         <p style="margin: 0; font-size: 16px;"><strong>Status:</strong> <span style="color: ${new Date() > new Date(homework.dueDate) ? '#dc2626' : '#16a34a'}; font-weight: bold;">${new Date() > new Date(homework.dueDate) ? '⚠️ Submitted LATE' : '✅ Submitted On Time'}</span></p>
                     </div>
                     
