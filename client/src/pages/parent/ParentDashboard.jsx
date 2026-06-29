@@ -16,6 +16,7 @@ export default function ParentDashboard() {
   const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '' });
   const [schemes, setSchemes] = useState([]);
   const [markedWorkPreview, setMarkedWorkPreview] = useState(null);
+  const [driveLinks, setDriveLinks] = useState([]); 
 
   // 1. Move fetchSchemes outside useEffect
   const fetchSchemes = async () => {
@@ -24,11 +25,18 @@ export default function ParentDashboard() {
       setSchemes(res.data);
     } catch (e) { console.error("Error fetching schemes"); }
   };
-
+  const fetchDriveLinks = async () => {
+    try {
+      const res = await api.get('/drive-links');
+      setDriveLinks(res.data);
+    } catch (e) { console.error("Error fetching drive links"); }
+  };
+  
   useEffect(() => {
     fetchChildData();
     fetchProfile();
-    fetchSchemes(); // Now this function exists in scope
+    fetchSchemes();
+    fetchDriveLinks(); 
     
     const token = localStorage.getItem('token');
     if (token) {
@@ -278,6 +286,10 @@ export default function ParentDashboard() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
               Child's Progress
             </button>
+            <button onClick={() => setActiveTab('drive')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'drive' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+  Shared Drive
+</button>
 
             <button onClick={() => setActiveTab('scheme')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -397,11 +409,47 @@ export default function ParentDashboard() {
                         <td className="p-5 font-bold text-[#1B2559]">{hw.title}</td>
                         <td className="p-5 text-sm font-bold text-slate-500">{new Date(hw.dueDate).toLocaleDateString()}</td>
                         <td className="p-5">
-                          <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm
-                            ${hw.status === 'Graded' ? 'bg-emerald-100 text-emerald-700' : hw.status === 'Submitted' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
-                            {hw.status}
-                          </span>
-                        </td>
+  {(() => {
+    let displayStatus = hw.status;
+    let statusColor = 'bg-slate-100 text-slate-500'; // Default Pending color
+    
+    const now = new Date();
+    const dueDate = new Date(hw.dueDate);
+    const submittedAt = hw.submission?.submittedAt ? new Date(hw.submission.submittedAt) : null;
+
+    if (hw.status === 'Graded') {
+      statusColor = 'bg-emerald-100 text-emerald-700';
+    } else if (hw.status === 'Submitted') {
+      statusColor = 'bg-amber-100 text-amber-700';
+      
+      // Logic for late submission
+      if (submittedAt && submittedAt > dueDate) {
+        const diffMs = submittedAt - dueDate;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+        
+        if (diffDays > 0) displayStatus = `Overdue by ${diffDays} day${diffDays > 1 ? 's' : ''}`;
+        else if (diffHours > 0) displayStatus = `Overdue by ${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+        else displayStatus = `Overdue by ${diffMins} min${diffMins > 1 ? 's' : ''}`;
+        
+        statusColor = 'bg-rose-100 text-rose-700'; // Make it red to indicate late
+      }
+    } else {
+      // Pending
+      if (now > dueDate) {
+        displayStatus = 'Overdue';
+        statusColor = 'bg-rose-100 text-rose-700';
+      }
+    }
+
+    return (
+      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm ${statusColor}`}>
+        {displayStatus}
+      </span>
+    );
+  })()}
+</td>
                         <td className="p-5">
                           {hw.grading?.score !== undefined ? (
                             <span className="bg-[#1B2559] text-white px-3 py-1.5 rounded-lg font-black text-sm shadow-md">
@@ -578,6 +626,44 @@ export default function ParentDashboard() {
               </div>
             </div>
           )}          
+          {/* PARENT VIEW: SHARED DRIVE */}
+          {activeTab === 'drive' && (
+            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+              <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                <div className="bg-blue-500 w-2 h-8 rounded-full"></div>
+                <h2 className="text-2xl font-black text-[#1B2559]">Shared Drive Links ☁️</h2>
+              </div>
+              <p className="text-slate-500 font-bold mb-8">Access files and external drive folders provided for {childData?.registrationName || childData?.name}.</p>
+                
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {driveLinks.map(link => (
+                  <div key={link._id} className="p-6 bg-white border-2 border-slate-100 hover:border-blue-300 rounded-3xl transition-all shadow-sm hover:shadow-xl flex flex-col justify-between group">
+                    <div>
+                      <div className="flex gap-2 mb-4">
+                        <span className="text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm bg-blue-100 text-blue-700">
+                          Google Drive
+                        </span>
+                      </div>
+                      <h3 className="text-[#1B2559] font-black text-xl mb-4 group-hover:text-blue-600 transition-colors">{link.title}</h3>
+                    </div>
+                    
+                    <button onClick={() => window.open(link.url, "_blank")} 
+                      className="mt-6 w-full py-3.5 bg-[#F4F7FE] text-[#1B2559] hover:bg-violet-500 hover:text-white font-black rounded-xl transition-all shadow-sm flex justify-center items-center gap-2 transform group-hover:-translate-y-1">
+                      🔗 Open Folder
+                    </button>
+                  </div>
+                ))}
+                
+                {driveLinks.length === 0 && (
+                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+                    <div className="text-6xl mb-4 opacity-50">☁️</div>
+                    <h3 className="text-[#1B2559] font-black text-2xl mb-1">No Links Shared</h3>
+                    <p className="text-[#A3AED0] font-bold">No external drive links have been assigned yet.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

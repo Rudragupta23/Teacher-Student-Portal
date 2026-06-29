@@ -33,8 +33,8 @@ export default function StudentDashboard() {
 
   // Study Library States
   const [resources, setResources] = useState([]);
-
   const [schemes, setSchemes] = useState([]);
+  const [driveLinks, setDriveLinks] = useState([]); 
 
   // Move this function outside the useEffect
   const fetchSchemes = async () => {
@@ -43,13 +43,20 @@ export default function StudentDashboard() {
       setSchemes(res.data);
     } catch (e) { console.error("Error fetching schemes"); }
   };
+  const fetchDriveLinks = async () => {
+    try {
+      const res = await api.get('/drive-links');
+      setDriveLinks(res.data);
+    } catch (e) { console.error("Error fetching drive links"); }
+  };
 
   useEffect(() => {
     fetchAssignments();
     fetchProfile(); 
     fetchAnnouncements(); 
     fetchResources();
-    fetchSchemes(); // Just call the function here
+    fetchSchemes(); 
+    fetchDriveLinks();
     
     const token = localStorage.getItem('token');
     if (token) {
@@ -100,7 +107,7 @@ export default function StudentDashboard() {
       const res = await api.get('/homework/student');
       setAssignments(res.data);
     } catch (error) {
-      showToast("Error fetching your assignments.", "error");
+      showToast("Error fetching your homework.", "error");
     }
   };
 
@@ -348,7 +355,7 @@ export default function StudentDashboard() {
                   {/* NEW LATE WARNING FOR THE STUDENT */}
                   {new Date() > new Date(modalTask.dueDate) && (
                     <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl mb-4 text-center">
-                      <p className="text-rose-600 font-black text-sm">⚠️ This assignment is past due. Your submission will be marked as LATE.</p>
+                      <p className="text-rose-600 font-black text-sm">⚠️ This homework is past due. Your submission will be marked as LATE.</p>
                     </div>
                   )}
 
@@ -478,6 +485,11 @@ export default function StudentDashboard() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
               Study Materials
             </button>
+
+            <button onClick={() => setActiveTab('drive')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'drive' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+  Shared Drive
+</button>
 
             <button onClick={() => setActiveTab('messages')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
@@ -1027,6 +1039,44 @@ export default function StudentDashboard() {
                 ))}
                 {schemes.length === 0 && (
                   <div className="col-span-full text-center text-[#A3AED0] font-bold py-10">No classes have been logged yet.</div>
+                )}
+              </div>
+            </div>
+          )}
+          {/* STUDENT VIEW: SHARED DRIVE */}
+          {activeTab === 'drive' && (
+            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+              <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                <div className="bg-blue-500 w-2 h-8 rounded-full"></div>
+                <h2 className="text-2xl font-black text-[#1B2559]">Shared Drive Links ☁️</h2>
+              </div>
+              <p className="text-slate-500 font-bold mb-8">Access folders and marked work hosted on Google Drive by your mentor.</p>
+                
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {driveLinks.map(link => (
+                  <div key={link._id} className="p-6 bg-white border-2 border-slate-100 hover:border-blue-300 rounded-3xl transition-all shadow-sm hover:shadow-xl flex flex-col justify-between group">
+                    <div>
+                      <div className="flex gap-2 mb-4">
+                        <span className="text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm bg-blue-100 text-blue-700">
+                          Google Drive
+                        </span>
+                      </div>
+                      <h3 className="text-[#1B2559] font-black text-xl mb-4 group-hover:text-blue-600 transition-colors">{link.title}</h3>
+                    </div>
+                    
+                    <button onClick={() => window.open(link.url, "_blank")} 
+                      className="mt-6 w-full py-3.5 bg-[#F4F7FE] text-[#1B2559] hover:bg-blue-500 hover:text-white font-black rounded-xl transition-all shadow-sm flex justify-center items-center gap-2 transform group-hover:-translate-y-1">
+                      🔗 Open Folder
+                    </button>
+                  </div>
+                ))}
+                
+                {driveLinks.length === 0 && (
+                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+                    <div className="text-6xl mb-4 opacity-50">☁️</div>
+                    <h3 className="text-[#1B2559] font-black text-2xl mb-1">No Links Shared</h3>
+                    <p className="text-[#A3AED0] font-bold">Your mentor hasn't shared any Drive links with you yet.</p>
+                  </div>
                 )}
               </div>
             </div>
