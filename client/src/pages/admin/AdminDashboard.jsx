@@ -234,7 +234,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!chatInput.trim() || !selectedStudentForChat) return;
 
-    // Determine correct ID based on whether we are talking to Student or Parent
+    // Determine correct ID based on whether we are talking to Student, Parent, Grader, or Admin
     const targetId = chatTarget === 'parent' && selectedParent
       ? selectedParent._id
       : selectedStudentForChat._id;
@@ -242,7 +242,8 @@ export default function AdminDashboard() {
     try {
       await api.post('/messages', { receiverId: targetId, content: chatInput });
       setChatInput('');
-      fetchMessages(targetId); 
+      // Pass targetId or fallback to 'admin' so the Grader can trigger a refresh
+      fetchMessages(targetId || 'admin'); 
     } catch (e) { showToast("Failed to send message", "error"); }
   };
 
@@ -293,7 +294,7 @@ export default function AdminDashboard() {
 
     try {
       await api.post('/homework/assign', assignForm);
-      showToast('🎉 Assignment successfully published!');
+      showToast('🎉 Homework successfully published!');
       fetchData(); 
       setAssignForm({ ...assignForm, title: '', fileUrl: '', content: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
       setFileName('');
@@ -398,7 +399,7 @@ export default function AdminDashboard() {
           adminAnswerSheetUrl: answerSheet.fileUrl 
         });
         
-        showToast("Assignment Graded/Updated Successfully!");
+        showToast("Homework Graded/Updated Successfully!");
       }
       else if (modal.type === 'extend') {
         if (!modal.data) return showToast("Select a valid date!", "error");
@@ -407,7 +408,7 @@ export default function AdminDashboard() {
       } 
       else if (modal.type === 'delete') {
         await api.delete(`/homework/${modal.hwId}`);
-        showToast("Assignment Deleted.", "error"); 
+        showToast("Homework Deleted.", "error"); 
       }
       else if (modal.type === 'deleteStudent') {
         await api.delete(`/admin/students/${modal.studentId}`);
@@ -640,7 +641,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
             
             {modal.type === 'grade' && (
               <>
-                <h3 className="text-2xl font-black text-slate-800 mb-2">Grade Assignment</h3>
+                <h3 className="text-2xl font-black text-slate-800 mb-2">Grade Homework</h3>
                 <p className="text-slate-500 text-sm mb-6">Enter score and total marks (Optional if attaching file).</p>
                 <div className="flex gap-4 mb-6">
                   <input type="number" min="0" className="w-1/2 p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-black text-2xl text-center" 
@@ -729,10 +730,10 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
               <>
                 <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mb-4 text-3xl mx-auto">🗑️</div>
                 <h3 className="text-2xl font-black text-slate-800 mb-2 text-center">
-                  {modal.type === 'deleteStudent' ? 'Remove Student?' : modal.type === 'deleteAnsSheet' ? 'Delete Marked/Checked work?' : 'Delete Assignment?'}
+                  {modal.type === 'deleteStudent' ? 'Remove Student?' : modal.type === 'deleteAnsSheet' ? 'Delete Marked/Checked work?' : 'Delete Homework?'}
                 </h3>
                 <p className="text-slate-500 text-sm mb-6 text-center">
-                  {modal.type === 'deleteAnsSheet' ? 'This will remove your uploaded marked/checked work from this graded assignment.' : 'This action is permanent and cannot be undone.'}
+                  {modal.type === 'deleteAnsSheet' ? 'This will remove your uploaded marked/checked work from this graded homework.' : 'This action is permanent and cannot be undone.'}
                 </p>
               </>
             )}
@@ -851,7 +852,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
               <>
                 <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                  Create Assignment 
+                  Create Homework 
                 </button>
 
                 <button onClick={() => setActiveTab('submitted')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'submitted' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
@@ -866,6 +867,12 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 <button onClick={() => setActiveTab('scheme')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                   Scheme of Work
+                </button>
+
+                {/* Direct Messages accessible by both Admin and Grader */}
+                <button onClick={() => setActiveTab('messages')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                  Direct Messages
                 </button>
               </>
             )}
@@ -892,11 +899,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 <button onClick={() => setActiveTab('library')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'library' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                   Study Materials
-                </button>
-
-                <button onClick={() => setActiveTab('messages')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-                  Direct Messages
                 </button>
 
                 <button onClick={() => setActiveTab('analytics')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
@@ -970,12 +972,12 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
               <div className="xl:col-span-5 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
                 <div className="flex items-center gap-3 mb-8">
                   <div className="bg-indigo-600 w-2 h-8 rounded-full"></div>
-                  <h2 className="text-2xl font-black text-[#1B2559]">Create Task</h2>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Create Homework</h2>
                 </div>
                 
                 <form onSubmit={handleAssignSubmit} className="space-y-6">
                   <div className="space-y-1">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Task Title</label>
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Homework Title</label>
                     <input className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl focus:ring-4 focus:ring-indigo-500/20 text-[#1B2559] outline-none transition-all font-bold" 
                       placeholder="e.g., Advanced Calculus Chapter 2" required value={assignForm.title}
                       onChange={e => setAssignForm({...assignForm, title: e.target.value})} />
@@ -1114,7 +1116,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   </div>
 
                   <button className="w-full bg-[#1B2559] hover:bg-indigo-600 text-white font-black py-5 rounded-2xl transition-all shadow-[0_18px_40px_rgba(112,144,176,0.2)] text-lg flex items-center justify-center gap-2 transform hover:-translate-y-1">
-                    Publish Assignments
+                    Publish Homework
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                   </button>
                 </form>
@@ -1828,7 +1830,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   {/* BAR CHART SECTION */}
                   <div className="bg-[#F4F7FE]/50 p-6 rounded-3xl border border-slate-100">
                     <div className="mb-6">
-                      <h3 className="text-xl font-black text-[#1B2559]">Average Scores per Assignment</h3>
+                      <h3 className="text-xl font-black text-[#1B2559]">Average Scores per Homework</h3>
                       <p className="text-slate-500 text-sm font-bold mt-1">Class average for graded topics.</p>
                     </div>
                     {chartData.length > 0 ? (
@@ -1903,39 +1905,92 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
           {activeTab === 'messages' && (
             <div className="bg-white p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] flex overflow-hidden animate-fade-in gap-6">
               
-              {/* Left Side: Student List */}
+              {/* Left Side: Contact List */}
               <div className="w-1/3 border-r border-slate-100 pr-4 flex flex-col">
                 <h2 className="text-xl font-black text-[#1B2559] mb-6">Conversations</h2>
                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-2">
-                  {/* --- NEW GLOBAL CHAT BUTTON --- */}
-                  <button 
-                    onClick={() => { setSelectedStudentForChat({ _id: 'all', name: 'Entire Class', registrationName: 'Entire Class', yearGroup: '' }); fetchMessages('all'); }}
-                    className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 mb-4 border-2 ${selectedStudentForChat?._id === 'all' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'border-transparent text-slate-600 hover:bg-slate-50'}`}>
-                    <div className="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-500 text-white rounded-full flex items-center justify-center font-black text-xl">🌍</div>
-                    <div className="truncate">
-                      <p className="flex items-center gap-2 text-[#1B2559]">Global Class Chat</p>
-                      <p className="text-xs text-indigo-400 font-medium truncate">Message everyone</p>
-                    </div>
-                  </button>
-                  {students.map(student => (
-                    <button key={student._id} 
-                      onClick={() => { 
-                        setSelectedStudentForChat(student); 
-                        setChatTarget('student'); // Reset toggle
-                        setSelectedParent(null);  // Clear parent data
-                        fetchMessages(student._id); 
-                      }}
-                      className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 ${selectedStudentForChat?._id === student._id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}>
-                      <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black">{(student.registrationName || student.name).charAt(0)}</div>
+                  
+                  {/* --- GLOBAL CHAT BUTTON (ADMIN ONLY) --- */}
+                  {user?.role === 'admin' && (
+                    <button 
+                      onClick={() => { setSelectedStudentForChat({ _id: 'all', name: 'Entire Class', registrationName: 'Entire Class', yearGroup: '' }); fetchMessages('all'); }}
+                      className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 mb-4 border-2 ${selectedStudentForChat?._id === 'all' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'border-transparent text-slate-600 hover:bg-slate-50'}`}>
+                      <div className="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-500 text-white rounded-full flex items-center justify-center font-black text-xl">🌍</div>
                       <div className="truncate">
-                        <p className="flex items-center gap-2">
-                          {student.registrationName || student.name}
-                          {student.yearGroup && <span className="text-[10px] bg-indigo-200/50 text-indigo-700 px-1.5 py-0.5 rounded-md">{student.yearGroup}</span>}
-                        </p>
-                        <p className="text-xs text-slate-400 font-medium truncate">{student.email}</p>
+                        <p className="flex items-center gap-2 text-[#1B2559]">Global Class Chat</p>
+                        <p className="text-xs text-indigo-400 font-medium truncate">Message everyone</p>
                       </div>
                     </button>
-                  ))}
+                  )}
+
+                  {/* --- GRADER VIEW: CHAT WITH ADMIN --- */}
+                  {user?.role === 'grader' && (
+                    <button 
+                      onClick={() => { 
+                        setSelectedStudentForChat({ _id: '', name: 'Main Admin', registrationName: 'Main Admin', role: 'admin' }); 
+                        setChatTarget('admin'); 
+                        fetchMessages('admin'); 
+                      }}
+                      className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 border-2 ${selectedStudentForChat?.role === 'admin' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'border-transparent text-slate-600 hover:bg-slate-50'}`}>
+                      <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black text-xl">👨‍🏫</div>
+                      <div className="truncate">
+                        <p className="flex items-center gap-2 text-[#1B2559]">Main Admin</p>
+                        <p className="text-xs text-indigo-400 font-medium truncate">Mentor / Manager</p>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* --- ADMIN VIEW: GRADERS LIST --- */}
+                  {user?.role === 'admin' && graders.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 pl-2">Graders</p>
+                      {graders.map(grader => (
+                        <button key={grader._id} 
+                          onClick={() => { 
+                            setSelectedStudentForChat(grader); 
+                            setChatTarget('grader'); 
+                            setSelectedParent(null);  
+                            fetchMessages(grader._id); 
+                          }}
+                          className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 ${selectedStudentForChat?._id === grader._id ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
+                          <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-black">{(grader.name).charAt(0)}</div>
+                          <div className="truncate">
+                            <p className="flex items-center gap-2">
+                              {grader.name}
+                              <span className="text-[10px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded-md">Grader</span>
+                            </p>
+                            <p className="text-xs text-slate-400 font-medium truncate">{grader.email}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* --- ADMIN VIEW: STUDENTS LIST --- */}
+                  {user?.role === 'admin' && students.length > 0 && (
+                    <div>
+                      <p className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 pl-2 mt-4">Students</p>
+                      {students.map(student => (
+                        <button key={student._id} 
+                          onClick={() => { 
+                            setSelectedStudentForChat(student); 
+                            setChatTarget('student'); // Reset toggle
+                            setSelectedParent(null);  // Clear parent data
+                            fetchMessages(student._id); 
+                          }}
+                          className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 ${selectedStudentForChat?._id === student._id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}>
+                          <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black">{(student.registrationName || student.name).charAt(0)}</div>
+                          <div className="truncate">
+                            <p className="flex items-center gap-2">
+                              {student.registrationName || student.name}
+                              {student.yearGroup && <span className="text-[10px] bg-indigo-200/50 text-indigo-700 px-1.5 py-0.5 rounded-md">{student.yearGroup}</span>}
+                            </p>
+                            <p className="text-xs text-slate-400 font-medium truncate">{student.email}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1954,8 +2009,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       </span>
                     </div>
 
-                    {/* --- START OF PARENT TOGGLE UI --- */}
-                    {selectedStudentForChat._id !== 'all' && (
+                    {/* --- START OF PARENT TOGGLE UI (HIDDEN FOR GRADERS) --- */}
+                    {selectedStudentForChat._id !== 'all' && chatTarget !== 'grader' && chatTarget !== 'admin' && (
                       <div className="bg-[#F4F7FE] border-b border-slate-200 px-6 py-3 flex items-center justify-between z-0">
                         <div className="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-100">
                           <button 
@@ -1983,10 +2038,10 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         </div>
                         
                         {chatTarget === 'parent' && selectedParent && (
-  <div className="text-xs font-bold text-violet-700 bg-violet-100 px-3 py-1.5 rounded-lg border border-violet-200 shadow-sm">
-    Messaging Parent: {selectedParent.registrationName || selectedParent.name}
-  </div>
-)}
+                          <div className="text-xs font-bold text-violet-700 bg-violet-100 px-3 py-1.5 rounded-lg border border-violet-200 shadow-sm">
+                            Messaging Parent: {selectedParent.registrationName || selectedParent.name}
+                          </div>
+                        )}
                       </div>
                     )}
                     {/* --- END OF PARENT TOGGLE UI --- */}

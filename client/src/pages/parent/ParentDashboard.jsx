@@ -15,6 +15,7 @@ export default function ParentDashboard() {
   const [parentProfile, setParentProfile] = useState({ name: 'Parent', profilePic: '' });
   const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '' });
   const [schemes, setSchemes] = useState([]);
+  const [markedWorkPreview, setMarkedWorkPreview] = useState(null);
 
   // 1. Move fetchSchemes outside useEffect
   const fetchSchemes = async () => {
@@ -88,7 +89,7 @@ export default function ParentDashboard() {
   const handleExportCSV = () => {
     if (!assignments || assignments.length === 0) return showToast("No data to export", "error");
 
-    const headers = ["Assignment Title", "Format/Type", "Due Date", "Status", "Score"];
+    const headers = ["Homework Title", "Format/Type", "Due Date", "Status", "Score"];
     
     const rows = assignments.map(hw => {
       // Safely map the properties from your database
@@ -140,7 +141,8 @@ export default function ParentDashboard() {
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-      const tableColumn = ["Assignment Title", "Format/Type", "Due Date", "Status", "Score"];
+      // Find this inside handleExportPDF:
+      const tableColumn = ["Homework Title", "Format/Type", "Due Date", "Status", "Score"];
       const tableRows = [];
 
       assignments.forEach(hw => {
@@ -364,7 +366,7 @@ export default function ParentDashboard() {
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
               <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
                 <div className="bg-violet-500 w-2 h-8 rounded-full"></div>
-                <h2 className="text-2xl font-black text-[#1B2559]">Recent Assignments & Grades</h2>
+                <h2 className="text-2xl font-black text-[#1B2559]">Recent Homework & Grades</h2>
               </div>
               
 
@@ -382,10 +384,11 @@ export default function ParentDashboard() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider">
-                      <th className="p-5 rounded-tl-2xl">Title</th>
+                      <th className="p-5 rounded-tl-2xl"> Homework Title</th>
                       <th className="p-5">Due Date</th>
                       <th className="p-5">Status</th>
-                      <th className="p-5 rounded-tr-2xl">Score</th>
+                      <th className="p-5">Score</th>
+                      <th className="p-5 rounded-tr-2xl">Marked Work</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -408,11 +411,20 @@ export default function ParentDashboard() {
                             <span className="text-slate-400 font-bold">-</span>
                           )}
                         </td>
+                        <td className="p-5">
+                          {hw.grading?.adminAnswerSheetUrl ? (
+                            <button onClick={() => setMarkedWorkPreview(hw.grading.adminAnswerSheetUrl)} className="text-xs bg-violet-100 text-violet-700 px-3 py-1.5 rounded-lg font-black hover:bg-violet-600 hover:text-white transition-colors flex items-center gap-1 w-fit shadow-sm cursor-pointer border-none">
+                              📎 View Work
+                            </button>
+                          ) : (
+                            <span className="text-xs font-black bg-slate-100 text-slate-400 px-3 py-1.5 rounded-lg">No marked work attached</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                     {assignments.length === 0 && (
                       <tr>
-                        <td colSpan="4" className="text-center py-10 text-slate-400 font-bold">No assignments found for this student yet.</td>
+                        <td colSpan="5" className="text-center py-10 text-slate-400 font-bold">No homework found for this student yet.</td>
                       </tr>
                     )}
                   </tbody>
@@ -535,7 +547,6 @@ export default function ParentDashboard() {
                       Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
                     </p>
                     {report.description && <p className="text-[#1B2559] text-sm font-medium">{report.description}</p>}
-                    {/* Notice how the 'graderInstruction' is completely hidden from students & parents here */}
                   </div>
                 ))}
                 {schemes.length === 0 && (
@@ -544,6 +555,29 @@ export default function ParentDashboard() {
               </div>
             </div>
           )}
+          
+          {markedWorkPreview && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-fade-in p-6">
+              <div className="bg-white p-6 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col relative border-4 border-violet-500">
+                <div className="flex justify-between items-center mb-4 border-b pb-3">
+                  <h3 className="font-black text-slate-800 text-lg">Checked/Marked Work Preview</h3>
+                  <button onClick={() => setMarkedWorkPreview(null)} className="bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white p-2 rounded-xl font-black transition-all cursor-pointer border-none">✕ Close</button>
+                </div>
+                <div className="flex-1 overflow-auto bg-slate-50 rounded-2xl p-2 flex justify-center items-center min-h-[400px]">
+                   {markedWorkPreview.endsWith('.pdf') || markedWorkPreview.includes('data:application/pdf') ? (
+                     <iframe src={markedWorkPreview} className="w-full h-[500px] border-0 rounded-xl" title="Marked PDF"></iframe>
+                   ) : markedWorkPreview.startsWith('http') || markedWorkPreview.startsWith('data:image') ? (
+                     <img src={markedWorkPreview} alt="Marked Work" className="max-h-[500px] max-w-full object-contain rounded-xl shadow-sm" />
+                   ) : (
+                     <div className="text-center p-8">
+                       <p className="font-black text-slate-700 mb-2">Unsupported File Format</p>
+                       <a href={markedWorkPreview} target="_blank" rel="noopener noreferrer" className="text-xs bg-indigo-500 text-white px-4 py-2 rounded-xl font-black shadow-md inline-block">Open File in New Tab</a>
+                     </div>
+                   )}
+                </div>
+              </div>
+            </div>
+          )}          
         </div>
       </div>
     </div>

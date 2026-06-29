@@ -182,7 +182,7 @@ export default function StudentDashboard() {
 
     try {
       await api.post(`/homework/${modalTask._id}/submit`, { ...submitForm, mcqAnswers });
-      showToast('🎉 Assignment submitted successfully!');
+      showToast('🎉 Homework submitted successfully!');
       setModalTask(null); 
       setSubmitForm({ answerFileUrl: '', answerText: '' }); 
       setMcqAnswers({}); 
@@ -276,7 +276,7 @@ export default function StudentDashboard() {
             {/* 1. Show Assignment Content to Student */}
             {modalTask.status !== 'Graded' && (
               <div className="bg-[#F4F7FE] p-6 rounded-3xl mb-8">
-                <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-4">Assignment Details</h4>
+                <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-4">Homework Details</h4>
                 
                 {modalTask.type === 'File' && modalTask.fileUrl && (
   <div className="flex flex-col gap-4 w-full">
@@ -284,7 +284,7 @@ export default function StudentDashboard() {
     
     <div className="w-full max-h-[400px] overflow-auto border-2 border-slate-200 rounded-2xl bg-white p-2 shadow-inner">
       {modalTask.fileUrl.startsWith('data:image') ? (
-        <img src={modalTask.fileUrl} alt="Assignment" className="w-full h-auto rounded-xl object-contain" />
+        <img src={modalTask.fileUrl} alt="Homework Attachment" className="w-full h-auto rounded-xl object-contain" />
       ) : modalTask.fileUrl.startsWith('data:application/pdf') ? (
         <embed src={modalTask.fileUrl} type="application/pdf" className="w-full h-[380px] rounded-xl" />
       ) : (
@@ -381,7 +381,7 @@ export default function StudentDashboard() {
               </div>
             ) : (
               <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-3xl text-center flex flex-col items-center">
-                <p className="text-emerald-600 font-bold text-sm mb-4 bg-emerald-100/50 px-4 py-2 rounded-full">Note: Original assignment content has been removed post-grading.</p>
+                <p className="text-emerald-600 font-bold text-sm mb-4 bg-emerald-100/50 px-4 py-2 rounded-full">Note: Original homework content has been removed post-grading.</p>
 
                 <div className="w-auto px-6 h-20 bg-emerald-500 text-white rounded-full inline-flex items-center justify-center text-3xl font-black mb-4 shadow-lg shadow-emerald-500/30">
                 {modalTask.grading?.score != null ? `${modalTask.grading.score} / ${modalTask.grading.totalScore}` : 'N/A'}
@@ -451,7 +451,7 @@ export default function StudentDashboard() {
           <div className="p-6 space-y-3 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-              My Assignments
+              My Homework
             </button>
             
             <button onClick={() => setActiveTab('tests')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'tests' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
@@ -624,7 +624,7 @@ export default function StudentDashboard() {
                 <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
                   <div className="text-6xl mb-4 opacity-50">🌴</div>
                   <h3 className="text-[#1B2559] font-black text-2xl mb-1">You are all caught up!</h3>
-                  <p className="text-[#A3AED0] font-bold">No assignments have been pushed to you yet.</p>
+                  <p className="text-[#A3AED0] font-bold">No homework have been pushed to you yet.</p>
                 </div>
               )}
             </div>
