@@ -52,7 +52,6 @@ export default function ParentDashboard() {
   // 1. FETCH PROFILE
   const fetchProfile = async () => {
     try {
-      // FIX: Removed the extra '/api' so it correctly matches the backend route
       const res = await api.get('/auth/profile');
       setParentProfile({ name: res.data.name, profilePic: res.data.profilePic || '' });
       setSettingsForm({ name: res.data.name, profilePic: res.data.profilePic || '' });
@@ -65,14 +64,13 @@ export default function ParentDashboard() {
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     try {
-      // FIX: Removed the extra '/api' here as well
       const res = await api.put('/auth/profile', settingsForm);
       
       const updatedData = res.data.user ? res.data.user : res.data;
       setParentProfile({ name: updatedData.name, profilePic: updatedData.profilePic || '' });
       showToast('Profile updated successfully!');
     } catch (err) {
-      console.error("Update Error:", err.response || err); // Logs exact error in your browser console
+      console.error("Update Error:", err.response || err);
       showToast(err.response?.data?.message || 'Failed to update profile', 'error');
     }
   };
@@ -80,14 +78,13 @@ export default function ParentDashboard() {
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // FIX: Prevents massive images from crashing your server! 
       if (file.size > 2000000) {
         return showToast("Image is too large! Please choose a file under 2MB.", "error");
       }
       
       const reader = new FileReader();
       reader.onloadend = () => {
-        setSettingsForm({ ...settingsForm, profilePic: reader.result }); // Saves as Base64 string
+        setSettingsForm({ ...settingsForm, profilePic: reader.result }); 
       };
       reader.readAsDataURL(file);
     }
@@ -100,7 +97,6 @@ export default function ParentDashboard() {
     const headers = ["Homework Title", "Format/Type", "Due Date", "Status", "Score"];
     
     const rows = assignments.map(hw => {
-      // Safely map the properties from your database
       const title = hw.title || "N/A";
       const type = hw.type || "File";
       const dueDate = new Date(hw.dueDate).toLocaleDateString();
@@ -121,7 +117,6 @@ export default function ParentDashboard() {
     const link = document.createElement("a");
     link.href = url;
     
-    // 🌟 FIX: Prioritize Registration Name for the downloaded file
     const studentName = childData?.registrationName || childData?.name || "Student";
     link.download = `${studentName}_Grades_${new Date().toISOString().split('T')[0]}.csv`;
     
@@ -138,11 +133,10 @@ export default function ParentDashboard() {
     try {
       const doc = new jsPDF();
       
-      // 🌟 FIX: Prioritize Registration Name for the PDF Header and File Name
       const studentName = childData?.registrationName || childData?.name || "Student";
       
       doc.setFontSize(18);
-      doc.setTextColor(27, 37, 89); // Matches your #1B2559 theme
+      doc.setTextColor(27, 37, 89); 
       doc.text(`${studentName} - Performance Report`, 14, 22);
       
       doc.setFontSize(11);
@@ -154,7 +148,6 @@ export default function ParentDashboard() {
       const tableRows = [];
 
       assignments.forEach(hw => {
-        // 🌟 FIX: Map the title and type correctly for the rows
         const title = hw.title || "N/A";
         const type = hw.type || "File";
         const dueDate = new Date(hw.dueDate).toLocaleDateString();
@@ -201,8 +194,6 @@ export default function ParentDashboard() {
       setChildData(res.data.childProfile);
       setAssignments(res.data.assignments);
     } catch (error) {
-      // 🚨 FIX: This will now show the EXACT error message from the backend!
-      // (e.g., "No linked student found." or "Child profile not found.")
       const errorMsg = error.response?.data?.message || "Server Error fetching data";
       console.error("Child Data Error:", errorMsg);
       showToast(errorMsg, "error");
@@ -277,10 +268,8 @@ export default function ParentDashboard() {
         
         {/* Navigation Links with Gradient Scroll Indicator */}
         <div className="relative flex-1 flex flex-col overflow-hidden">
-          {/* Top smooth fade */}
           <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#0B1437] to-transparent pointer-events-none z-10"></div>
           
-          {/* Scrollable Area - HIDDEN SCROLLBAR */}
           <div className="p-6 space-y-3 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -307,7 +296,6 @@ export default function ParentDashboard() {
             </button>
           </div>
 
-          {/* Bottom smooth fade with Pulsing Arrow indicator */}
           <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#0B1437] to-transparent pointer-events-none z-10 flex items-end justify-center pb-1">
             <svg className="w-5 h-5 text-slate-500/60 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path>
@@ -394,13 +382,14 @@ export default function ParentDashboard() {
               
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                  <thead>
+                 <thead>
                     <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider">
                       <th className="p-5 rounded-tl-2xl"> Homework Title</th>
                       <th className="p-5">Due Date</th>
                       <th className="p-5">Status</th>
                       <th className="p-5">Score</th>
-                      <th className="p-5 rounded-tr-2xl">Marked Work</th>
+                      <th className="p-5">Marked Work</th>
+                      <th className="p-5 rounded-tr-2xl">Drive Link</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -411,7 +400,7 @@ export default function ParentDashboard() {
                         <td className="p-5">
   {(() => {
     let displayStatus = hw.status;
-    let statusColor = 'bg-slate-100 text-slate-500'; // Default Pending color
+    let statusColor = 'bg-slate-100 text-slate-500'; 
     
     const now = new Date();
     const dueDate = new Date(hw.dueDate);
@@ -436,7 +425,6 @@ export default function ParentDashboard() {
         statusColor = 'bg-rose-100 text-rose-700'; // Make it red to indicate late
       }
     } else {
-      // Pending
       if (now > dueDate) {
         displayStatus = 'Overdue';
         statusColor = 'bg-rose-100 text-rose-700';
@@ -461,11 +449,20 @@ export default function ParentDashboard() {
                         </td>
                         <td className="p-5">
                           {hw.grading?.adminAnswerSheetUrl ? (
-                            <button onClick={() => setMarkedWorkPreview(hw.grading.adminAnswerSheetUrl)} className="text-xs bg-violet-100 text-violet-700 px-3 py-1.5 rounded-lg font-black hover:bg-violet-600 hover:text-white transition-colors flex items-center gap-1 w-fit shadow-sm cursor-pointer border-none">
+                            <button onClick={() => setMarkedWorkPreview(hw)} className="text-xs bg-violet-100 text-violet-700 px-3 py-1.5 rounded-lg font-black hover:bg-violet-600 hover:text-white transition-colors flex items-center gap-1 w-fit shadow-sm cursor-pointer border-none">
                               📎 View Work
                             </button>
                           ) : (
                             <span className="text-xs font-black bg-slate-100 text-slate-400 px-3 py-1.5 rounded-lg">No marked work attached</span>
+                          )}
+                        </td>
+                        <td className="p-5">
+                          {hw.driveLink ? (
+                            <a href={hw.driveLink} target="_blank" rel="noopener noreferrer" className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg font-black hover:bg-blue-600 hover:text-white transition-colors flex items-center gap-1 w-fit shadow-sm">
+                              ☁️ Open Drive
+                            </a>
+                          ) : (
+                            <span className="text-xs font-black text-slate-400">-</span>
                           )}
                         </td>
                       </tr>
@@ -501,7 +498,6 @@ export default function ParentDashboard() {
 
               <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#F4F7FE]/50 rounded-2xl border border-slate-100">
                 {messages.map(msg => {
-                  // NEW BULLETPROOF CHECK
                   const isMe = typeof msg.sender === 'object' ? msg.sender._id === userId : msg.sender === userId;
 
                   return (
@@ -548,7 +544,6 @@ export default function ParentDashboard() {
                       ) : (
                         <div className="w-24 h-24 bg-slate-100 text-slate-400 rounded-3xl flex items-center justify-center text-4xl shadow-md">👤</div>
                       )}
-                      {/* Hidden file input wrapped in a sleek hover overlay */}
                       <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white rounded-3xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                         <input type="file" accept="image/*" className="hidden" onChange={handleProfilePicChange} />
                         <span className="text-xs font-bold">Upload</span>
@@ -573,6 +568,7 @@ export default function ParentDashboard() {
               </div>
             </div>
           )}
+
         {/* SCHEME OF WORK TAB */}
           {activeTab === 'scheme' && (
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
@@ -609,23 +605,53 @@ export default function ParentDashboard() {
               <div className="bg-white p-6 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col relative border-4 border-violet-500">
                 <div className="flex justify-between items-center mb-4 border-b pb-3">
                   <h3 className="font-black text-slate-800 text-lg">Checked/Marked Work Preview</h3>
-                  <button onClick={() => setMarkedWorkPreview(null)} className="bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white p-2 rounded-xl font-black transition-all cursor-pointer border-none">✕ Close</button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        const studentName = childData?.registrationName || childData?.name || 'Unknown';
+                        const yearGroup = childData?.yearGroup || 'Y?';
+                        
+                        const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase();
+                        
+                        // Replace " HW " or " TEST " with " MW " for Marked Work
+                        let formattedTitle = (markedWorkPreview.title || '').toUpperCase()
+                            .replace(' HW ', ' MW ')
+                            .replace(' TEST ', ' MW ');
+
+                        const fileName = `${initials} - ${yearGroup} - ${formattedTitle}.pdf`;
+
+                        const a = document.createElement('a');
+                        a.href = markedWorkPreview.grading.adminAnswerSheetUrl;
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                      }} 
+                      className="bg-violet-100 text-violet-700 hover:bg-violet-600 hover:text-white px-4 py-2 rounded-xl font-black transition-all cursor-pointer border-none flex items-center gap-2"
+                    >
+                      ⬇️ Download PDF
+                    </button>
+                    <button onClick={() => setMarkedWorkPreview(null)} className="bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white px-4 py-2 rounded-xl font-black transition-all cursor-pointer border-none">
+                      ✕ Close
+                    </button>
+                  </div>
                 </div>
                 <div className="flex-1 overflow-auto bg-slate-50 rounded-2xl p-2 flex justify-center items-center min-h-[400px]">
-                   {markedWorkPreview.endsWith('.pdf') || markedWorkPreview.includes('data:application/pdf') ? (
-                     <iframe src={markedWorkPreview} className="w-full h-[500px] border-0 rounded-xl" title="Marked PDF"></iframe>
-                   ) : markedWorkPreview.startsWith('http') || markedWorkPreview.startsWith('data:image') ? (
-                     <img src={markedWorkPreview} alt="Marked Work" className="max-h-[500px] max-w-full object-contain rounded-xl shadow-sm" />
+                   {markedWorkPreview.grading.adminAnswerSheetUrl.endsWith('.pdf') || markedWorkPreview.grading.adminAnswerSheetUrl.includes('data:application/pdf') ? (
+                     <iframe src={markedWorkPreview.grading.adminAnswerSheetUrl} className="w-full h-[500px] border-0 rounded-xl" title="Marked PDF"></iframe>
+                   ) : markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('http') || markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('data:image') ? (
+                     <img src={markedWorkPreview.grading.adminAnswerSheetUrl} alt="Marked Work" className="max-h-[500px] max-w-full object-contain rounded-xl shadow-sm" />
                    ) : (
                      <div className="text-center p-8">
                        <p className="font-black text-slate-700 mb-2">Unsupported File Format</p>
-                       <a href={markedWorkPreview} target="_blank" rel="noopener noreferrer" className="text-xs bg-indigo-500 text-white px-4 py-2 rounded-xl font-black shadow-md inline-block">Open File in New Tab</a>
+                       <a href={markedWorkPreview.grading.adminAnswerSheetUrl} target="_blank" rel="noopener noreferrer" className="text-xs bg-indigo-500 text-white px-4 py-2 rounded-xl font-black shadow-md inline-block">Open File in New Tab</a>
                      </div>
                    )}
                 </div>
               </div>
             </div>
-          )}          
+          )}         
+          
           {/* PARENT VIEW: SHARED DRIVE */}
           {activeTab === 'drive' && (
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">

@@ -24,6 +24,7 @@ const homeworkSchema = new mongoose.Schema({
   dueDate: { type: Date, required: true }, 
   startDate: { type: Date }, 
   isTest: { type: Boolean, default: false }, 
+  driveLink: { type: String, default: '' },
   
   submission: {
     answerText: { type: String },

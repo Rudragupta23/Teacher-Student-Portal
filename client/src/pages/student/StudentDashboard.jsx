@@ -29,7 +29,7 @@ export default function StudentDashboard() {
 // Chat States
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
-  const [chatRoom, setChatRoom] = useState('admin'); // NEW: Tracks Mentor vs Global Chat
+  const [chatRoom, setChatRoom] = useState('admin'); 
 
   // Study Library States
   const [resources, setResources] = useState([]);
@@ -93,7 +93,12 @@ export default function StudentDashboard() {
     setIsLoading(true); 
     try {
       const res = await api.get('/auth/profile');
-      setStudentProfile({ name: res.data.name, profilePic: res.data.profilePic || '', studentId: res.data.studentId });
+      setStudentProfile({ 
+    name: res.data.name, 
+    profilePic: res.data.profilePic || '', 
+    studentId: res.data.studentId, 
+    yearGroup: res.data.yearGroup || 'Y?' 
+});
       setSettingsForm({ name: res.data.name, profilePic: res.data.profilePic || '' });
     } catch (error) {
       console.error("Error fetching profile from DB");
@@ -211,7 +216,6 @@ export default function StudentDashboard() {
   // Calculate Student Analytics
   const gradedHw = assignments.filter(h => h.status === 'Graded');
   const pendingHw = assignments.filter(h => h.status === 'Pending');
-  // const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
   let totalEarned = 0; let totalPossible = 0;
   gradedHw.forEach(h => {
     if(h.grading?.score != null && h.grading?.totalScore) {
@@ -241,7 +245,6 @@ export default function StudentDashboard() {
     try {
       const res = await api.put('/auth/profile', settingsForm);
       
-      // FIX: Use 'prev' to keep the existing studentId in state while updating name and pic
       setStudentProfile(prev => ({ 
         ...prev, 
         name: res.data.user.name, 
@@ -301,16 +304,19 @@ export default function StudentDashboard() {
 
     <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
       <p className="font-bold text-indigo-800 text-sm">Do you want to download this file?</p>
-      <button 
-        type="button"
-        onClick={() => {
-          const a = document.createElement('a');
-          a.href = modalTask.fileUrl;
-          a.download = `${modalTask.title.replace(/\s+/g, '_')}_Attachment`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        }}
+      <button type="button" onClick={() => {
+    const initials = (studentProfile.name || 'Unknown').split(' ').map(n => n[0]).join('').toUpperCase();
+    const yearGroup = studentProfile.yearGroup || 'Y?';
+    const formattedTitle = (modalTask.title || '').toUpperCase();
+    const fileName = `${initials} - ${yearGroup} - ${formattedTitle}.pdf`;
+
+    const a = document.createElement('a');
+    a.href = modalTask.fileUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }}
         className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all shadow-md flex items-center gap-2"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -410,13 +416,23 @@ export default function StudentDashboard() {
                   </div>
 
                   <button type="button" onClick={() => {
-                      const a = document.createElement('a');
-                      a.href = modalTask.grading.adminAnswerSheetUrl;
-                      a.download = `${modalTask.title.replace(/\s+/g, '_')}_Marked_Work`;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                    }}
+    const initials = (studentProfile.name || 'Unknown').split(' ').map(n => n[0]).join('').toUpperCase();
+    const yearGroup = studentProfile.yearGroup || 'Y?';
+    
+    // Replace " HW " or " TEST " with " MW "
+    let formattedTitle = (modalTask.title || '').toUpperCase()
+        .replace(' HW ', ' MW ')
+        .replace(' TEST ', ' MW ');
+        
+    const fileName = `${initials} - ${yearGroup} - ${formattedTitle}.pdf`;
+
+    const a = document.createElement('a');
+    a.href = modalTask.grading.adminAnswerSheetUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }}
                     className="w-full mt-2 px-6 py-4 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-black rounded-2xl transition-all border-2 border-dashed border-emerald-200 flex items-center justify-center gap-2"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -502,7 +518,6 @@ export default function StudentDashboard() {
             </button>
           </div>
 
-          {/* Bottom smooth fade with Pulsing Arrow indicator */}
           <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#0B1437] to-transparent pointer-events-none z-10 flex items-end justify-center pb-1">
             <svg className="w-5 h-5 text-slate-500/60 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path>
@@ -887,7 +902,7 @@ export default function StudentDashboard() {
           {activeTab === 'messages' && (
             <div className="bg-white p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-[700px] flex flex-col animate-fade-in relative overflow-hidden">
               
-              {/* --- NEW CHAT TOGGLE BUTTONS --- */}
+              {/* NEW CHAT TOGGLE BUTTONS */}
               <div className="flex gap-4 mb-4 shrink-0">
                 <button 
                   onClick={() => setChatRoom('admin')}
@@ -1034,7 +1049,6 @@ export default function StudentDashboard() {
                       Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
                     </p>
                     {report.description && <p className="text-[#1B2559] text-sm font-medium">{report.description}</p>}
-                    {/* Notice how the 'graderInstruction' is completely hidden from students & parents here */}
                   </div>
                 ))}
                 {schemes.length === 0 && (
@@ -1043,6 +1057,7 @@ export default function StudentDashboard() {
               </div>
             </div>
           )}
+          
           {/* STUDENT VIEW: SHARED DRIVE */}
           {activeTab === 'drive' && (
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">

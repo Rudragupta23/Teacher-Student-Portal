@@ -54,7 +54,7 @@ export default function AdminDashboard() {
   const [adminProfile, setAdminProfile] = useState({ name: 'Mentor', profilePic: '' });
   const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '', studentToDelete: '' });
   const [isProfileUploading, setIsProfileUploading] = useState(false);
-  const [userId, setUserId] = useState(null); // 🌟 ADDED USER ID STATE
+  const [userId, setUserId] = useState(null); 
 
   // Chat States
   const [messages, setMessages] = useState([]);
@@ -240,7 +240,6 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!chatInput.trim() || !selectedStudentForChat) return;
 
-    // Determine correct ID based on whether we are talking to Student, Parent, Grader, or Admin
     const targetId = chatTarget === 'parent' && selectedParent
       ? selectedParent._id
       : selectedStudentForChat._id;
@@ -248,7 +247,6 @@ export default function AdminDashboard() {
     try {
       await api.post('/messages', { receiverId: targetId, content: chatInput });
       setChatInput('');
-      // Pass targetId or fallback to 'admin' so the Grader can trigger a refresh
       fetchMessages(targetId || 'admin'); 
     } catch (e) { showToast("Failed to send message", "error"); }
   };
@@ -310,7 +308,6 @@ export default function AdminDashboard() {
   };
 
   const updateMcq = (index, field, value, optionIndex = null) => {
-    // --- FIX: Safely deep clone the state to prevent React input freezing ---
     const updatedMcqs = assignForm.mcqs.map((mcq, i) => {
       if (i === index) {
         if (field === 'options') {
@@ -326,7 +323,6 @@ export default function AdminDashboard() {
     setAssignForm({ ...assignForm, mcqs: updatedMcqs });
   };
 
-  // --- NEW FIX: Missing addMcq function ---
   const addMcq = () => {
     setAssignForm({
       ...assignForm,
@@ -334,7 +330,6 @@ export default function AdminDashboard() {
     });
   };
 
-  // --- NEW HANDLERS FOR TESTS ---
   const handleTestFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -371,7 +366,6 @@ export default function AdminDashboard() {
       mcqs: [...testForm.mcqs, { question: '', options: ['', '', '', ''], correctOption: 0 }]
     });
   };
-  // -----------------------------
 
   const executeModalAction = async () => {
     try {
@@ -382,7 +376,6 @@ export default function AdminDashboard() {
           return showToast("Enter marks or attach marked work!", "error");
         }
 
-        // --- NEW VALIDATION CHECK ---
         if (hasScores) {
           const earned = Number(modal.data.score);
           const total = Number(modal.data.totalScore);
@@ -397,12 +390,12 @@ export default function AdminDashboard() {
             return showToast("Score cannot be greater than the total score!", "error");
           }
         }
-        // -----------------------------
         
         await api.put(`/homework/${modal.hwId}/grade`, { 
           score: modal.data.score !== '' ? Number(modal.data.score) : null, 
           totalScore: modal.data.totalScore !== '' ? Number(modal.data.totalScore) : null, 
-          adminAnswerSheetUrl: answerSheet.fileUrl 
+          adminAnswerSheetUrl: answerSheet.fileUrl,
+          driveLink: modal.data.driveLink 
         });
         
         showToast("Homework Graded/Updated Successfully!");
@@ -449,30 +442,27 @@ export default function AdminDashboard() {
   const handleSchemeInitialSubmit = async (e) => {
     e.preventDefault();
     
-    // Check if we already have a submission in progress to prevent double-click
     if (isLoading) return; 
 
     if (schemeForm.classTaken) {
       setModal({ type: 'graderInstruction', data: '' });
     } else {
-      // Direct submission for 'No Class'
       await executeSchemeSubmitDirect();
     }
   };
 
   const executeSchemeSubmitDirect = async () => {
     try {
-      setIsLoading(true); // Disable buttons
+      setIsLoading(true); 
       await api.post('/scheme', { 
         ...schemeForm, 
-        graderInstruction: graderInstruction || '' // Ensure this sends correctly
+        graderInstruction: graderInstruction || '' 
       });
       showToast("Daily Report Submitted!");
-      // Reset form
       setSchemeForm({ date: new Date().toISOString().split('T')[0], title: '', weekNo: '', topic: '', description: '', classTaken: true });
       setGraderInstruction('');
       setModal({ type: null });
-      fetchData(); // Refresh list once
+      fetchData(); 
     } catch(err) { 
       showToast("Error submitting report", "error"); 
     } finally {
@@ -525,7 +515,6 @@ export default function AdminDashboard() {
       const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
       
       const gradedHw = studentHw.filter(h => h.status === 'Graded');
-      // const avgScore = gradedHw.length > 0 ? (gradedHw.reduce((acc, curr) => acc + (curr.grading?.score || 0), 0) / gradedHw.length).toFixed(1) : 0;
       let totalEarned = 0; let totalPossible = 0;
       gradedHw.forEach(h => {
       if(h.grading?.score != null && h.grading?.totalScore) {
@@ -658,11 +647,19 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 </div>
                   
                 <p className="text-slate-500 text-sm mb-2 font-bold">Attach Marked/Checked work (Optional)</p>
-                <div className="relative border-2 border-dashed border-slate-300 bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer mb-6 group">
+                <div className="relative border-2 border-dashed border-slate-300 bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer mb-4 group">
                   <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAnswerSheetUpload} />
                   <p className="font-bold text-slate-600 text-sm">{answerSheet.fileName ? `📎 ${answerSheet.fileName}` : 'Click to upload PDF/Image'}</p>
                   {answerSheet.isUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
                 </div>
+
+                {/*  NEW DRIVE LINK INPUT  */}
+                <p className="text-slate-500 text-sm mb-2 font-bold">Attach Google Drive Link (Optional)</p>
+                <input type="url" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 outline-none font-bold text-slate-700 mb-6" 
+                  placeholder="https://drive.google.com/..." 
+                  value={modal.data?.driveLink || ''} 
+                  onChange={e => setModal({...modal, data: { ...modal.data, driveLink: e.target.value }})} 
+                />
               </>
             )}
             {modal.type === 'allocate' && (
@@ -670,7 +667,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 <h3 className="text-2xl font-black text-slate-800 mb-2">Allocate Students</h3>
                 <p className="text-slate-500 text-sm mb-4">Select the specific students this grader will mark.</p>
                 
-                {/* NEW: Grader Info & Currently Assigned Counter */}
+                {/* Grader Info & Currently Assigned Counter */}
                 {(() => {
                   const currentGrader = graders.find(g => g._id === modal.graderId);
                   const initiallyAssigned = currentGrader?.allocatedStudents?.length || 0;
@@ -694,7 +691,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
 
                 <div className="max-h-48 overflow-y-auto bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2 mb-6 custom-scrollbar">
                   {students.filter(s => yearGroupAllocate === 'all' || s.yearGroup === yearGroupAllocate).map(s => {
-                    // Check if student is already in the database for this grader
                     const isInitiallyAllocated = graders.find(g => g._id === modal.graderId)?.allocatedStudents?.some(allocated => allocated._id === s._id || allocated === s._id);
                     
                     return (
@@ -710,7 +706,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                           <span className="font-bold text-sm text-slate-700">{s.registrationName || s.name} {s.yearGroup ? `(${s.yearGroup})` : ''}</span>
                         </div>
                         
-                        {/* NEW: Badge for already assigned students */}
+                        {/* Badge for already assigned students */}
                         {isInitiallyAllocated && (
                            <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md shadow-sm">
                              Already Assigned
@@ -771,13 +767,23 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       </div>
 
                       <button type="button" onClick={() => {
-                          const a = document.createElement('a');
-                          a.href = modal.data.answerFileUrl;
-                          a.download = `${(modal.title || 'Student_Submission').replace(/\s+/g, '_')}_Attachment`;
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                        }}
+    const studentName = modal.student?.registrationName || modal.student?.name || 'Unknown';
+    const yearGroup = modal.student?.yearGroup || 'Y?';
+    const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase();
+    
+    let formattedTitle = (modal.title || '').toUpperCase()
+        .replace(' HW ', ' SW ')
+        .replace(' TEST ', ' SW ');
+
+    const fileName = `${initials} - ${yearGroup} - ${formattedTitle}.pdf`;
+
+    const a = document.createElement('a');
+    a.href = modal.data.answerFileUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }}
                         className="w-full mt-2 px-6 py-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 font-black rounded-2xl transition-all border-2 border-dashed border-indigo-200 flex items-center justify-center gap-2"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -807,8 +813,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   <button onClick={() => { 
   setModal({ type: null, hwId: null, studentId: null, data: '' }); 
   setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); 
-  setGraderInstruction(''); // <--- ADD THIS
-  setSchemeForm({ date: new Date().toISOString().split('T')[0], title: '', weekNo: '', topic: '', description: '', classTaken: true }); // <--- ADD THIS
+  setGraderInstruction(''); 
+  setSchemeForm({ date: new Date().toISOString().split('T')[0], title: '', weekNo: '', topic: '', description: '', classTaken: true }); 
 }} className="flex-1 py-4 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-2xl transition-colors">
   Cancel
 </button>
@@ -924,14 +930,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 </button>
               </>
             )}
-
-            {/* NEW: Grader View (Both Admin & Grader see this tab)
-            {user?.role === 'grader' && (
-              <button onClick={() => setActiveTab('submitted')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'submitted' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                Submitted Work 
-              </button>
-            )} */}
             
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#0B1437] to-transparent pointer-events-none z-10 flex items-end justify-center pb-1">
@@ -988,7 +986,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 </div>
                 
                 <form onSubmit={handleAssignSubmit} className="space-y-6">
-                  {/* WEEK AND TOPIC FIELDS (MOVED UP) */}
+                  {/* WEEK AND TOPIC FIELDS */}
 <div className="grid grid-cols-2 gap-4">
   <div className="space-y-1">
     <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Week No</label>
@@ -1120,7 +1118,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                                   </select>
                                 </div>
                                 
-                                {/* NEW: Allow Admin to remove accidental questions (keep at least 1) */}
+                                {/* NEW: Allow Admin to remove accidental questions */}
                                 {assignForm.mcqs.length > 1 && (
                                   <button type="button" onClick={() => {
                                     const filteredMcqs = assignForm.mcqs.filter((_, i) => i !== qIndex);
@@ -1215,7 +1213,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                                   View Work
                                 </button>
                               )}
-                              <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '' } })} className="px-5 py-3 bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-md text-sm flex items-center gap-2">
+                              <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '' } })} className="px-5 py-3 bg-emerald-500 text-white font-black rounded-2xl hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-md text-sm flex items-center gap-2">
                                 Grade
                               </button>
                             </>
@@ -1227,7 +1225,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                                 <>
                                   <button 
                                     onClick={() => {
-                                      setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '' } });
+                                      setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '' } });
                                       if (hw.grading?.adminAnswerSheetUrl) {
                                         setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl, fileName: 'Existing Marked/Checked work Attached', isUploading: false });
                                       } else {
@@ -1294,7 +1292,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     showToast('🎉 Test scheduled successfully!');
                     fetchData(); 
                     setTestForm({ ...testForm, title: '', startDate: '', dueDate: '', fileUrl: '', content: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
-                    setTestFileName(''); // Reset file name
+                    setTestFileName(''); 
                   } catch (err) { showToast('Error scheduling test.', "error"); }
                 }} className="space-y-6">
                   
@@ -1669,7 +1667,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
 
             </div>
           )}
-          {/* 🟢 VIEW 3.5: ANNOUNCEMENTS TAB */}
+          {/* VIEW 3.5: ANNOUNCEMENTS TAB */}
           {activeTab === 'announcements' && (
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
               <div className="xl:col-span-5 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
@@ -1756,7 +1754,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
           {/* SCHEME OF WORK TAB */}
           {activeTab === 'scheme' && (
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
-              {/* Form (Admins Only) */}
               {user?.role === 'admin' && (
                 <div className="xl:col-span-4 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
                   <div className="flex items-center gap-3 mb-8">
@@ -1990,7 +1987,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     </button>
                   )}
 
-                  {/* --- GRADER VIEW: CHAT WITH ADMIN --- */}
+                  {/* GRADER VIEW: CHAT WITH ADMIN */}
                   {user?.role === 'grader' && (
                     <button 
                       onClick={() => { 
@@ -2007,7 +2004,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     </button>
                   )}
 
-                  {/* --- ADMIN VIEW: GRADERS LIST --- */}
+                  {/* ADMIN VIEW: GRADERS LIST */}
                   {user?.role === 'admin' && graders.length > 0 && (
                     <div className="mb-4">
                       <p className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 pl-2">Graders</p>
@@ -2033,7 +2030,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     </div>
                   )}
 
-                  {/* --- ADMIN VIEW: STUDENTS LIST --- */}
+                  {/* ADMIN VIEW: STUDENTS LIST */}
                   {user?.role === 'admin' && students.length > 0 && (
                     <div>
                       <p className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 pl-2 mt-4">Students</p>
@@ -2041,8 +2038,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         <button key={student._id} 
                           onClick={() => { 
                             setSelectedStudentForChat(student); 
-                            setChatTarget('student'); // Reset toggle
-                            setSelectedParent(null);  // Clear parent data
+                            setChatTarget('student'); 
+                            setSelectedParent(null);  
                             fetchMessages(student._id); 
                           }}
                           className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 ${selectedStudentForChat?._id === student._id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}>
@@ -2076,7 +2073,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       </span>
                     </div>
 
-                    {/* --- START OF PARENT TOGGLE UI (HIDDEN FOR GRADERS) --- */}
+                    {/* START OF PARENT TOGGLE UI */}
                     {selectedStudentForChat._id !== 'all' && chatTarget !== 'grader' && chatTarget !== 'admin' && (
                       <div className="bg-[#F4F7FE] border-b border-slate-200 px-6 py-3 flex items-center justify-between z-0">
                         <div className="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-100">
@@ -2094,7 +2091,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                                 const res = await api.get(`/admin/student/${selectedStudentForChat._id}/parent`);
                                 setSelectedParent(res.data);
                                 setChatTarget('parent');
-                                fetchMessages(res.data._id); // Fetch parent's messages
+                                fetchMessages(res.data._id); 
                               } catch (err) {
                                 showToast("No parent account is linked to this student yet.", "error");
                               }
@@ -2111,7 +2108,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         )}
                       </div>
                     )}
-                    {/* --- END OF PARENT TOGGLE UI --- */}
+                    {/* END OF PARENT TOGGLE UI */}
                     
                     <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
                       
@@ -2256,7 +2253,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
             </div>
           )}
 
-          {/* ================= NEW GRADER MANAGEMENT TAB (ADMIN ONLY) ================= */}
+          {/* NEW GRADER MANAGEMENT TAB (ADMIN ONLY) */}
           {activeTab === 'graders' && user?.role === 'admin' && (
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
@@ -2321,7 +2318,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
             </div>
           )}
 
-          {/* ================= NEW SUBMITTED WORK TAB (ADMIN & GRADER) ================= */}
+          {/* NEW SUBMITTED WORK TAB (ADMIN & GRADER) */}
           {activeTab === 'submitted' && (
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
               <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">

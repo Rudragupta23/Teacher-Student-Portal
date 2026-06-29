@@ -1,6 +1,6 @@
 const Homework = require('../models/Homework');
 const User = require('../models/User');
-const sendEmail = require('../utils/sendEmail'); // Add this import at the top
+const sendEmail = require('../utils/sendEmail'); 
 
 exports.assignHomework = async (req, res) => {
   const { title, weekNo, topic, description, type, studentId, difficulty, dueDate, startDate, isTest, fileUrl, content, mcqs } = req.body;
@@ -9,13 +9,11 @@ exports.assignHomework = async (req, res) => {
     let targetStudents = [];
     
     if (req.user.role === 'grader') {
-      // GRADER LOGIC: Only allow assignment to their allocated students
       const grader = await User.findById(req.user._id).populate('allocatedStudents');
       
       if (studentId === 'all') {
         targetStudents = grader.allocatedStudents; 
       } else {
-        // Verify the requested student is actually in the grader's list
         const isAllocated = grader.allocatedStudents.some(s => s._id.toString() === studentId);
         if (!isAllocated) {
           return res.status(403).json({ message: 'You are not authorized to assign work to this student.' });
@@ -24,7 +22,6 @@ exports.assignHomework = async (req, res) => {
         if (student) targetStudents.push(student);
       }
     } else {
-      // MAIN ADMIN LOGIC: Can assign to anyone
       if (studentId === 'all') {
         targetStudents = await User.find({ role: 'student' });
       } else {
@@ -59,13 +56,9 @@ exports.assignHomework = async (req, res) => {
     );
 
     await Promise.all(homeworkPromises);
-
-    // --- NEW EMAIL NOTIFICATION LOGIC ---
-    // Extract emails, ensuring we don't include any undefined or null emails
     const studentEmails = targetStudents.map(student => student.email).filter(email => email);
 
     if (studentEmails.length > 0) {
-      // Format the dates to be easily readable
       const formattedDueDate = new Date(dueDate).toLocaleString(); 
       const formattedStartDate = startDate ? new Date(startDate).toLocaleString() : 'N/A';
 
@@ -73,7 +66,6 @@ exports.assignHomework = async (req, res) => {
       let emailSubject = '';
 
       if (isTest) {
-        // 🔴 EMAIL TEMPLATE FOR TESTS
         emailSubject = `New Test Scheduled: ${title}`;
         emailContent = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
@@ -106,7 +98,6 @@ exports.assignHomework = async (req, res) => {
           </div>
         `;
       } else {
-        // 🔵 EMAIL TEMPLATE FOR HOMEWORK
         emailSubject = `New Homework Assigned: ${title}`;
         emailContent = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
@@ -137,12 +128,11 @@ exports.assignHomework = async (req, res) => {
       }
 
       sendEmail({
-        email: studentEmails.join(','), // This sends to all targeted students
+        email: studentEmails.join(','), 
         subject: emailSubject,
         html: emailContent
       });
     }
-    // ------------------------------------
     res.status(201).json({ message: `Successfully assigned to ${targetStudents.length} student(s)` });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -153,7 +143,6 @@ exports.getAdminHomework = async (req, res) => {
   try {
     let filter = {};
     
-    // If the user is a grader, restrict the search to their allocated students
     if (req.user.role === 'grader') {
       const grader = await User.findById(req.user._id);
       filter = { studentId: { $in: grader.allocatedStudents } };
@@ -187,7 +176,6 @@ exports.submitHomework = async (req, res) => {
     const homework = await Homework.findOne({ _id: id, studentId: req.user._id });
     if (!homework) return res.status(404).json({ message: 'Homework not found' });
 
-    // --- HELPER TO SEND EMAIL TO ADMINS ---
     const notifyAdmins = async (studentName) => {
       const admins = await User.find({ role: 'admin' });
       const emailContent = `
@@ -218,16 +206,13 @@ exports.submitHomework = async (req, res) => {
         }
       });
     };
-    // --------------------------------------
 
-    // Fetch student details for the email
     const student = await User.findById(req.user._id);
 
     if (homework.type === 'MCQ') {
       let correctCount = 0;
       const totalQuestions = homework.mcqs.length;
 
-      // --- FIX: Strictly parse answers whether they arrive as an Array, JSON string, or comma-separated string ---
       let parsedAnswers = [];
       if (Array.isArray(mcqAnswers)) {
         parsedAnswers = mcqAnswers;
@@ -235,18 +220,16 @@ exports.submitHomework = async (req, res) => {
         try {
           parsedAnswers = JSON.parse(mcqAnswers);
         } catch (e) {
-          parsedAnswers = mcqAnswers.split(','); // Fallback for "1,2" stringified array
+          parsedAnswers = mcqAnswers.split(','); 
         }
       } else if (typeof mcqAnswers === 'object' && mcqAnswers !== null) {
         parsedAnswers = mcqAnswers;
       }
 
       homework.mcqs.forEach((mcq, idx) => {
-        // Support both array indices and object mappings
         let studentAns = parsedAnswers[mcq._id] !== undefined ? parsedAnswers[mcq._id] : parsedAnswers[idx];
 
         if (studentAns !== null && studentAns !== undefined && studentAns !== '') {
-          // Strictly compare numerical index only, preventing false text matches
           if (parseInt(studentAns) === parseInt(mcq.correctOption)) {
             correctCount++;
           }
@@ -260,9 +243,8 @@ exports.submitHomework = async (req, res) => {
       
       await homework.save();
       
-      notifyAdmins(student.registrationName || student.name); // Trigger Email to Admin
+      notifyAdmins(student.registrationName || student.name); 
 
-      // --- NEW: NOTIFY STUDENT & PARENT OF AUTO-GRADE ---
       const score = correctCount;
       const totalScore = totalQuestions;
 
@@ -336,7 +318,6 @@ exports.submitHomework = async (req, res) => {
           });
         }
       }
-      // --------------------------------------------------
 
       return res.status(200).json({ message: 'MCQ - graded successfully!', homework });
     }
@@ -345,7 +326,7 @@ exports.submitHomework = async (req, res) => {
     homework.submission = { answerText, answerFileUrl, submittedAt: new Date() };
     await homework.save();
 
-    notifyAdmins(student.registrationName || student.name); // Trigger Email
+    notifyAdmins(student.registrationName || student.name);
 
     res.status(200).json({ message: 'Homework submitted successfully!', homework });
   } catch (error) {
@@ -355,23 +336,15 @@ exports.submitHomework = async (req, res) => {
 
 exports.gradeHomework = async (req, res) => {
   const { id } = req.params;
-  const { score, totalScore, feedback, adminAnswerSheetUrl } = req.body;
+  const { score, totalScore, feedback, adminAnswerSheetUrl, driveLink } = req.body;
   
   try {
     const homework = await Homework.findById(id);
     if (!homework) return res.status(404).json({ message: 'Homework not found' });
 
-    // --- NEW SECURITY CHECK: Prevent graders from editing published marks ---
     if (homework.status === 'Graded' && req.user.role === 'grader') {
       return res.status(403).json({ message: 'Action Denied: Graders cannot edit marks once they are published. Please contact the Main Admin to request a change.' });
     }
-    // ----------------------------------------------------------------------
-
-    // --- NEW SMART CHECK ---
-
-    // --- NEW SMART CHECK ---
-    // If the homework previously had a marked file, but the new request is empty, 
-    // it means the admin is just clicking "Remove Marked Work".
     const isRemovingMarkedWork = homework.grading && homework.grading.adminAnswerSheetUrl && !adminAnswerSheetUrl;
 
     homework.status = 'Graded';
@@ -381,7 +354,7 @@ exports.gradeHomework = async (req, res) => {
       feedback: feedback || '',
       adminAnswerSheetUrl: adminAnswerSheetUrl || '',
       gradedAt: new Date(),
-      gradedBy: req.user._id // Stores the Main Admin or Grader ID
+      gradedBy: req.user._id 
     };
     
     homework.markModified('grading'); 
@@ -395,10 +368,11 @@ exports.gradeHomework = async (req, res) => {
       homework.submission.answerFileUrl = undefined;
       homework.markModified('submission'); 
     }
-
+    if (driveLink !== undefined) {
+            homework.driveLink = driveLink;
+        }
     await homework.save();
 
-    // --- ONLY SEND EMAILS IF WE ARE NOT JUST REMOVING THE FILE ---
     if (!isRemovingMarkedWork) {
       const student = await User.findById(homework.studentId);
 
@@ -407,7 +381,6 @@ exports.gradeHomework = async (req, res) => {
         // 1. NOTIFY THE STUDENT
         if (student.email) {
           
-          // --- FIX: Define checkedWorkHtml before using it ---
           const checkedWorkHtml = homework.grading.adminAnswerSheetUrl ? `
             <div style="margin-bottom: 25px; padding: 15px; background-color: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 6px;">
               <h4 style="margin: 0 0 5px 0; color: #0369a1;">📎 Marked Work Attached:</h4>
@@ -514,13 +487,10 @@ exports.extendDeadline = async (req, res) => {
     
     if (homework.status !== 'Graded') homework.status = 'Pending';
     
-    // Reset the reminder flag so they can get a new 24-hour reminder for the new date
     homework.reminderSent = false;
     
     await homework.save();
 
-    // --- NEW EMAIL NOTIFICATION LOGIC ---
-    // Fetch the specific student to get their email and name
     const student = await User.findById(homework.studentId);
 
     if (student && student.email) {
@@ -552,7 +522,6 @@ exports.extendDeadline = async (req, res) => {
         html: emailContent
       });
     }
-    // ------------------------------------
 
     res.status(200).json({ message: 'Deadline extended successfully!', homework });
   } catch (error) {
