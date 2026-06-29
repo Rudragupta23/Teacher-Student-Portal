@@ -34,11 +34,22 @@ export default function StudentDashboard() {
   // Study Library States
   const [resources, setResources] = useState([]);
 
+  const [schemes, setSchemes] = useState([]);
+
+  // Move this function outside the useEffect
+  const fetchSchemes = async () => {
+    try {
+      const res = await api.get('/scheme');
+      setSchemes(res.data);
+    } catch (e) { console.error("Error fetching schemes"); }
+  };
+
   useEffect(() => {
     fetchAssignments();
     fetchProfile(); 
     fetchAnnouncements(); 
     fetchResources();
+    fetchSchemes(); // Just call the function here
     
     const token = localStorage.getItem('token');
     if (token) {
@@ -447,6 +458,11 @@ export default function StudentDashboard() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
               My Tests
             </button>
+
+            <button onClick={() => setActiveTab('scheme')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-violet-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+  Scheme of Work
+</button>
 
             <button onClick={() => setActiveTab('announcements')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
@@ -984,7 +1000,37 @@ export default function StudentDashboard() {
 
             </div>
           )} 
-
+        {/* SCHEME OF WORK TAB */}
+          {activeTab === 'scheme' && (
+            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+              <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                <div className="bg-fuchsia-500 w-2 h-8 rounded-full"></div>
+                <h2 className="text-2xl font-black text-[#1B2559]">Scheme of Work (Daily Logs)</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {schemes.map(report => (
+                  <div key={report._id} className={`p-6 rounded-3xl border-2 shadow-sm ${report.classTaken ? 'bg-[#F4F7FE] border-transparent' : 'bg-rose-50 border-rose-100'}`}>
+                    <div className="flex justify-between items-start mb-3">
+                      <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase ${report.classTaken ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
+                        {report.classTaken ? '✅ Class Taken' : '❌ Cancelled'}
+                      </span>
+                      <span className="text-xs font-black text-slate-400">{new Date(report.date).toLocaleDateString()}</span>
+                    </div>
+                    <h3 className="font-black text-[#1B2559] text-xl mb-1">{report.title}</h3>
+                    <p className="text-xs font-black text-[#A3AED0] mb-3">
+                      Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
+                    </p>
+                    {report.description && <p className="text-[#1B2559] text-sm font-medium">{report.description}</p>}
+                    {/* Notice how the 'graderInstruction' is completely hidden from students & parents here */}
+                  </div>
+                ))}
+                {schemes.length === 0 && (
+                  <div className="col-span-full text-center text-[#A3AED0] font-bold py-10">No classes have been logged yet.</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

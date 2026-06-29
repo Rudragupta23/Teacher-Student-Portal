@@ -14,12 +14,21 @@ export default function ParentDashboard() {
   // Add these for the Settings Tab
   const [parentProfile, setParentProfile] = useState({ name: 'Parent', profilePic: '' });
   const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '' });
+  const [schemes, setSchemes] = useState([]);
+
+  // 1. Move fetchSchemes outside useEffect
+  const fetchSchemes = async () => {
+    try {
+      const res = await api.get('/scheme');
+      setSchemes(res.data);
+    } catch (e) { console.error("Error fetching schemes"); }
+  };
 
   useEffect(() => {
     fetchChildData();
     fetchProfile();
+    fetchSchemes(); // Now this function exists in scope
     
-    // Extract User ID from token to properly align chat bubbles
     const token = localStorage.getItem('token');
     if (token) {
       try {
@@ -267,6 +276,11 @@ export default function ParentDashboard() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
               Child's Progress
             </button>
+
+            <button onClick={() => setActiveTab('scheme')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+  Scheme of Work
+</button>
             
             <button onClick={() => setActiveTab('messages')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
@@ -499,7 +513,37 @@ export default function ParentDashboard() {
               </div>
             </div>
           )}
-
+        {/* SCHEME OF WORK TAB */}
+          {activeTab === 'scheme' && (
+            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+              <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                <div className="bg-fuchsia-500 w-2 h-8 rounded-full"></div>
+                <h2 className="text-2xl font-black text-[#1B2559]">Scheme of Work (Daily Logs)</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {schemes.map(report => (
+                  <div key={report._id} className={`p-6 rounded-3xl border-2 shadow-sm ${report.classTaken ? 'bg-[#F4F7FE] border-transparent' : 'bg-rose-50 border-rose-100'}`}>
+                    <div className="flex justify-between items-start mb-3">
+                      <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase ${report.classTaken ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
+                        {report.classTaken ? '✅ Class Taken' : '❌ Cancelled'}
+                      </span>
+                      <span className="text-xs font-black text-slate-400">{new Date(report.date).toLocaleDateString()}</span>
+                    </div>
+                    <h3 className="font-black text-[#1B2559] text-xl mb-1">{report.title}</h3>
+                    <p className="text-xs font-black text-[#A3AED0] mb-3">
+                      Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
+                    </p>
+                    {report.description && <p className="text-[#1B2559] text-sm font-medium">{report.description}</p>}
+                    {/* Notice how the 'graderInstruction' is completely hidden from students & parents here */}
+                  </div>
+                ))}
+                {schemes.length === 0 && (
+                  <div className="col-span-full text-center text-[#A3AED0] font-bold py-10">No classes have been logged yet.</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

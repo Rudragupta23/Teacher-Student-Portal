@@ -66,6 +66,11 @@ export default function AdminDashboard() {
   const [resourceForm, setResourceForm] = useState({ title: '', description: '', type: 'Document', url: '' });
   const [isResourceUploading, setIsResourceUploading] = useState(false);
 
+  // Scheme of Work States
+  const [schemes, setSchemes] = useState([]);
+  const [schemeForm, setSchemeForm] = useState({ date: new Date().toISOString().split('T')[0], title: '', weekNo: '', topic: '', description: '', classTaken: true });
+  const [graderInstruction, setGraderInstruction] = useState('');
+
   const [chatTarget, setChatTarget] = useState('student'); // Tracks if admin is chatting with 'student' or 'parent'
   const [selectedParent, setSelectedParent] = useState(null); // Stores the fetched parent data
 
@@ -109,27 +114,40 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       // --- FIX: Role-based data fetching to prevent 403 crashes for Graders ---
+      // if (user?.role === 'admin') {
+      //   const [studentRes, hwRes, annRes, resRes, graderRes] = await Promise.all([
+      //     api.get('/admin/students'),
+      //     api.get('/homework/admin'),
+      //     api.get('/announcements/admin'),
+      //     api.get('/resources'),
+      //     api.get('/admin/graders').catch(() => ({ data: [] })) // Prevent minor crashes
+      //   ]);
+      //   setStudents(studentRes.data);
+      //   setHomeworks(hwRes.data);
+      //   setAnnouncements(annRes.data);
+      //   setResources(resRes.data); 
+      //   setGraders(graderRes.data);
+      // } else if (user?.role === 'grader') {
+      //   // Graders need their specific homework submissions AND their allocated students
+      //   const [studentRes, hwRes] = await Promise.all([
+      //     api.get('/admin/students'),
+      //     api.get('/homework/admin')
+      //   ]);
+      //   setStudents(studentRes.data);
+      //   setHomeworks(hwRes.data);
+      // }
       if (user?.role === 'admin') {
-        const [studentRes, hwRes, annRes, resRes, graderRes] = await Promise.all([
-          api.get('/admin/students'),
-          api.get('/homework/admin'),
-          api.get('/announcements/admin'),
-          api.get('/resources'),
-          api.get('/admin/graders').catch(() => ({ data: [] })) // Prevent minor crashes
+        const [studentRes, hwRes, annRes, resRes, graderRes, schemeRes] = await Promise.all([
+          api.get('/admin/students'), api.get('/homework/admin'), api.get('/announcements/admin'),
+          api.get('/resources'), api.get('/admin/graders').catch(() => ({ data: [] })), api.get('/scheme')
         ]);
-        setStudents(studentRes.data);
-        setHomeworks(hwRes.data);
-        setAnnouncements(annRes.data);
-        setResources(resRes.data); 
-        setGraders(graderRes.data);
+        setStudents(studentRes.data); setHomeworks(hwRes.data); setAnnouncements(annRes.data);
+        setResources(resRes.data); setGraders(graderRes.data); setSchemes(schemeRes.data);
       } else if (user?.role === 'grader') {
-        // Graders need their specific homework submissions AND their allocated students
-        const [studentRes, hwRes] = await Promise.all([
-          api.get('/admin/students'),
-          api.get('/homework/admin')
+        const [studentRes, hwRes, schemeRes] = await Promise.all([
+          api.get('/admin/students'), api.get('/homework/admin'), api.get('/scheme')
         ]);
-        setStudents(studentRes.data);
-        setHomeworks(hwRes.data);
+        setStudents(studentRes.data); setHomeworks(hwRes.data); setSchemes(schemeRes.data);
       }
     } catch (error) {
       showToast("Error fetching dashboard data.", "error");
@@ -407,12 +425,51 @@ export default function AdminDashboard() {
         await api.put(`/admin/graders/${modal.graderId}/allocate`, { studentIds: selectedStudentsToAllocate });
         showToast("Students successfully allocated to grader!");
       }
+      else if (modal.type === 'graderInstruction') {
+        await api.post('/scheme', { ...schemeForm, graderInstruction });
+        showToast("Daily Report Submitted!");
+        setSchemeForm({ date: new Date().toISOString().split('T')[0], title: '', weekNo: '', topic: '', description: '', classTaken: true });
+        setGraderInstruction('');
+      }
       
       setModal({ type: null, hwId: null, studentId: null, data: '' });
       setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); 
       fetchData();
     } catch (error) {
       showToast(error.response?.data?.message || "Action failed.", "error");
+    }
+  };
+  const handleSchemeInitialSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Check if we already have a submission in progress to prevent double-click
+    if (isLoading) return; 
+
+    if (schemeForm.classTaken) {
+      setModal({ type: 'graderInstruction', data: '' });
+    } else {
+      // Direct submission for 'No Class'
+      await executeSchemeSubmitDirect();
+    }
+  };
+
+  const executeSchemeSubmitDirect = async () => {
+    try {
+      setIsLoading(true); // Disable buttons
+      await api.post('/scheme', { 
+        ...schemeForm, 
+        graderInstruction: graderInstruction || '' // Ensure this sends correctly
+      });
+      showToast("Daily Report Submitted!");
+      // Reset form
+      setSchemeForm({ date: new Date().toISOString().split('T')[0], title: '', weekNo: '', topic: '', description: '', classTaken: true });
+      setGraderInstruction('');
+      setModal({ type: null });
+      fetchData(); // Refresh list once
+    } catch(err) { 
+      showToast("Error submitting report", "error"); 
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -724,7 +781,15 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 </div>
               </>
             )}
-
+            {modal.type === 'graderInstruction' && modal.data !== 'skip' && (
+              <>
+                <h3 className="text-2xl font-black text-slate-800 mb-2">Instruction for Grader</h3>
+                <p className="text-slate-500 text-sm mb-6">Optional: Do you want to send any specific instructions to the grader for today's homework?</p>
+                <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-medium text-[#1B2559] min-h-[120px] mb-6" 
+                  placeholder="e.g. Please assign 5 hard questions on algebra..." 
+                  value={graderInstruction} onChange={e => setGraderInstruction(e.target.value)} />
+              </>
+            )}
             <div className="flex gap-4">
               {modal.type === 'viewWork' ? (
                 <button onClick={() => setModal({ type: null, hwId: null, studentId: null, data: '' })} className="w-full py-4 bg-slate-100 text-slate-700 hover:bg-slate-200 font-black rounded-2xl transition-colors">
@@ -732,9 +797,14 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 </button>
               ) : (
                 <>
-                  <button onClick={() => { setModal({ type: null, hwId: null, studentId: null, data: '' }); setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); }} className="flex-1 py-4 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-2xl transition-colors">
-                    Cancel
-                  </button>
+                  <button onClick={() => { 
+  setModal({ type: null, hwId: null, studentId: null, data: '' }); 
+  setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); 
+  setGraderInstruction(''); // <--- ADD THIS
+  setSchemeForm({ date: new Date().toISOString().split('T')[0], title: '', weekNo: '', topic: '', description: '', classTaken: true }); // <--- ADD THIS
+}} className="flex-1 py-4 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-2xl transition-colors">
+  Cancel
+</button>
                   <button onClick={executeModalAction} className={`flex-1 py-4 font-bold rounded-2xl text-white transition-transform hover:-translate-y-1 shadow-lg
                     ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' : 
                       modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
@@ -792,6 +862,10 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 <button onClick={() => setActiveTab('tests')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'tests' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                   Schedule Tests 
+                </button>
+                <button onClick={() => setActiveTab('scheme')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  Scheme of Work
                 </button>
               </>
             )}
@@ -1634,6 +1708,90 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     </div>
                   ))}
                   {announcements.length === 0 && <p className="text-center text-[#A3AED0] font-bold py-10">No announcements posted yet.</p>}
+                </div>
+              </div>
+            </div>
+          )}
+          {/* SCHEME OF WORK TAB */}
+          {activeTab === 'scheme' && (
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
+              {/* Form (Admins Only) */}
+              {user?.role === 'admin' && (
+                <div className="xl:col-span-4 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="bg-fuchsia-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Daily Report</h2>
+                  </div>
+                  
+                  <form onSubmit={handleSchemeInitialSubmit} className="space-y-4">
+                    <div>
+                      <label className="text-xs font-black text-[#A3AED0] uppercase">Date</label>
+                      <input type="date" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.date} onChange={e => setSchemeForm({...schemeForm, date: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-black text-[#A3AED0] uppercase">Lesson Title</label>
+                      <input type="text" required placeholder="e.g. Intro to Algebra" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.title} onChange={e => setSchemeForm({...schemeForm, title: e.target.value})} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">Week No</label>
+                        <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.weekNo} onChange={e => setSchemeForm({...schemeForm, weekNo: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">Topic</label>
+                        <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.topic} onChange={e => setSchemeForm({...schemeForm, topic: e.target.value})} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-black text-[#A3AED0] uppercase">Description (Optional)</label>
+                      <textarea className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold min-h-[100px]" placeholder="What was covered today..." value={schemeForm.description} onChange={e => setSchemeForm({...schemeForm, description: e.target.value})} />
+                    </div>
+                    
+                    <label className="flex items-center gap-3 p-4 bg-emerald-50 rounded-xl cursor-pointer">
+                      <input type="checkbox" className="w-5 h-5 text-emerald-600 rounded" checked={schemeForm.classTaken} onChange={e => setSchemeForm({...schemeForm, classTaken: e.target.checked})} />
+                      <span className="font-bold text-emerald-800 text-sm">Class Was Taken Today</span>
+                    </label>
+
+                    <button type="submit" className="w-full bg-[#1B2559] hover:bg-fuchsia-600 text-white font-black py-4 rounded-xl transition-all shadow-lg mt-4">
+                      Submit Daily Report
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* View Reports (Admins & Graders) */}
+              <div className={user?.role === 'admin' ? "xl:col-span-8" : "xl:col-span-12"}>
+                <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
+                  <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                    <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Scheme of Work Logs</h2>
+                  </div>
+                  
+                  <div className="space-y-4 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
+                    {schemes.map(report => (
+                      <div key={report._id} className={`p-6 rounded-3xl border-2 ${report.classTaken ? 'bg-[#F4F7FE] border-transparent' : 'bg-rose-50 border-rose-100'}`}>
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-black text-xl text-[#1B2559]">{report.title}</h3>
+                          <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase ${report.classTaken ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
+                            {report.classTaken ? '✅ Class Taken' : '❌ No Class'}
+                          </span>
+                        </div>
+                        <p className="text-xs font-black text-[#A3AED0] mb-3">
+                          {new Date(report.date).toLocaleDateString()} | Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
+                        </p>
+                        {report.description && <p className="text-[#1B2559] font-medium mb-3">{report.description}</p>}
+                        
+                        {/* Only show grader instructions to Graders and Admins */}
+                        {(user?.role === 'admin' || user?.role === 'grader') && report.graderInstruction && (
+                          <div className="bg-indigo-50 border-l-4 border-indigo-500 p-3 rounded-r-xl mt-3">
+                            <p className="text-xs font-black text-indigo-800 uppercase mb-1">Grader Instructions:</p>
+                            <p className="text-indigo-900 font-medium text-sm">{report.graderInstruction}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {schemes.length === 0 && <p className="text-center font-bold text-slate-400 py-10">No daily reports recorded yet.</p>}
+                  </div>
                 </div>
               </div>
             </div>
