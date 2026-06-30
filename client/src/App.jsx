@@ -1,6 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+
+// Import the new HomePage
+import HomePage from './pages/home/HomePage';
+
 import AuthPage from './pages/auth/AuthPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import StudentDashboard from './pages/student/StudentDashboard'; 
@@ -14,8 +18,11 @@ function App() {
       <AuthProvider>
         <Toaster position="top-center" />
         <Routes>
-          {/* Public Route */}
-          <Route path="/" element={<AuthPage />} />
+          {/* New Public Landing Page */}
+          <Route path="/" element={<HomePage />} />
+
+          {/* The Login Page is now at /login */}
+          <Route path="/login" element={<AuthPage />} />
           
           {/* Protected Admin Route */}
           <Route 
