@@ -308,7 +308,13 @@ export default function StudentDashboard() {
     const initials = (studentProfile.name || 'Unknown').split(' ').map(n => n[0]).join('').toUpperCase();
     const yearGroup = studentProfile.yearGroup || 'Y?';
     const formattedTitle = (modalTask.title || '').toUpperCase();
-    const fileName = `${initials} - ${yearGroup} - ${formattedTitle}.pdf`;
+
+    let ext = '.pdf';
+    if (modalTask.fileUrl) {
+        if (modalTask.fileUrl.includes('image/jpeg') || modalTask.fileUrl.includes('image/jpg')) ext = '.jpg';
+        else if (modalTask.fileUrl.includes('image/png')) ext = '.png';
+    }
+    const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
 
     const a = document.createElement('a');
     a.href = modalTask.fileUrl;
@@ -401,43 +407,60 @@ export default function StudentDashboard() {
               </div>
               <h4 className="text-xl font-black text-emerald-800 mb-2">Graded Successfully!</h4>
               
-              {modalTask.grading?.adminAnswerSheetUrl ? (
+              {(modalTask.grading?.adminAnswerSheetUrl || modalTask.driveLink) ? (
                 <div className="flex flex-col gap-3 w-full mt-6 text-left">
                   <h4 className="text-xs font-black text-emerald-600 uppercase tracking-wide">Mentor's Marked/Checked work</h4>
                   
-                  <div className="w-full max-h-[400px] overflow-auto border-2 border-emerald-200 rounded-2xl bg-white p-2 shadow-inner">
-                    {modalTask.grading.adminAnswerSheetUrl.includes('image') || modalTask.grading.adminAnswerSheetUrl.startsWith('data:image') ? (
-  <img src={modalTask.grading.adminAnswerSheetUrl} alt="Answer Sheet" className="w-full h-auto rounded-xl object-contain" />
-) : modalTask.grading.adminAnswerSheetUrl.includes('pdf') || modalTask.grading.adminAnswerSheetUrl.startsWith('data:application/pdf') ? (
-  <iframe src={modalTask.grading.adminAnswerSheetUrl} className="w-full h-[500px] border-0 rounded-xl" title="PDF Preview"></iframe>
-) : (
-  <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
-)}
-                  </div>
+                  {/* 1. Show the File Attachment if it exists */}
+                  {modalTask.grading?.adminAnswerSheetUrl && (
+                    <>
+                      <div className="w-full max-h-[400px] overflow-auto border-2 border-emerald-200 rounded-2xl bg-white p-2 shadow-inner">
+                        {modalTask.grading.adminAnswerSheetUrl.includes('image') || modalTask.grading.adminAnswerSheetUrl.startsWith('data:image') ? (
+                          <img src={modalTask.grading.adminAnswerSheetUrl} alt="Answer Sheet" className="w-full h-auto rounded-xl object-contain" />
+                        ) : modalTask.grading.adminAnswerSheetUrl.includes('pdf') || modalTask.grading.adminAnswerSheetUrl.startsWith('data:application/pdf') ? (
+                          <iframe src={modalTask.grading.adminAnswerSheetUrl} className="w-full h-[500px] border-0 rounded-xl" title="PDF Preview"></iframe>
+                        ) : (
+                          <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
+                        )}
+                      </div>
 
-                  <button type="button" onClick={() => {
-    const initials = (studentProfile.name || 'Unknown').split(' ').map(n => n[0]).join('').toUpperCase();
-    const yearGroup = studentProfile.yearGroup || 'Y?';
-    
-    // Replace " HW " or " TEST " with " MW "
-    let formattedTitle = (modalTask.title || '').toUpperCase()
-        .replace(' HW ', ' MW ')
-        .replace(' TEST ', ' MW ');
-        
-    const fileName = `${initials} - ${yearGroup} - ${formattedTitle}.pdf`;
+                      <button type="button" onClick={() => {
+                        const initials = (studentProfile.name || 'Unknown').split(' ').map(n => n[0]).join('').toUpperCase();
+                        const yearGroup = studentProfile.yearGroup || 'Y?';
+                        
+                        let formattedTitle = (modalTask.title || '').toUpperCase()
+                            .replace(' HW ', ' MW ')
+                            .replace(' TEST ', ' MW ');
+                            
+                        let ext = '.pdf';
+                        if (modalTask.grading.adminAnswerSheetUrl) {
+                            if (modalTask.grading.adminAnswerSheetUrl.includes('image/jpeg') || modalTask.grading.adminAnswerSheetUrl.includes('image/jpg')) ext = '.jpg';
+                            else if (modalTask.grading.adminAnswerSheetUrl.includes('image/png')) ext = '.png';
+                        }
+                        const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
 
-    const a = document.createElement('a');
-    a.href = modalTask.grading.adminAnswerSheetUrl;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }}
-                    className="w-full mt-2 px-6 py-4 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-black rounded-2xl transition-all border-2 border-dashed border-emerald-200 flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    Download Marked/Checked work
-                  </button>
+                        const a = document.createElement('a');
+                        a.href = modalTask.grading.adminAnswerSheetUrl;
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                      }}
+                        className="w-full mt-2 px-6 py-4 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-black rounded-2xl transition-all border-2 border-dashed border-emerald-200 flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Download Marked/Checked work
+                      </button>
+                    </>
+                  )}
+
+                  {/* 2. Show the Drive Link if it exists */}
+                  {modalTask.driveLink && (
+                    <a href={modalTask.driveLink} target="_blank" rel="noopener noreferrer" 
+                      className="w-full mt-2 px-6 py-4 bg-blue-50 text-blue-700 hover:bg-blue-100 font-black rounded-2xl transition-all border-2 border-dashed border-blue-200 flex items-center justify-center gap-2 shadow-sm transform hover:-translate-y-1">
+                      ☁️ Open Marked Work in Drive
+                    </a>
+                  )}
                 </div>
               ) : (
                 <p className="text-emerald-600 font-medium text-sm mt-2">No marked/checked work provided by mentor.</p>

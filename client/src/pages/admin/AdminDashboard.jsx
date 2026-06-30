@@ -772,12 +772,18 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
     const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase();
     
     let formattedTitle = (modal.title || '').toUpperCase()
-        .replace(' HW ', ' SW ')
-        .replace(' TEST ', ' SW ');
+                    .replace(' HW ', ' SW ')
+                    .replace(' TEST ', ' SW ');
 
-    const fileName = `${initials} - ${yearGroup} - ${formattedTitle}.pdf`;
+                let ext = '.pdf';
+                if (modal.data.answerFileUrl) {
+                    if (modal.data.answerFileUrl.includes('image/jpeg') || modal.data.answerFileUrl.includes('image/jpg')) ext = '.jpg';
+                    else if (modal.data.answerFileUrl.includes('image/png')) ext = '.png';
+                }
 
-    const a = document.createElement('a');
+                const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
+
+                const a = document.createElement('a');
     a.href = modal.data.answerFileUrl;
     a.download = fileName;
     document.body.appendChild(a);

@@ -238,6 +238,39 @@ export default function ParentDashboard() {
   
   const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : 0;
 
+  const isLinkVisibleForChild = (link) => {
+    if (!link.targetAudience || link.targetAudience === 'all') {
+      if (link.yearGroupFilter && link.yearGroupFilter !== 'all') {
+        return childData?.yearGroup === link.yearGroupFilter;
+      }
+      return true;
+    }
+
+    const audienceId = typeof link.targetAudience === 'object' && link.targetAudience !== null 
+      ? String(link.targetAudience._id || link.targetAudience.id) 
+      : String(link.targetAudience);
+      
+    const validIds = [
+      childData?._id, childData?.id, childData?.student, childData?.child, 
+      childData?.user, childData?.userId, childData?.studentId, userId
+    ];
+    
+    if (assignments && assignments.length > 0) {
+      const hwStudent = assignments[0].studentId;
+      validIds.push(typeof hwStudent === 'object' && hwStudent !== null ? (hwStudent._id || hwStudent.id) : hwStudent);
+    }
+
+    const stringValidIds = validIds.filter(Boolean).map(String);
+    if (stringValidIds.includes(audienceId)) return true;
+
+    if (typeof link.targetAudience === 'object' && link.targetAudience !== null) {
+      if (link.targetAudience.studentId && childData?.studentId && link.targetAudience.studentId === childData.studentId) return true;
+      if (link.targetAudience.email && childData?.email && link.targetAudience.email === childData.email) return true;
+    }
+
+    return false;
+  };
+
   return (
     <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
       
@@ -613,12 +646,16 @@ export default function ParentDashboard() {
                         
                         const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase();
                         
-                        // Replace " HW " or " TEST " with " MW " for Marked Work
                         let formattedTitle = (markedWorkPreview.title || '').toUpperCase()
                             .replace(' HW ', ' MW ')
                             .replace(' TEST ', ' MW ');
 
-                        const fileName = `${initials} - ${yearGroup} - ${formattedTitle}.pdf`;
+                        let ext = '.pdf';
+                        if (markedWorkPreview.grading.adminAnswerSheetUrl) {
+                            if (markedWorkPreview.grading.adminAnswerSheetUrl.includes('image/jpeg') || markedWorkPreview.grading.adminAnswerSheetUrl.includes('image/jpg')) ext = '.jpg';
+                            else if (markedWorkPreview.grading.adminAnswerSheetUrl.includes('image/png')) ext = '.png';
+                        }
+                        const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
 
                         const a = document.createElement('a');
                         a.href = markedWorkPreview.grading.adminAnswerSheetUrl;
@@ -662,11 +699,8 @@ export default function ParentDashboard() {
               <p className="text-slate-500 font-bold mb-8">Access files and external drive folders provided for {childData?.registrationName || childData?.name}.</p>
                 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-  {driveLinks.filter(link => {
-    const studentId = childData?._id || childData?.id || (assignments.length > 0 ? (assignments[0].studentId?._id || assignments[0].studentId) : null);
-    return link.targetAudience === 'all' || link.targetAudience === studentId;
-  }).map(link => (
-    <div key={link._id} className="p-6 bg-white border-2 border-slate-100 hover:border-blue-300 rounded-3xl transition-all shadow-sm hover:shadow-xl flex flex-col justify-between group">
+                {driveLinks.filter(isLinkVisibleForChild).map(link => (
+                  <div key={link._id} className="p-6 bg-white border-2 border-slate-100 hover:border-blue-300 rounded-3xl transition-all shadow-sm hover:shadow-xl flex flex-col justify-between group">
                     <div>
                       <div className="flex gap-2 mb-4">
                         <span className="text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm bg-blue-100 text-blue-700">
@@ -683,11 +717,8 @@ export default function ParentDashboard() {
                   </div>
                 ))}
                 
-                {driveLinks.filter(link => {
-    const studentId = childData?._id || childData?.id || (assignments.length > 0 ? (assignments[0].studentId?._id || assignments[0].studentId) : null);
-    return link.targetAudience === 'all' || link.targetAudience === studentId;
-  }).length === 0 && (
-    <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+                {driveLinks.filter(isLinkVisibleForChild).length === 0 && (
+                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
                     <div className="text-6xl mb-4 opacity-50">☁️</div>
                     <h3 className="text-[#1B2559] font-black text-2xl mb-1">No Links Shared</h3>
                     <p className="text-[#A3AED0] font-bold">No external drive links have been assigned yet.</p>
