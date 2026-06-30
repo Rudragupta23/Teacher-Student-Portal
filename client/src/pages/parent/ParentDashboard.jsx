@@ -17,6 +17,7 @@ export default function ParentDashboard() {
   const [schemes, setSchemes] = useState([]);
   const [markedWorkPreview, setMarkedWorkPreview] = useState(null);
   const [driveLinks, setDriveLinks] = useState([]); 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // 1. Move fetchSchemes outside useEffect
   const fetchSchemes = async () => {
@@ -282,8 +283,16 @@ export default function ParentDashboard() {
         {toast.message}
       </div>
 
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-[#0B1437]/60 z-40 lg:hidden backdrop-blur-sm" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* SIDEBAR */}
-      <aside className="w-72 bg-[#0B1437] text-slate-300 flex flex-col shadow-2xl z-20 hidden lg:flex rounded-r-[2rem] my-4 ml-4 overflow-hidden">
+      <aside className={`w-72 bg-[#0B1437] text-slate-300 flex flex-col shadow-2xl z-50 fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-300 lg:flex rounded-r-[2rem] my-4 lg:ml-4 overflow-hidden`}>
         <div className="p-8 flex items-center gap-4 border-b border-slate-700/50 shrink-0">
           {parentProfile.profilePic ? (
             <img src={parentProfile.profilePic} alt="Profile" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-violet-500/30" />
@@ -304,26 +313,26 @@ export default function ParentDashboard() {
           <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#0B1437] to-transparent pointer-events-none z-10"></div>
           
           <div className="p-6 space-y-3 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+            <button onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
               Child's Progress
             </button>
-            <button onClick={() => setActiveTab('drive')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'drive' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+            <button onClick={() => { setActiveTab('drive'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'drive' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
   Shared Drive
 </button>
 
-            <button onClick={() => setActiveTab('scheme')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+            <button onClick={() => { setActiveTab('scheme'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
   Scheme of Work
 </button>
             
-            <button onClick={() => setActiveTab('messages')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+            <button onClick={() => { setActiveTab('messages'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
               Message Teacher
             </button>
             
-            <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+            <button onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
               Settings
             </button>
@@ -337,7 +346,7 @@ export default function ParentDashboard() {
         </div>
         
         <div className="p-6 border-t border-slate-700/50 shrink-0">
-          <button onClick={handleLogout} className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-rose-500 text-slate-300 hover:text-white px-5 py-4 rounded-2xl font-bold transition-all shadow-sm group">
+          <button onClick={() => { handleLogout(); setIsSidebarOpen(false); }} className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-rose-500 text-slate-300 hover:text-white px-5 py-4 rounded-2xl font-bold transition-all shadow-sm group">
             <svg className="w-5 h-5 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
             Sign Out
           </button>
@@ -345,14 +354,24 @@ export default function ParentDashboard() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 overflow-y-auto scroll-smooth p-6 lg:p-10">
+<div className="flex-1 overflow-y-auto scroll-smooth p-3 sm:p-6 lg:p-10 w-full overflow-x-hidden">
         <div className="max-w-[1600px] mx-auto">
+          {/* MOBILE HAMBURGER HEADER */}
+          <div className="lg:hidden flex items-center justify-between mb-8 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="bg-violet-500 w-10 h-10 flex items-center justify-center rounded-xl text-white font-bold text-xl">P</div>
+              <h1 className="font-black text-[#1B2559] text-xl">Portal</h1>
+            </div>
+            <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-slate-100 rounded-lg text-[#1B2559] hover:bg-slate-200">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+          </div>
           
           {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
-            <div>
-              <h1 className="text-4xl font-black text-[#1B2559]">Monitoring: {childData?.registrationName || childData?.name || 'Loading...'} 📊</h1>
-              <div className="flex items-center gap-3 mt-2">
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 gap-6">
+  <div>
+    <h1 className="text-4xl font-black text-[#1B2559]">Monitoring: {childData?.registrationName || childData?.name || 'Loading...'} 📊</h1>
+    <div className="flex items-center gap-3 mt-2">
                 <p className="text-[#A3AED0] font-bold tracking-wide">Stay on top of your child's coursework and grades.</p>
                 <div className="bg-violet-100 text-violet-700 px-3 py-1 rounded-full text-xs font-black tracking-widest border border-violet-200 flex items-center gap-2">
                   ID: {childData?.studentId || 'N/A'}
@@ -361,7 +380,7 @@ export default function ParentDashboard() {
             </div>
 
             {/* Child Analytics Cards */}
-            <div className="flex gap-4 mt-6 md:mt-0">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full xl:w-auto shrink-0">
               <div className="bg-white px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4 border border-slate-100">
                 <div className="bg-amber-50 p-3 rounded-full text-amber-500">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -404,27 +423,27 @@ export default function ParentDashboard() {
               
 
               {/* STEP 5: EXPORT BUTTONS ADDED HERE */}
-              <div className="flex gap-4 mb-6">
-                <button onClick={handleExportCSV} className="px-6 py-3 bg-white border-2 border-[#1B2559] text-[#1B2559] hover:bg-[#1B2559] hover:text-white font-black rounded-xl transition-all flex items-center gap-2 shadow-sm">
-                  📄 Export CSV
-                </button>
-                <button onClick={handleExportPDF} className="px-6 py-3 bg-white border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white font-black rounded-xl transition-all flex items-center gap-2 shadow-sm">
-                  📑 Export PDF
-                </button>
-              </div>
+              <div className="flex flex-col sm:flex-row gap-3 mb-6 w-full">
+  <button onClick={handleExportCSV} className="w-full sm:w-auto justify-center px-6 py-4 bg-white border-2 border-[#1B2559] text-[#1B2559] hover:bg-[#1B2559] hover:text-white font-black rounded-xl transition-all flex items-center gap-2 shadow-sm">
+    📄 Export CSV
+  </button>
+  <button onClick={handleExportPDF} className="w-full sm:w-auto justify-center px-6 py-4 bg-white border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white font-black rounded-xl transition-all flex items-center gap-2 shadow-sm">
+    📑 Export PDF
+  </button>
+</div>
               
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                 <thead>
-                    <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider">
-                      <th className="p-5 rounded-tl-2xl"> Homework Title</th>
-                      <th className="p-5">Due Date</th>
-                      <th className="p-5">Status</th>
-                      <th className="p-5">Score</th>
-                      <th className="p-5">Marked Work</th>
-                      <th className="p-5 rounded-tr-2xl">Drive Link</th>
-                    </tr>
-                  </thead>
+              <div className="overflow-x-auto w-full max-w-full pb-4 relative"> 
+  <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
+     <thead>
+        <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider">
+          <th className="p-5 rounded-tl-2xl"> Homework Title</th>
+          <th className="p-5">Due Date</th>
+          <th className="p-5">Status</th>
+          <th className="p-5">Score</th>
+          <th className="p-5">Marked Work</th>
+          <th className="p-5 rounded-tr-2xl">Drive Link</th>
+        </tr>
+      </thead>
                   <tbody>
                     {assignments.map(hw => (
                       <tr key={hw._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
@@ -513,7 +532,7 @@ export default function ParentDashboard() {
 
           {/* VIEW 2: MESSAGES */}
           {activeTab === 'messages' && (
-            <div className="bg-white p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-[700px] flex flex-col animate-fade-in relative overflow-hidden">
+            <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-[85vh] md:h-[700px] flex flex-col animate-fade-in relative overflow-hidden">
               
               <div className="bg-violet-500 shadow-violet-500/20 text-white p-6 rounded-2xl mb-4 font-black flex items-center justify-between shadow-lg transition-colors shrink-0">
                 <div className="flex items-center gap-3">
@@ -552,11 +571,11 @@ export default function ParentDashboard() {
                 )}
               </div>
 
-              <form onSubmit={handleSendMessage} className="mt-4 flex gap-2 shrink-0">
-                <input type="text" className="flex-1 p-5 bg-[#F4F7FE] border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-violet-500/20 font-bold text-[#1B2559]" 
-                  placeholder="Type your message..." value={chatInput} onChange={e => setChatInput(e.target.value)} />
-                <button className="px-8 bg-[#1B2559] hover:bg-violet-600 text-white font-black rounded-2xl transition-all shadow-lg transform hover:-translate-y-1">Send</button>
-              </form>
+              <form onSubmit={handleSendMessage} className="mt-4 flex flex-col sm:flex-row gap-3 shrink-0 w-full">
+  <input type="text" className="w-full flex-1 p-4 sm:p-5 bg-[#F4F7FE] border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-violet-500/20 font-bold text-[#1B2559]" 
+    placeholder="Type your message..." value={chatInput} onChange={e => setChatInput(e.target.value)} />
+  <button className="w-full sm:w-auto px-8 py-4 bg-[#1B2559] hover:bg-violet-600 text-white font-black rounded-2xl transition-all shadow-lg transform hover:-translate-y-1">Send</button>
+</form>
             </div>
           )}
 

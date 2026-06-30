@@ -20,6 +20,7 @@ export default function AdminDashboard() {
   const [announcements, setAnnouncements] = useState([]);
   const [announcementForm, setAnnouncementForm] = useState({ content: '', targetAudience: 'all', imageUrl: '' });
   const [isAnnounceUploading, setIsAnnounceUploading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [yearGroupAssign, setYearGroupAssign] = useState('all');
   const [yearGroupAllocate, setYearGroupAllocate] = useState('all');
@@ -498,7 +499,7 @@ export default function AdminDashboard() {
     try {
       const res = await api.put('/auth/profile', { name: settingsForm.name, profilePic: settingsForm.profilePic });
       setAdminProfile({ name: res.data.user.name, profilePic: res.data.user.profilePic || '' });
-      showToast("Profile Settings Saved to Database!");
+      showToast("Profile Settings Saved!");
     } catch (error) {
       showToast("Failed to save profile", "error");
     }
@@ -837,8 +838,16 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
         </div>
       )}
 
-      {/* SIDEBAR */}
-      <aside className="w-72 bg-[#0B1437] text-slate-300 flex flex-col shadow-2xl z-20 hidden lg:flex rounded-r-[2rem] my-4 ml-4 overflow-hidden">
+      {/* Mobile Overlay */}
+{isSidebarOpen && (
+  <div 
+    className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm" 
+    onClick={() => setIsSidebarOpen(false)}
+  />
+)}
+
+{/* SIDEBAR */}
+<aside className={`w-72 bg-[#0B1437] text-slate-300 flex flex-col shadow-2xl z-50 fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-300 lg:flex rounded-r-[2rem] my-4 lg:ml-4 overflow-hidden`}>
         
         {/* 1. Header */}
         <div className="p-8 flex items-center gap-4 border-b border-slate-700/50 shrink-0">
@@ -868,33 +877,33 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
             {/* BOTH ADMIN AND GRADER CAN SEE THESE TABS */}
             {(user?.role === 'admin' || user?.role === 'grader') && (
               <>
-                <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <button onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                   Create Homework 
                 </button>
 
-                <button onClick={() => setActiveTab('submitted')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'submitted' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <button onClick={() => { setActiveTab('submitted'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'submitted' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                   Submitted Work 
                 </button>
 
-                <button onClick={() => setActiveTab('drive')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'drive' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <button onClick={() => { setActiveTab('drive'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'drive' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
   Shared Drive
 </button>
 
-                <button onClick={() => setActiveTab('tests')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'tests' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <button onClick={() => { setActiveTab('tests'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'tests' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                   Schedule Tests 
                 </button>
                 
-                <button onClick={() => setActiveTab('scheme')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <button onClick={() => { setActiveTab('scheme'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                   Scheme of Work
                 </button>
 
                 {/* Direct Messages accessible by both Admin and Grader */}
-                <button onClick={() => setActiveTab('messages')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <button onClick={() => { setActiveTab('messages'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
                   Direct Messages
                 </button>
@@ -904,33 +913,33 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
             {/* ONLY ADMIN CAN SEE THESE TABS */}
             {user?.role === 'admin' && (
               <>
-                <button onClick={() => setActiveTab('students')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'students' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <button onClick={() => { setActiveTab('students'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'students' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                   Students Enrolled
                 </button>
 
                 {/* 👨‍🏫 Manage Graders Tab (Admin Only) - Added matching SVG Icon */}
-                <button onClick={() => setActiveTab('graders')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'graders' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <button onClick={() => { setActiveTab('graders'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'graders' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                   Manage Graders
                 </button>
 
-                <button onClick={() => setActiveTab('announcements')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <button onClick={() => { setActiveTab('announcements'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
                   Announcements
                 </button>
 
-                <button onClick={() => setActiveTab('library')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'library' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <button onClick={() => { setActiveTab('library'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'library' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                   Study Materials
                 </button>
 
-                <button onClick={() => setActiveTab('analytics')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <button onClick={() => { setActiveTab('analytics'); setIsSidebarOpen(false);}} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                   Analytics
                 </button>
 
-                <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <button onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                   Settings
                 </button>
@@ -947,7 +956,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
         
         {/* 3. Sign Out */}
         <div className="p-6 border-t border-slate-700/50 shrink-0">
-          <button onClick={handleLogout} className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-rose-500 text-slate-300 hover:text-white px-5 py-4 rounded-2xl font-bold transition-all shadow-sm group">
+          <button onClick={() => { handleLogout(); setIsSidebarOpen(false); }} className="w-full flex justify-center items-center gap-2 bg-slate-800 hover:bg-rose-500 text-slate-300 hover:text-white px-5 py-4 rounded-2xl font-bold transition-all shadow-sm group">
             <svg className="w-5 h-5 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
             Sign Out
           </button>
@@ -955,20 +964,30 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
       </aside>
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 overflow-y-auto scroll-smooth p-6 lg:p-10">
+<div className="flex-1 overflow-y-auto scroll-smooth p-3 sm:p-6 lg:p-10 w-full overflow-x-hidden">
         <div className="max-w-[1600px] mx-auto">
+          {/* MOBILE HAMBURGER HEADER */}
+    <div className="lg:hidden flex items-center justify-between mb-8 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex items-center gap-3">
+        <div className="bg-indigo-500 w-10 h-10 flex items-center justify-center rounded-xl text-white font-bold">M</div>
+        <h1 className="font-black text-[#1B2559] text-xl">Portal</h1>
+      </div>
+      <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-slate-100 rounded-lg text-[#1B2559] hover:bg-slate-200">
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </button>
+    </div>
           
           {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
-            <div>
-              <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, {adminProfile.name} 👋</h1>
-              <p className="text-[#A3AED0] mt-2 font-bold tracking-wide">Here is what is happening in your classes today.</p>
-            </div>
-            
-            {/* ONLY ADMIN CAN SEE THE TOTAL STUDENTS COUNTER */}
-            {user?.role === 'admin' && (
-              <div className="flex gap-4 mt-6 md:mt-0">
-                <div className="bg-white px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4">
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 gap-6">
+  <div>
+    <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, {adminProfile.name} 👋</h1>
+    <p className="text-[#A3AED0] mt-2 font-bold tracking-wide">Here is what is happening in your classes today.</p>
+  </div>
+  
+  {/* ONLY ADMIN CAN SEE THE TOTAL STUDENTS COUNTER */}
+  {user?.role === 'admin' && (
+    <div className="flex gap-4 w-full xl:w-auto shrink-0">
+      <div className="bg-white px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4 w-full sm:w-auto">
                   <div className="bg-indigo-50 p-3 rounded-full text-indigo-600">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                   </div>
@@ -993,8 +1012,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 
                 <form onSubmit={handleAssignSubmit} className="space-y-6">
                   {/* WEEK AND TOPIC FIELDS */}
-<div className="grid grid-cols-2 gap-4">
-  <div className="space-y-1">
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+    <div className="space-y-1">
     <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Week No</label>
     <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl focus:ring-4 focus:ring-indigo-500/20 text-[#1B2559] outline-none transition-all font-bold" 
       placeholder="e.g. 1" value={assignForm.weekNo} onChange={e => {
@@ -1032,8 +1051,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     {/* 1. Year Group Filter (Top Left) */}
                     <div className="space-y-1">
                       <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Filter by Year</label>
-                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
-                        value={yearGroupAssign} onChange={e => setYearGroupAssign(e.target.value)}>
+                      <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
+    value={yearGroupAssign} onChange={e => setYearGroupAssign(e.target.value)}>
                         <option value="all">All Years</option>
                         {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
                           <option key={yg} value={yg}>{yg}</option>
@@ -1055,8 +1074,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     {/* 3. Student Dropdown (Bottom Row - Full Width) */}
                     <div className="md:col-span-2 space-y-1">
                       <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Select Student</label>
-                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
-                        onChange={e => setAssignForm({...assignForm, studentId: e.target.value})} value={assignForm.studentId}>
+                      <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+    onChange={e => setAssignForm({...assignForm, studentId: e.target.value})} value={assignForm.studentId}>
                         <option value="all">All Filtered Students</option>
                         {students.filter(s => yearGroupAssign === 'all' || s.yearGroup === yearGroupAssign).map(s => (
                           <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
@@ -1069,9 +1088,9 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   <div className="space-y-1">
                     <label className="text-xs font-black text-indigo-500 uppercase tracking-wide ml-1">Deadline Date & Time</label>
                     <input type="datetime-local" required min={minDateTime}
-                      className="w-full p-4 bg-indigo-50 border-none text-indigo-800 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-black cursor-pointer" 
-                      value={assignForm.dueDate}
-                      onChange={e => setAssignForm({...assignForm, dueDate: e.target.value})} />
+  className="w-full max-w-full p-4 bg-indigo-50 border-none text-indigo-800 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-black cursor-pointer" 
+  value={assignForm.dueDate}
+  onChange={e => setAssignForm({...assignForm, dueDate: e.target.value})} />
                   </div>
 
                   <div className="space-y-1 pt-4 border-t border-slate-100">
@@ -1118,8 +1137,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                               <div className="flex items-center justify-between mt-2">
                                 <div className="flex items-center gap-3">
                                   <label className="text-xs font-black text-[#A3AED0] uppercase">Correct Answer:</label>
-                                  <select className="p-2 text-sm font-black border-none rounded-xl bg-emerald-100 text-emerald-800 outline-none cursor-pointer" 
-                                    value={mcq.correctOption} onChange={(e) => updateMcq(qIndex, 'correctOption', parseInt(e.target.value))}>
+                                  <select className="w-full sm:w-auto p-2 text-sm font-black border-none rounded-xl bg-emerald-100 text-emerald-800 outline-none cursor-pointer"                                    value={mcq.correctOption} onChange={(e) => updateMcq(qIndex, 'correctOption', parseInt(e.target.value))}>
                                     <option value={0}>Option 1</option><option value={1}>Option 2</option><option value={2}>Option 3</option><option value={3}>Option 4</option>
                                   </select>
                                 </div>
@@ -1302,7 +1320,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   } catch (err) { showToast('Error scheduling test.', "error"); }
                 }} className="space-y-6">
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
   <div className="space-y-1">
     <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Week No</label>
     <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold focus:ring-4 focus:ring-rose-500/20 text-[#1B2559]" 
@@ -1341,8 +1359,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Filter by Year</label>
-                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
-                        value={testYearGroupAssign} onChange={e => setTestYearGroupAssign(e.target.value)}>
+                      <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
+    value={testYearGroupAssign} onChange={e => setTestYearGroupAssign(e.target.value)}>
                         <option value="all">All Years</option>
                         {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
                           <option key={yg} value={yg}>{yg}</option>
@@ -1362,8 +1380,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
 
                     <div className="md:col-span-2 space-y-1">
                       <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Select Student</label>
-                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
-                        onChange={e => setTestForm({...testForm, studentId: e.target.value})} value={testForm.studentId}>
+                      <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+    onChange={e => setTestForm({...testForm, studentId: e.target.value})} value={testForm.studentId}>
                         <option value="all">All Filtered Students</option>
                         {students.filter(s => testYearGroupAssign === 'all' || s.yearGroup === testYearGroupAssign).map(s => (
                           <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
@@ -1376,13 +1394,13 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-black text-rose-500 uppercase tracking-wide ml-1">Start Date & Time (Unlocks)</label>
-                      <input type="datetime-local" required min={minDateTime} className="w-full p-4 bg-rose-50 text-rose-800 rounded-2xl outline-none cursor-pointer font-bold" 
-                        value={testForm.startDate} onChange={e => setTestForm({...testForm, startDate: e.target.value})} />
+                      <input type="datetime-local" required min={minDateTime} className="w-full max-w-full p-4 bg-rose-50 text-rose-800 rounded-2xl outline-none cursor-pointer font-bold" 
+  value={testForm.startDate} onChange={e => setTestForm({...testForm, startDate: e.target.value})} />
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-black text-rose-500 uppercase tracking-wide ml-1">Deadline Date & Time</label>
-                      <input type="datetime-local" required min={testForm.startDate || minDateTime} className="w-full p-4 bg-rose-50 text-rose-800 rounded-2xl outline-none cursor-pointer font-bold" 
-                        value={testForm.dueDate} onChange={e => setTestForm({...testForm, dueDate: e.target.value})} />
+                      <input type="datetime-local" required min={testForm.startDate || minDateTime} className="w-full max-w-full p-4 bg-rose-50 text-rose-800 rounded-2xl outline-none cursor-pointer font-bold" 
+  value={testForm.dueDate} onChange={e => setTestForm({...testForm, dueDate: e.target.value})} />
                     </div>
                   </div>
 
@@ -1506,12 +1524,12 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   <h2 className="text-2xl font-black text-[#1B2559]">Enrolled Students </h2>
                 </div>
                 
-                <div className="flex items-center gap-3">
-                  <button onClick={handleExportCSV} className="px-5 py-3 bg-slate-50 text-slate-700 hover:bg-slate-700 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center gap-2 border border-slate-200">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mt-4 md:mt-0">
+                  <button onClick={handleExportCSV} className="w-full sm:w-auto justify-center px-5 py-3 bg-slate-50 text-slate-700 hover:bg-slate-700 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center gap-2 border border-slate-200">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Export CSV
                   </button>
-                  <button onClick={handleExportPDF} className="px-5 py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center gap-2 border border-indigo-100">
+                  <button onClick={handleExportPDF} className="w-full sm:w-auto justify-center px-5 py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center gap-2 border border-indigo-100">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     Export PDF
                   </button>
@@ -1549,7 +1567,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                             </h3>
                             {student.yearGroup && <span className="bg-indigo-100 text-indigo-700 text-xs font-black px-2 py-1 rounded-md">{student.yearGroup}</span>}
                           </div>
-                          <p className="text-sm font-bold text-[#A3AED0] mb-2">{student.email}</p>
+                          <p className="text-sm font-bold text-[#A3AED0] mb-2 truncate max-w-full">{student.email}</p>
                           <div className="flex gap-2">
                             <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-lg">{completedCount} Completed</span>
                             <span className="bg-amber-100 text-amber-700 text-xs font-black px-2 py-1 rounded-lg">{pendingCount} Review</span>
@@ -1638,10 +1656,10 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
     Select a Student to Delete
   </label>
   <select
-    className="w-full p-4 bg-rose-50 text-rose-900 border border-rose-100 rounded-2xl outline-none focus:ring-4 focus:ring-rose-500/20 font-bold"
-    value={settingsForm.studentToDelete}
-    onChange={e => setSettingsForm({...settingsForm, studentToDelete: e.target.value})}
-  >
+  className="w-full max-w-full truncate p-4 bg-rose-50 text-rose-900 border border-rose-100 rounded-2xl outline-none focus:ring-4 focus:ring-rose-500/20 font-bold"
+  value={settingsForm.studentToDelete}
+  onChange={e => setSettingsForm({...settingsForm, studentToDelete: e.target.value})}
+>
     <option value="">-- Choose a Student --</option>
     {students.map(s => (
       <option key={s._id} value={s._id}>
@@ -1692,8 +1710,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
 
                   <div className="space-y-2">
                     <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Target Audience</label>
-                    <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
-                      value={announcementForm.targetAudience} onChange={e => setAnnouncementForm({...announcementForm, targetAudience: e.target.value})}>
+                    <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559] truncate max-w-full" 
+  value={announcementForm.targetAudience} onChange={e => setAnnouncementForm({...announcementForm, targetAudience: e.target.value})}>
                       <option value="all">📢 Share to Everyone</option>
                       {students.map(s => <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>)}
                     </select>
@@ -1773,7 +1791,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       <input type="date" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.date} onChange={e => setSchemeForm({...schemeForm, date: e.target.value})} />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
   <div>
     <label className="text-xs font-black text-[#A3AED0] uppercase">Week No</label>
     <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" 
@@ -1932,9 +1950,10 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       </div>
                       
                       {/* Individual Student Filter Dropdown */}
-                      <select 
-                        className="p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559] min-w-[200px]"
-                        value={selectedStudentForChart}
+                      {/* Individual Student Filter Dropdown */}
+<select 
+  className="w-full sm:w-auto p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559] text-sm sm:text-base max-w-full"
+  value={selectedStudentForChart}
                         onChange={e => setSelectedStudentForChart(e.target.value)}
                       >
                         <option value="all">Entire Class</option>
@@ -1973,10 +1992,10 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
 
           {/* VIEW 5: MESSAGES TAB */}
           {activeTab === 'messages' && (
-            <div className="bg-white p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] flex overflow-hidden animate-fade-in gap-6">
+            <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] flex flex-col lg:flex-row overflow-hidden animate-fade-in gap-6">
               
               {/* Left Side: Contact List */}
-              <div className="w-1/3 border-r border-slate-100 pr-4 flex flex-col">
+              <div className="w-full lg:w-1/3 border-b lg:border-b-0 lg:border-r border-slate-100 pb-4 lg:pb-0 lg:pr-4 flex flex-col">
                 <h2 className="text-xl font-black text-[#1B2559] mb-6">Conversations</h2>
                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-2">
                   
@@ -2065,7 +2084,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
               </div>
 
               {/* Right Side: Chat Window */}
-              <div className="w-2/3 flex flex-col bg-[#F4F7FE]/50 rounded-3xl overflow-hidden relative">
+              <div className="w-full lg:w-2/3 flex flex-col bg-[#F4F7FE]/50 rounded-3xl overflow-hidden relative">
                 {selectedStudentForChat ? (
                   <>
                     <div className="bg-white p-4 border-b border-slate-100 font-black text-[#1B2559] flex items-center justify-between shadow-sm z-10">
@@ -2142,11 +2161,11 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       {messages.length === 0 && <p className="text-center text-slate-400 font-bold mt-10">No messages yet. Say hello!</p>}
                     </div>
 
-                    <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-slate-100 flex gap-2">
-                      <input type="text" className="flex-1 p-4 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-[#1B2559]" 
-                        placeholder="Type your message..." value={chatInput} onChange={e => setChatInput(e.target.value)} />
-                      <button className="px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all shadow-md">Send</button>
-                    </form>
+                    <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-slate-100 flex flex-col sm:flex-row gap-3 w-full">
+  <input type="text" className="w-full flex-1 p-4 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-[#1B2559]" 
+    placeholder="Type your message..." value={chatInput} onChange={e => setChatInput(e.target.value)} />
+  <button className="w-full sm:w-auto px-6 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all shadow-md">Send</button>
+</form>
                   </>
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
@@ -2431,8 +2450,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
 
                   <div className="space-y-2 pt-4 border-t border-slate-100">
   <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
-  <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
-    value={driveForm.yearGroupFilter} onChange={e => {
+  <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
+  value={driveForm.yearGroupFilter} onChange={e => {
       const selectedYear = e.target.value;
       const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
       setDriveForm({
@@ -2451,8 +2470,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
 
 <div className="space-y-2">
   <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Recipient</label>
-  <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
-    value={driveForm.targetAudience} onChange={e => setDriveForm({...driveForm, targetAudience: e.target.value})}>
+  <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+  value={driveForm.targetAudience} onChange={e => setDriveForm({...driveForm, targetAudience: e.target.value})}>
     
     {/* Only show "Share to Everyone" if Year Filter is set to All */}
     {driveForm.yearGroupFilter === 'all' && (

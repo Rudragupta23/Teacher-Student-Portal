@@ -172,7 +172,7 @@ const AuthPage = () => {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7 }}
-              className="text-4xl xl:text-5xl font-extrabold mb-6 tracking-tight drop-shadow-xl whitespace-nowrap"
+              className="text-4xl xl:text-5xl font-extrabold mb-6 tracking-tight drop-shadow-xl"
             >
               <span className="text-white">MathCom</span> <span className="text-sky-400">Mentors</span>
             </motion.h1>
@@ -192,10 +192,10 @@ const AuthPage = () => {
           </div>
         </div>
 
-        <div className="md:w-1/2 p-10 sm:p-14 relative bg-white flex flex-col justify-center">
+        <div className="md:w-1/2 p-6 sm:p-10 lg:p-14 relative bg-white flex flex-col justify-center">
           
           {(view === 'forgot' || view === 'reset') && (
-            <button type="button" onClick={() => changeView('login')} className="absolute top-8 left-8 text-gray-400 hover:text-indigo-600 flex items-center gap-2 transition-colors font-semibold outline-none">
+            <button type="button" onClick={() => changeView('login')} className="absolute top-4 left-6 sm:top-8 sm:left-8 text-gray-400 hover:text-indigo-600 flex items-center gap-2 transition-colors font-semibold outline-none z-20">
               <ArrowLeft size={18} /> Back
             </button>
           )}
@@ -210,7 +210,7 @@ const AuthPage = () => {
               onSubmit={handleSubmit}
               className="w-full flex flex-col gap-4"
             >
-              <motion.div variants={itemVariants} className="mb-2">
+              <motion.div variants={itemVariants} className="mb-2 pt-8 sm:pt-0">
                 <h2 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
                   {view === 'login' ? 'Sign In' : view === 'signup' ? 'Create Account' : view === 'forgot' ? 'Reset Password' : view === 'reset' ? 'Create New Password' : 'Verify Email'}
                 </h2>

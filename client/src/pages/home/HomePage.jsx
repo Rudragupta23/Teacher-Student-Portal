@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, animate, useInView } from 'framer-motion';
 import { 
@@ -15,7 +15,6 @@ import {
   Zap,
   Star
 } from 'lucide-react';
-
 const AnimatedCounter = ({ target, suffix }) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
@@ -38,6 +37,7 @@ const AnimatedCounter = ({ target, suffix }) => {
 };
 
 const HomePage = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   // Animation configurations
   const fadeUp = {
     hidden: { opacity: 0, y: 40 },
@@ -53,56 +53,51 @@ const HomePage = () => {
     <div className="min-h-screen bg-[#070B14] text-slate-300 font-sans overflow-x-hidden selection:bg-indigo-500/30">
       
       {/* Navbar - Glassmorphic Dark */}
-      <nav className="fixed w-full z-50 top-0 bg-[#070B14]/80 backdrop-blur-xl border-b border-slate-800/50 shadow-2xl shadow-black/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            
-            <motion.a 
-              href="/"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-3 cursor-pointer"
-            >
-              <img 
-                src="/mathcom-logo.png" 
-                alt="MathCom Mentors Logo" 
-                className="w-10 h-10 object-contain rounded-xl shadow-lg shadow-black/50"
-              />
-              <span className="font-extrabold text-2xl tracking-tight text-white">
-                MathCom <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Mentors</span>
-              </span>
-            </motion.a>
-            
-            <div className="hidden md:flex items-center gap-8 font-medium">
-              <motion.a whileHover={{ y: -2, color: '#fff' }} href="#about" className="text-slate-400 transition-colors">Mission</motion.a>
-              <motion.a whileHover={{ y: -2, color: '#fff' }} href="#features" className="text-slate-400 transition-colors">Features</motion.a>
-              <motion.a whileHover={{ y: -2, color: '#fff' }} href="#subjects" className="text-slate-400 transition-colors">Curriculum</motion.a>
-              <motion.a 
-                whileHover={{ scale: 1.05, color: '#f43f5e' }}
-                href="https://www.youtube.com/@MathComMentors" 
-                target="_blank" 
-                rel="noreferrer"
-                className="flex items-center gap-2 text-rose-500 transition-colors"
-              >
-                <Video className="w-5 h-5" />
-                <span>Watch Lectures</span>
-              </motion.a>
-            </div>
+      <nav className="fixed w-full z-50 top-0 bg-[#070B14]/90 backdrop-blur-xl border-b border-slate-800/50 shadow-2xl shadow-black/50">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex justify-between items-center h-20">
+      
+      {/* Logo */}
+      <motion.a href="/" whileHover={{ scale: 1.02 }} className="flex items-center gap-3">
+        <img src="/mathcom-logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-xl shadow-lg" />
+        <span className="font-extrabold text-2xl tracking-tight text-white">MathCom <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Mentors</span></span>
+      </motion.a>
+      
+      {/* Desktop Links */}
+      <div className="hidden md:flex items-center gap-8 font-medium">
+        <a href="#about" className="text-slate-400 hover:text-white transition-colors">Mission</a>
+        <a href="#features" className="text-slate-400 hover:text-white transition-colors">Features</a>
+        <a href="#subjects" className="text-slate-400 hover:text-white transition-colors">Curriculum</a>
+        <Link to="/login" className="bg-indigo-600 text-white px-7 py-2.5 rounded-full font-bold hover:bg-indigo-500 transition-colors">Portal Login</Link>
+      </div>
 
-            <div>
-              <Link to="/login">
-                <motion.button 
-                  whileHover={{ scale: 1.05, boxShadow: "0px 0px 20px rgba(99, 102, 241, 0.4)" }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-indigo-600 text-white px-7 py-2.5 rounded-full font-bold transition-colors border border-indigo-500/50"
-                >
-                  Portal Login
-                </motion.button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* Mobile Hamburger Button */}
+      <div className="md:hidden flex items-center">
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-slate-300 hover:text-white focus:outline-none">
+          <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {isMobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {/* Mobile Dropdown Menu */}
+  {isMobileMenuOpen && (
+    <div className="md:hidden bg-[#070B14] border-b border-slate-800 absolute w-full left-0 top-20 shadow-2xl">
+      <div className="px-4 pt-2 pb-6 space-y-4 flex flex-col">
+        <a href="#about" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 font-medium p-2 block hover:bg-slate-800 rounded">Mission</a>
+        <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 font-medium p-2 block hover:bg-slate-800 rounded">Features</a>
+        <a href="#subjects" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-300 font-medium p-2 block hover:bg-slate-800 rounded">Curriculum</a>
+        <Link to="/login" className="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold text-center mt-4 w-full block">Portal Login</Link>
+      </div>
+    </div>
+  )}
+</nav>
 
       {/* Hero Section */}
       <div className="relative pt-32 pb-20 sm:pt-48 sm:pb-32 flex items-center justify-center min-h-screen">
