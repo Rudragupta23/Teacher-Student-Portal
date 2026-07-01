@@ -8,7 +8,11 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false }, 
   otp: { type: String },                       
   otpExpires: { type: Date },                    
-  
+  status: {
+    type: String,
+    enum: ['pending', 'active', 'rejected'],
+    default: 'pending' 
+  },
   role: { type: String, enum: ['admin', 'grader', 'student', 'parent'], default: 'student' },
   allocatedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], 
   studentId: { type: String, unique: true, sparse: true }, 

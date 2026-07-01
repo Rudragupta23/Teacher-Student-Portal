@@ -80,6 +80,7 @@ exports.register = async (req, res) => {
       password: hashedPassword, 
       phone: cleanPhone, 
       role,
+      status: role === 'admin' ? 'active' : 'pending',
       classCode: role === 'admin' ? process.env.ADMIN_CLASS_CODE : (role === 'student' ? classCode : undefined),
       yearGroup: role === 'student' ? yearGroup : undefined,
       studentId: newStudentId,                                
@@ -117,6 +118,38 @@ exports.register = async (req, res) => {
       subject: 'Verify Your Account - MathCom Mentors',
       html: emailHtml
     });
+    if (role === 'student') {
+      const adminAlertHtml = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 16px;">
+          <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
+            <h2 style="color: #6d28d9; margin-top: 0; font-size: 24px; font-weight: 800;">Action Required</h2>
+            <h3 style="color: #1e293b; font-size: 20px; margin-bottom: 16px;">New Student Registration</h3>
+            
+            <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+              A new student, <strong>${name}</strong> (${email}), has just registered using the class code.
+            </p>
+            
+            <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+              <p style="color: #b45309; font-size: 15px; font-weight: 600; margin: 0;">
+                Their account is currently pending.
+              </p>
+            </div>
+            
+            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+            
+            <p style="color: #64748b; font-size: 14px; line-height: 1.5; margin: 0;">
+              Please log in to your Admin Dashboard at your convenience to review and approve their access.
+            </p>
+          </div>
+        </div>
+      `;
+
+      await sendEmail({
+        email: process.env.ADMIN_EMAIL,
+        subject: 'Pending Approval: New Student Registration',
+        html: adminAlertHtml
+      });
+    }
 
     res.status(201).json({ message: 'Account created! Please check your email for the OTP.' });
   } catch (error) {
@@ -159,6 +192,13 @@ exports.login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+    
+    if (user.role === 'student' && user.status === 'pending') {
+      return res.status(403).json({ message: 'Your account is pending teacher approval. Please wait until your teacher activates your account.' });
+    }
+    if (user.status === 'rejected') {
+      return res.status(403).json({ message: 'Your registration was rejected by the teacher.' });
+    }
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
 

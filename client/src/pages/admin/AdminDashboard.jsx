@@ -83,10 +83,35 @@ export default function AdminDashboard() {
   const [newGraderEmail, setNewGraderEmail] = useState('');
   const [newGraderName, setNewGraderName] = useState('');
 
+  const [pendingStudents, setPendingStudents] = useState([]);
+
+  const fetchPendingStudents = async () => {
+    if (user?.role === 'admin') {
+      try {
+        const res = await api.get('/admin/students/pending');
+        setPendingStudents(res.data);
+      } catch (error) {
+        console.error("Error fetching pending students", error);
+      }
+    }
+  };
+
+  const handleApproveStudent = async (studentId) => {
+    try {
+      await api.put(`/admin/students/${studentId}/approve`);
+      showToast('✅ Student approved successfully!');
+      fetchPendingStudents(); // Refresh the pending list
+      fetchData(); // Refresh the main enrolled students list
+    } catch (error) {
+      showToast('Failed to approve student', 'error');
+    }
+  };
+
   useEffect(() => {
     fetchData();
     fetchProfile(); 
     fetchDriveLinks();
+    fetchPendingStudents();
 
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -422,6 +447,11 @@ export default function AdminDashboard() {
         });
         showToast("Marked Work Removed!");
       }
+      else if (modal.type === 'deleteGrader') {
+        await api.delete(`/admin/graders/${modal.graderId}`);
+        setGraders(graders.filter(g => g._id !== modal.graderId));
+        showToast("Grader deleted successfully!");
+      }
       else if (modal.type === 'allocate') {
         await api.put(`/admin/graders/${modal.graderId}/allocate`, { studentIds: selectedStudentsToAllocate });
         showToast("Students successfully allocated to grader!");
@@ -729,17 +759,21 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
               </>
             )}
 
-            {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet') && (
-              <>
-                <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mb-4 text-3xl mx-auto">🗑️</div>
-                <h3 className="text-2xl font-black text-slate-800 mb-2 text-center">
-                  {modal.type === 'deleteStudent' ? 'Remove Student?' : modal.type === 'deleteAnsSheet' ? 'Delete Marked/Checked work?' : 'Delete Homework?'}
-                </h3>
-                <p className="text-slate-500 text-sm mb-6 text-center">
-                  {modal.type === 'deleteAnsSheet' ? 'This will remove your uploaded marked/checked work from this graded homework.' : 'This action is permanent and cannot be undone.'}
-                </p>
-              </>
-            )}
+            {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader') && (
+  <>
+    <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mb-4 text-3xl mx-auto">🗑️</div>
+    <h3 className="text-2xl font-black text-slate-800 mb-2 text-center">
+      {modal.type === 'deleteStudent' ? 'Remove Student?' : 
+       modal.type === 'deleteAnsSheet' ? 'Delete Marked/Checked work?' : 
+       modal.type === 'deleteGrader' ? 'Delete Grader?' : 'Delete Homework?'}
+    </h3>
+    <p className="text-slate-500 text-sm mb-6 text-center">
+      {modal.type === 'deleteAnsSheet' ? 'This will remove your uploaded marked/checked work from this graded homework.' : 
+       modal.type === 'deleteGrader' ? `Are you sure you want to permanently delete "${modal.data}"?` :
+       'This action is permanent and cannot be undone.'}
+    </p>
+  </>
+)}
 
             {modal.type === 'viewWork' && (
               <>
@@ -826,11 +860,11 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
   Cancel
 </button>
                   <button onClick={executeModalAction} className={`flex-1 py-4 font-bold rounded-2xl text-white transition-transform hover:-translate-y-1 shadow-lg
-                    ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' : 
-                      modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
-                      'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}>
-                    {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet') ? 'Yes, Delete' : 'Confirm'}
-                  </button>
+  ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' :
+    modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
+    'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}>
+  {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader') ? 'Yes, Delete' : 'Confirm'}
+</button>
                 </>
               )}
             </div>
@@ -1535,6 +1569,38 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   </button>
                 </div>
               </div>
+
+              {pendingStudents.length > 0 && (
+                <div className="mb-10 bg-amber-50/50 border border-amber-200 rounded-[2rem] p-6 shadow-inner">
+                  <h3 className="text-lg font-black text-amber-600 mb-4 flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                    </span>
+                    Requires Approval ({pendingStudents.length})
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {pendingStudents.map(student => (
+                      <div key={student._id} className="bg-white p-5 rounded-2xl flex flex-col gap-4 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-black text-[#1B2559] text-lg">{student.name}</h4>
+                            {student.yearGroup && <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded-md">{student.yearGroup}</span>}
+                          </div>
+                          <p className="text-xs font-bold text-[#A3AED0]">{student.email}</p>
+                        </div>
+                        <button 
+                          onClick={() => handleApproveStudent(student._id)}
+                          className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3 rounded-xl transition-all shadow-sm text-sm"
+                        >
+                          Allow Access
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {students.map(student => {
@@ -2322,19 +2388,11 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       }} className="flex-1 bg-indigo-50 text-indigo-600 font-black py-3 rounded-xl hover:bg-indigo-600 hover:text-white transition-all text-sm border border-indigo-200">
                         👥 Allocate Students
                       </button>
-                      <button onClick={async () => {
-                        if (window.confirm(`Are you sure you want to permanently delete the grader "${grader.name}"?`)) {
-                          try {
-                            await api.delete(`/admin/graders/${grader._id}`);
-                            setGraders(graders.filter(g => g._id !== grader._id));
-                            showToast('👨‍🏫 Grader deleted successfully!');
-                          } catch (err) { 
-                            showToast(err.response?.data?.message || 'Error deleting grader', 'error'); 
-                          }
-                        }
-                      }} className="flex-1 bg-rose-50 text-rose-500 font-black py-3 rounded-xl hover:bg-rose-500 hover:text-white transition-all text-sm border border-rose-200">
-                        🗑️ Delete
-                      </button>
+                      <button onClick={() => {
+  setModal({ type: 'deleteGrader', graderId: grader._id, data: grader.name });
+}} className="flex-1 bg-rose-50 text-rose-500 font-black py-3 rounded-xl hover:bg-rose-500 hover:text-white transition-all text-sm border border-rose-200">
+  🗑️ Delete
+</button>
                     </div>
                   </div>
                 ))}

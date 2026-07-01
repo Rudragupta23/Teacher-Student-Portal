@@ -160,10 +160,6 @@ exports.createGrader = async (req, res) => {
               <p style="margin: 4px 0; color: #0f172a; font-size: 16px;"><strong>Email:</strong> <span style="color: #475569;">${email}</span></p>
               <p style="margin: 4px 0; color: #0f172a; font-size: 16px;"><strong>Password:</strong> <span style="font-family: monospace; font-weight: bold; background-color: #e2e8f0; padding: 2px 6px; border-radius: 6px; color: #4f46e5;">${plainPassword}</span></p>
             </div>
-
-            <a href="http://localhost:5173" style="display: block; width: 100%; text-align: center; background: linear-gradient(to right, #4f46e5, #6366f1); color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; padding: 16px 0; border-radius: 16px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);">
-              Go to Portal & Login
-            </a>
           </div>
 
           <div style="text-align: center; margin-top: 32px; color: #94a3b8; font-size: 12px;">
@@ -213,5 +209,64 @@ exports.allocateStudentsToGrader = async (req, res) => {
     res.status(200).json({ message: 'Students successfully allocated to grader!' });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+// @desc    Get all students waiting for approval
+// @route   GET /api/admin/students/pending
+exports.getPendingStudents = async (req, res) => {
+  try {
+    const pendingStudents = await User.find({ role: 'student', status: 'pending' }).select('-password');
+    res.status(200).json(pendingStudents);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Approve a pending student
+// @route   PUT /api/admin/students/:id/approve
+exports.approveStudent = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { status: 'active' },
+      { returnDocument: 'after' }
+    ).select('-password');
+
+    if (!user) return res.status(404).json({ message: 'Student not found' });
+
+    const studentApprovalHtml = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 16px;">
+        <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
+          <h2 style="color: #10B981; margin-top: 0; font-size: 28px; font-weight: 800;">Account Approved! 🎉</h2>
+          <h3 style="color: #1e293b; font-size: 22px; margin-bottom: 16px;">Welcome to MathCom Mentors, ${user.name}.</h3>
+          
+          <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+            Great news! Your teacher has reviewed and approved your registration. 
+          </p>
+          
+          <div style="background-color: #ecfdf5; border: 1px solid #d1fae5; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+            <p style="color: #047857; font-size: 15px; font-weight: 600; margin: 0;">
+              Your account is now fully active.
+            </p>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+          
+          <p style="color: #64748b; font-size: 14px; line-height: 1.5; margin: 0;">
+            You can now log in to the portal at any time using your registered email and password to view your dashboard, assignments, and study materials.
+          </p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail({
+      email: user.email, 
+      subject: 'Account Approved! Welcome to MathCom Mentors',
+      html: studentApprovalHtml
+    });
+
+    res.status(200).json({ message: 'Student approved successfully!', user });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
