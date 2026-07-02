@@ -817,7 +817,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       <button type="button" onClick={() => {
     const studentName = modal.student?.registrationName || modal.student?.name || 'Unknown';
     const yearGroup = modal.student?.yearGroup || 'Y?';
-    const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase();
+    const initials = studentName.split(' ')[0];
     
     let formattedTitle = (modal.title || '').toUpperCase()
                     .replace(' HW ', ' SW ')
@@ -1621,66 +1621,79 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {students.map(student => {
-                  const studentHw = homeworks.filter(h => h.studentId?._id === student._id);
-                  const completedCount = studentHw.filter(h => h.status === 'Graded').length;
-                  const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
-                  const overdueCount = studentHw.filter(h => h.status === 'Pending' && new Date(h.dueDate) < new Date()).length;
-                  const gradedHw = studentHw.filter(h => h.status === 'Graded');
-                  let totalEarned = 0; let totalPossible = 0;
-gradedHw.forEach(h => {
-  if(h.grading?.score != null && h.grading?.totalScore) {
-      totalEarned += h.grading.score;
-      totalPossible += h.grading.totalScore;
-  }
-});
-const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : "0.0";
-                  const progressWidth = `${avgScore}%`;
-
-                  return (
-                    <div key={student._id} className="bg-[#F4F7FE] p-6 rounded-3xl flex flex-col gap-4 hover:shadow-lg transition-shadow border border-transparent hover:border-indigo-100">
+              <div className="overflow-x-auto w-full max-w-full pb-4 relative mt-6">
+                <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider">
+                      <th className="p-5 rounded-tl-2xl">Student Details</th>
+                      <th className="p-5">Email Address</th>
+                      <th className="p-5">Task Status</th>
+                      <th className="p-5 rounded-tr-2xl w-64">Average Performance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {students.map(student => {
+                      const studentHw = homeworks.filter(h => h.studentId?._id === student._id);
+                      const completedCount = studentHw.filter(h => h.status === 'Graded').length;
+                      const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
+                      const overdueCount = studentHw.filter(h => h.status === 'Pending' && new Date(h.dueDate) < new Date()).length;
+                      const gradedHw = studentHw.filter(h => h.status === 'Graded');
                       
-                      <div className="flex items-center gap-6">
-                        <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-black text-2xl shadow-md">
-                          {student.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <h3 className="font-black text-[#1B2559] text-xl">
-                              {student.registrationName || student.name}
-                            </h3>
-                            {student.yearGroup && <span className="bg-indigo-100 text-indigo-700 text-xs font-black px-2 py-1 rounded-md">{student.yearGroup}</span>}
-                          </div>
-                          <p className="text-sm font-bold text-[#A3AED0] mb-2 truncate max-w-full">{student.email}</p>
-                          <div className="flex gap-2 flex-wrap">
-  <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-lg">{completedCount} Completed</span>
-  <span className="bg-amber-100 text-amber-700 text-xs font-black px-2 py-1 rounded-lg">{pendingCount} Review</span>
-  <span className="bg-rose-100 text-rose-700 text-xs font-black px-2 py-1 rounded-lg">{overdueCount} Overdue</span>
-</div>
-                        </div>
-                        
-                        </div>
+                      let totalEarned = 0; let totalPossible = 0;
+                      gradedHw.forEach(h => {
+                        if(h.grading?.score != null && h.grading?.totalScore) {
+                            totalEarned += h.grading.score;
+                            totalPossible += h.grading.totalScore;
+                        }
+                      });
+                      
+                      const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : "0.0";
+                      const progressWidth = `${avgScore}%`;
 
-                      <div className="w-full bg-white p-3 rounded-2xl shadow-sm mt-2">
-                        <div className="flex justify-between text-xs font-black text-[#A3AED0] mb-2">
-                          <span>Average Performance</span>
-                          <span className={avgScore >= 80 ? 'text-emerald-500' : avgScore >= 50 ? 'text-amber-500' : 'text-rose-500'}>{avgScore}%</span>
-                        </div>
-                        <div className="w-full bg-slate-100 rounded-full h-2">
-                          <div className={`h-2 rounded-full ${avgScore >= 80 ? 'bg-emerald-500' : avgScore >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: progressWidth }}></div>
-                        </div>
-                      </div>
-
-                    </div>
-                  );
-                })}
-
-                {students.length === 0 && (
-                  <div className="col-span-full text-center py-20 text-[#A3AED0] font-bold">
-                    No students have registered yet.
-                  </div>
-                )}
+                      return (
+                        <tr key={student._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                          <td className="p-5">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-black text-xl shadow-md">
+                                {student.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-black text-[#1B2559] text-base">{student.registrationName || student.name}</span>
+                                {student.yearGroup && <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded-md">{student.yearGroup}</span>}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-5">
+                            <span className="text-sm font-bold text-slate-500">{student.email}</span>
+                          </td>
+                          <td className="p-5">
+                            <div className="flex gap-2 flex-wrap">
+                              <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-lg">{completedCount} Completed</span>
+                              <span className="bg-amber-100 text-amber-700 text-xs font-black px-2 py-1 rounded-lg">{pendingCount} Review</span>
+                              <span className="bg-rose-100 text-rose-700 text-xs font-black px-2 py-1 rounded-lg">{overdueCount} Overdue</span>
+                            </div>
+                          </td>
+                          <td className="p-5">
+                            <div className="w-full bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
+                              <div className="flex justify-between text-xs font-black text-[#A3AED0] mb-2">
+                                <span>Score</span>
+                                <span className={avgScore >= 80 ? 'text-emerald-500' : avgScore >= 50 ? 'text-amber-500' : 'text-rose-500'}>{avgScore}%</span>
+                              </div>
+                              <div className="w-full bg-slate-100 rounded-full h-2">
+                                <div className={`h-2 rounded-full ${avgScore >= 80 ? 'bg-emerald-500' : avgScore >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: progressWidth }}></div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {students.length === 0 && (
+                      <tr>
+                        <td colSpan="4" className="text-center py-10 text-[#A3AED0] font-bold">No students have registered yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -1978,55 +1991,85 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     <h2 className="text-2xl font-black text-[#1B2559]">Lesson Schedule</h2>
                   </div>
                   
-                  <div className="space-y-4 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
-                    {schemes.map(report => (
-                      <div key={report._id} className={`p-6 rounded-3xl border-2 ${report.classStatus === 'Class Taken' ? 'bg-[#F4F7FE] border-transparent' : 'bg-rose-50 border-rose-100'}`}>
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-black text-xl text-[#1B2559]">{report.title}</h3>
-                          <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
-                            {report.classStatus === 'Class Taken' ? '✅ Class Taken' : `❌ ${report.classStatus}`}
-                          </span>
-                        </div>
-                        
-                        <p className="text-xs font-black text-[#A3AED0] mb-2">
-                          {new Date(report.date).toLocaleDateString()} 
-                          {report.classStatus === 'Class Taken' && ` | Week ${report.weekNo || 'N/A'} | Topic: ${report.topic || 'N/A'}`}
-                        </p>
-                        
-                        {/* ONLY SHOW TIME AND DURATION IF CLASS WAS TAKEN */}
-                        {report.classStatus === 'Class Taken' && (
-                          <div className="flex flex-col gap-2 mb-3 mt-1">
-                            <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-md border border-indigo-100 inline-block w-fit">
-                              ⏰ Start Time: {report.startTime || 'N/A'} | End Time: {report.endTime || 'N/A'}
-                            </span>
-                            <span className="text-xs font-black text-indigo-600 bg-white px-3 py-1.5 rounded-md shadow-sm border border-slate-100 inline-block w-fit">
-                              Class was taken for: {
-                                (report.startTime && report.endTime) ? (() => {
-                                  const [sh, sm] = report.startTime.split(':').map(Number);
-                                  const [eh, em] = report.endTime.split(':').map(Number);
-                                  let diff = (eh * 60 + em) - (sh * 60 + sm);
-                                  if(diff < 0) diff += 24 * 60;
-                                  const h = Math.floor(diff/60);
-                                  const m = diff % 60;
-                                  return `${h > 0 ? h + ' hour(s) ' : ''}${m > 0 ? m + ' minute(s)' : ''}`.trim();
-                                })() : 'N/A'
-                              }
-                            </span>
-                          </div>
+                  <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
+                    <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
+                      <thead>
+                        <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10">
+                          <th className="p-5 rounded-tl-2xl">Date & Week</th>
+                          <th className="p-5">Lesson Title</th>
+                          <th className="p-5">Status</th>
+                          <th className="p-5">Time & Duration</th>
+                          <th className="p-5 rounded-tr-2xl">Details & Instructions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {schemes.map(report => (
+                          <tr key={report._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td className="p-5">
+                              <p className="font-bold text-[#1B2559]">
+                                {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                              </p>
+                              <p className="text-xs font-bold text-[#A3AED0] mt-1">Week {report.weekNo || 'N/A'}</p>
+                            </td>
+                            <td className="p-5">
+                              <p className="font-bold text-[#1B2559]">{report.title}</p>
+                              {report.topic && <p className="text-xs font-bold text-slate-500 mt-1">Topic: {report.topic}</p>}
+                            </td>
+                            <td className="p-5">
+                              <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                {report.classStatus === 'Class Taken' ? '✅ Class Taken' : `❌ ${report.classStatus}`}
+                              </span>
+                            </td>
+                            <td className="p-5">
+                              {report.classStatus === 'Class Taken' && report.startTime && report.endTime ? (
+                                <div>
+                                  <p className="text-sm font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md inline-block mb-1 border border-indigo-100">
+                                    {report.startTime} - {report.endTime}
+                                  </p>
+                                  <p className="text-xs font-bold text-slate-500 block">
+                                    Duration: {
+                                      (() => {
+                                        const [sh, sm] = report.startTime.split(':').map(Number);
+                                        const [eh, em] = report.endTime.split(':').map(Number);
+                                        let diff = (eh * 60 + em) - (sh * 60 + sm);
+                                        if(diff < 0) diff += 24 * 60;
+                                        const h = Math.floor(diff/60);
+                                        const m = diff % 60;
+                                        return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`.trim();
+                                      })()
+                                    }
+                                  </p>
+                                </div>
+                              ) : (
+                                <span className="text-xs font-bold text-slate-400">-</span>
+                              )}
+                            </td>
+                            <td className="p-5 w-[350px] whitespace-normal">
+                              {report.description ? (
+                                <p className="text-sm text-slate-600 font-medium line-clamp-2 mb-2" title={report.description}>
+                                  {report.description}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-slate-400 font-medium mb-2">-</p>
+                              )}
+                              
+                              {/* Admin/Grader ONLY: Grader Instructions */}
+                              {(user?.role === 'admin' || user?.role === 'grader') && report.graderInstruction && (
+                                <div className="bg-indigo-50 border-l-4 border-indigo-500 p-2 rounded-r-lg">
+                                  <p className="text-[10px] font-black text-indigo-800 uppercase mb-0.5">Grader Instructions:</p>
+                                  <p className="text-indigo-900 font-medium text-xs line-clamp-2" title={report.graderInstruction}>{report.graderInstruction}</p>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                        {schemes.length === 0 && (
+                          <tr>
+                            <td colSpan="5" className="text-center py-10 text-slate-400 font-bold">No daily reports recorded yet.</td>
+                          </tr>
                         )}
-                        
-                        {report.description && <p className="text-[#1B2559] font-medium mb-3">{report.description}</p>}
-                        
-                        {/* Only show grader instructions to Graders and Admins */}
-                        {(user?.role === 'admin' || user?.role === 'grader') && report.graderInstruction && (
-                          <div className="bg-indigo-50 border-l-4 border-indigo-500 p-3 rounded-r-xl mt-3">
-                            <p className="text-xs font-black text-indigo-800 uppercase mb-1">Grader Instructions:</p>
-                            <p className="text-indigo-900 font-medium text-sm">{report.graderInstruction}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {schemes.length === 0 && <p className="text-center font-bold text-slate-400 py-10">No daily reports recorded yet.</p>}
+                      </tbody>
+                    </table>
                   </div>
 
                 </div>

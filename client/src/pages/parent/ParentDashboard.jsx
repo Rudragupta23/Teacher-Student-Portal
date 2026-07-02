@@ -639,54 +639,73 @@ export default function ParentDashboard() {
                 <h2 className="text-2xl font-black text-[#1B2559]">Lesson Schedule</h2>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {schemes.map(report => (
-                  <div key={report._id} className={`p-6 rounded-3xl border-2 shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-[#F4F7FE] border-transparent' : 'bg-rose-50 border-rose-100'}`}>
-                   <div className="flex justify-between items-start mb-4">
-                      <div className="bg-violet-100 text-violet-800 px-4 py-3 rounded-xl border border-violet-200 shadow-sm flex flex-col gap-2">
-                        <span className="text-lg font-black block leading-none">
-                          {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
-                      </div>
-                      <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
-                        {report.classStatus === 'Class Taken' ? '✅ Class Taken' : `❌ ${report.classStatus}`}
-                      </span>
-                    </div>
-                    <h3 className="font-black text-[#1B2559] text-xl mb-1">{report.title}</h3>
-                    
-                    {/* ONLY SHOW TIME AND DURATION IF CLASS WAS TAKEN */}
-                    {report.classStatus === 'Class Taken' && (
-                      <>
-                        <p className="text-xs font-black text-[#A3AED0] mb-3">
-                          Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
-                        </p>
-                        <div className="flex flex-col gap-2 mb-4">
-                          <span className="text-xs font-bold text-violet-700 bg-violet-50 px-3 py-1.5 rounded-md border border-violet-200 inline-block w-fit">
-                            ⏰ Start Time: {report.startTime || 'N/A'} | End Time: {report.endTime || 'N/A'}
+              <div className="overflow-x-auto w-full max-w-full pb-4 relative">
+                <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider">
+                      <th className="p-5 rounded-tl-2xl">Date & Week</th>
+                      <th className="p-5">Lesson Title</th>
+                      <th className="p-5">Status</th>
+                      <th className="p-5">Time & Duration</th>
+                      <th className="p-5 rounded-tr-2xl">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {schemes.map(report => (
+                      <tr key={report._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="p-5">
+                          <p className="font-bold text-[#1B2559]">
+                            {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                          <p className="text-xs font-bold text-[#A3AED0] mt-1">Week {report.weekNo || 'N/A'}</p>
+                        </td>
+                        <td className="p-5">
+                          <p className="font-bold text-[#1B2559]">{report.title}</p>
+                          {report.topic && <p className="text-xs font-bold text-slate-500 mt-1">Topic: {report.topic}</p>}
+                        </td>
+                        <td className="p-5">
+                          <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                            {report.classStatus === 'Class Taken' ? '✅ Class Taken' : `❌ ${report.classStatus}`}
                           </span>
-                          <span className="text-xs font-black text-violet-600 bg-white px-3 py-1.5 rounded-md shadow-sm border border-slate-100 inline-block w-fit">
-                            Class was taken for: {
-                              (report.startTime && report.endTime) ? (() => {
-                                 const [sh, sm] = report.startTime.split(':').map(Number);
-                                 const [eh, em] = report.endTime.split(':').map(Number);
-                                 let diff = (eh * 60 + em) - (sh * 60 + sm);
-                                 if(diff < 0) diff += 24 * 60;
-                                 const h = Math.floor(diff/60);
-                                 const m = diff % 60;
-                                 return `${h > 0 ? h + ' hour(s) ' : ''}${m > 0 ? m + ' minute(s)' : ''}`.trim();
-                              })() : 'N/A'
-                            }
-                          </span>
-                        </div>
-                      </>
+                        </td>
+                        <td className="p-5">
+                          {report.classStatus === 'Class Taken' && report.startTime && report.endTime ? (
+                            <div>
+                              <p className="text-sm font-bold text-violet-700 bg-violet-50 px-2 py-1 rounded-md inline-block mb-1 border border-violet-100">
+                                {report.startTime} - {report.endTime}
+                              </p>
+                              <p className="text-xs font-bold text-slate-500 block">
+                                Duration: {
+                                  (() => {
+                                    const [sh, sm] = report.startTime.split(':').map(Number);
+                                    const [eh, em] = report.endTime.split(':').map(Number);
+                                    let diff = (eh * 60 + em) - (sh * 60 + sm);
+                                    if(diff < 0) diff += 24 * 60;
+                                    const h = Math.floor(diff/60);
+                                    const m = diff % 60;
+                                    return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`.trim();
+                                  })()
+                                }
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-bold text-slate-400">-</span>
+                          )}
+                        </td>
+                        <td className="p-5 w-[300px] whitespace-normal">
+                          <p className="text-sm text-slate-600 font-medium line-clamp-2" title={report.description}>
+                            {report.description || '-'}
+                          </p>
+                        </td>
+                      </tr>
+                    ))}
+                    {schemes.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="text-center py-10 text-slate-400 font-bold">No classes have been logged yet.</td>
+                      </tr>
                     )}
-
-                    {report.description && <p className="text-[#1B2559] text-sm font-medium">{report.description}</p>}
-                  </div>
-                ))}
-                {schemes.length === 0 && (
-                  <div className="col-span-full text-center text-[#A3AED0] font-bold py-10">No classes have been logged yet.</div>
-                )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -702,7 +721,7 @@ export default function ParentDashboard() {
                         const studentName = childData?.registrationName || childData?.name || 'Unknown';
                         const yearGroup = childData?.yearGroup || 'Y?';
                         
-                        const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase();
+                        const initials = studentName.split(' ')[0];
                         
                         let formattedTitle = (markedWorkPreview.title || '').toUpperCase()
                             .replace(' HW ', ' MW ')
