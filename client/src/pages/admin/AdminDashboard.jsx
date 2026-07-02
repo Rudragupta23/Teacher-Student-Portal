@@ -69,8 +69,7 @@ export default function AdminDashboard() {
 
   // Scheme of Work States
   const [schemes, setSchemes] = useState([]);
-  const [schemeForm, setSchemeForm] = useState({ date: new Date().toISOString().split('T')[0], title: '', weekNo: '', topic: '', description: '', classTaken: true });
-  const [graderInstruction, setGraderInstruction] = useState('');
+  const [schemeForm, setSchemeForm] = useState({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classTaken: true });  const [graderInstruction, setGraderInstruction] = useState('');
 
   const [chatTarget, setChatTarget] = useState('student'); 
   const [selectedParent, setSelectedParent] = useState(null); 
@@ -923,7 +922,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
 
                 <button onClick={() => { setActiveTab('drive'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'drive' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
-  Shared Drive
+  Google Drive
 </button>
 
                 <button onClick={() => { setActiveTab('tests'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'tests' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
@@ -933,7 +932,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 
                 <button onClick={() => { setActiveTab('scheme'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                  Scheme of Work
+                  Lesson Schedule
                 </button>
 
                 {/* Direct Messages accessible by both Admin and Grader */}
@@ -1607,7 +1606,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   const studentHw = homeworks.filter(h => h.studentId?._id === student._id);
                   const completedCount = studentHw.filter(h => h.status === 'Graded').length;
                   const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
-
+                  const overdueCount = studentHw.filter(h => h.status === 'Pending' && new Date(h.dueDate) < new Date()).length;
                   const gradedHw = studentHw.filter(h => h.status === 'Graded');
                   let totalEarned = 0; let totalPossible = 0;
 gradedHw.forEach(h => {
@@ -1634,10 +1633,11 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                             {student.yearGroup && <span className="bg-indigo-100 text-indigo-700 text-xs font-black px-2 py-1 rounded-md">{student.yearGroup}</span>}
                           </div>
                           <p className="text-sm font-bold text-[#A3AED0] mb-2 truncate max-w-full">{student.email}</p>
-                          <div className="flex gap-2">
-                            <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-lg">{completedCount} Completed</span>
-                            <span className="bg-amber-100 text-amber-700 text-xs font-black px-2 py-1 rounded-lg">{pendingCount} Review</span>
-                          </div>
+                          <div className="flex gap-2 flex-wrap">
+  <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-lg">{completedCount} Completed</span>
+  <span className="bg-amber-100 text-amber-700 text-xs font-black px-2 py-1 rounded-lg">{pendingCount} Review</span>
+  <span className="bg-rose-100 text-rose-700 text-xs font-black px-2 py-1 rounded-lg">{overdueCount} Overdue</span>
+</div>
                         </div>
                         
                         </div>
@@ -1852,10 +1852,33 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   </div>
                   
                   <form onSubmit={handleSchemeInitialSubmit} className="space-y-4">
-                    <div>
-                      <label className="text-xs font-black text-[#A3AED0] uppercase">Date</label>
-                      <input type="date" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.date} onChange={e => setSchemeForm({...schemeForm, date: e.target.value})} />
-                    </div>
+                    <div className="mb-4">
+  <label className="text-xs font-black text-[#A3AED0] uppercase">Date</label>
+  <input type="date" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.date} onChange={e => setSchemeForm({...schemeForm, date: e.target.value})} />
+</div>
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+  <div>
+    <label className="text-xs font-black text-[#A3AED0] uppercase">Start Time</label>
+    <input type="time" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.startTime} onChange={e => setSchemeForm({...schemeForm, startTime: e.target.value})} />
+  </div>
+  <div>
+    <label className="text-xs font-black text-[#A3AED0] uppercase">End Time</label>
+    <input type="time" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.endTime} onChange={e => setSchemeForm({...schemeForm, endTime: e.target.value})} />
+  </div>
+</div>
+{schemeForm.startTime && schemeForm.endTime && (
+  <div className="text-sm font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 flex justify-end">
+    ⏱️ Total Duration: {(() => {
+      const [sh, sm] = schemeForm.startTime.split(':').map(Number);
+      const [eh, em] = schemeForm.endTime.split(':').map(Number);
+      let diff = (eh * 60 + em) - (sh * 60 + sm);
+      if(diff < 0) diff += 24 * 60;
+      const h = Math.floor(diff/60);
+      const m = diff % 60;
+      return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`;
+    })()}
+  </div>
+)}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
   <div>
@@ -1920,7 +1943,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
                   <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
                     <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
-                    <h2 className="text-2xl font-black text-[#1B2559]">Scheme of Work Logs</h2>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Lesson Schedule</h2>
                   </div>
                   
                   <div className="space-y-4 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
@@ -1932,9 +1955,27 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                             {report.classTaken ? '✅ Class Taken' : '❌ No Class'}
                           </span>
                         </div>
-                        <p className="text-xs font-black text-[#A3AED0] mb-3">
+                        <p className="text-xs font-black text-[#A3AED0] mb-2">
                           {new Date(report.date).toLocaleDateString()} | Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
                         </p>
+                        {(report.startTime && report.endTime) && (
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
+                              ⏰ {report.startTime} - {report.endTime}
+                            </span>
+                            <span className="text-xs font-black text-indigo-600 bg-white px-2 py-1 rounded-md shadow-sm border border-slate-100">
+                              Duration: {(() => {
+                                const [sh, sm] = report.startTime.split(':').map(Number);
+                                const [eh, em] = report.endTime.split(':').map(Number);
+                                let diff = (eh * 60 + em) - (sh * 60 + sm);
+                                if(diff < 0) diff += 24 * 60;
+                                const h = Math.floor(diff/60);
+                                const m = diff % 60;
+                                return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`;
+                              })()}
+                            </span>
+                          </div>
+                        )}
                         {report.description && <p className="text-[#1B2559] font-medium mb-3">{report.description}</p>}
                         
                         {/* Only show grader instructions to Graders and Admins */}

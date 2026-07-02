@@ -516,7 +516,7 @@ export default function StudentDashboard() {
 
             <button onClick={() => { setActiveTab('scheme'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-violet-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-  Scheme of Work
+  Lesson Schedule
 </button>
 
             <button onClick={() => { setActiveTab('announcements'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
@@ -1069,23 +1069,45 @@ export default function StudentDashboard() {
 
             </div>
           )} 
-        {/* SCHEME OF WORK TAB */}
+        {/* Lesson Schedule TAB */}
           {activeTab === 'scheme' && (
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
               <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
                 <div className="bg-fuchsia-500 w-2 h-8 rounded-full"></div>
-                <h2 className="text-2xl font-black text-[#1B2559]">Scheme of Work (Daily Logs)</h2>
+                <h2 className="text-2xl font-black text-[#1B2559]">Lesson Schedule</h2>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {schemes.map(report => (
                   <div key={report._id} className={`p-6 rounded-3xl border-2 shadow-sm ${report.classTaken ? 'bg-[#F4F7FE] border-transparent' : 'bg-rose-50 border-rose-100'}`}>
-                    <div className="flex justify-between items-start mb-3">
-                      <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase ${report.classTaken ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
-                        {report.classTaken ? '✅ Class Taken' : '❌ Cancelled'}
-                      </span>
-                      <span className="text-xs font-black text-slate-400">{new Date(report.date).toLocaleDateString()}</span>
-                    </div>
+                    <div className="flex justify-between items-start mb-4">
+  <div className="bg-fuchsia-100 text-fuchsia-800 px-4 py-3 rounded-xl border border-fuchsia-200 shadow-sm flex flex-col gap-2">
+    <span className="text-lg font-black block leading-none">
+      {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+    </span>
+    {(report.startTime && report.endTime) && (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold text-fuchsia-700 bg-fuchsia-50 px-2 py-1 rounded-md border border-fuchsia-200">
+          ⏰ {report.startTime} - {report.endTime}
+        </span>
+        <span className="text-xs font-black text-fuchsia-600 bg-white px-2 py-1 rounded-md shadow-sm">
+          Duration: {(() => {
+             const [sh, sm] = report.startTime.split(':').map(Number);
+             const [eh, em] = report.endTime.split(':').map(Number);
+             let diff = (eh * 60 + em) - (sh * 60 + sm);
+             if(diff < 0) diff += 24 * 60;
+             const h = Math.floor(diff/60);
+             const m = diff % 60;
+             return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`;
+          })()}
+        </span>
+      </div>
+    )}
+  </div>
+  <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase shadow-sm ${report.classTaken ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
+    {report.classTaken ? '✅ Class Taken' : '❌ Cancelled'}
+  </span>
+</div>
                     <h3 className="font-black text-[#1B2559] text-xl mb-1">{report.title}</h3>
                     <p className="text-xs font-black text-[#A3AED0] mb-3">
                       Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}

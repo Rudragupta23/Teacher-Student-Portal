@@ -2,6 +2,12 @@ const mongoose = require('mongoose');
 
 const schemeSchema = new mongoose.Schema({
   date: { type: Date, required: true, default: Date.now },
+  startTime: {
+        type: String
+    },
+    endTime: {
+        type: String
+    },
   title: { type: String, required: true },
   weekNo: { type: String },
   topic: { type: String },
