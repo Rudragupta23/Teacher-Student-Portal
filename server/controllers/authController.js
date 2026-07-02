@@ -9,7 +9,8 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 // @desc    Register a new user & Send OTP
 // @route   POST /api/auth/register
 exports.register = async (req, res) => {
-  const { name, email, password, phone, classCode, yearGroup, isParent, linkedStudentId } = req.body;
+  // const { name, email, password, phone, classCode, yearGroup, isParent, linkedStudentId } = req.body;
+  const { name, email, password, phone, yearGroup, isParent, linkedStudentId, schoolName, city, country } = req.body;
 
   try {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -29,9 +30,9 @@ exports.register = async (req, res) => {
     // Determine Role
     let role = email === process.env.ADMIN_EMAIL ? 'admin' : (isParent ? 'parent' : 'student');
     
-    if (role === 'student' && classCode !== process.env.ADMIN_CLASS_CODE) {
-      return res.status(403).json({ message: 'Invalid Class Code' });
-    }
+    // if (role === 'student' && classCode !== process.env.ADMIN_CLASS_CODE) {
+    //   return res.status(403).json({ message: 'Invalid Class Code' });
+    // }
 
     // Logic for Student ID Generation and Parent Validation
     let newStudentId = undefined;
@@ -81,8 +82,11 @@ exports.register = async (req, res) => {
       phone: cleanPhone, 
       role,
       status: role === 'admin' ? 'active' : 'pending',
-      classCode: role === 'admin' ? process.env.ADMIN_CLASS_CODE : (role === 'student' ? classCode : undefined),
+      // classCode: role === 'admin' ? process.env.ADMIN_CLASS_CODE : (role === 'student' ? classCode : undefined),
       yearGroup: role === 'student' ? yearGroup : undefined,
+      schoolName: role === 'student' ? schoolName : undefined,
+      city: role === 'student' ? city : undefined,
+      country: role === 'student' ? country : undefined,
       studentId: newStudentId,                                
       linkedStudentId: role === 'parent' ? linkedStudentId : undefined, 
       isVerified: false,
@@ -126,7 +130,7 @@ exports.register = async (req, res) => {
             <h3 style="color: #1e293b; font-size: 20px; margin-bottom: 16px;">New Student Registration</h3>
             
             <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-              A new student, <strong>${name}</strong> (${email}), has just registered using the class code.
+              A new student, <strong>${name}</strong> (${email}), has just registered.
             </p>
             
             <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 16px; margin-bottom: 24px;">

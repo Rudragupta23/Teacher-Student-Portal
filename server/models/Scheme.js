@@ -12,7 +12,11 @@ const schemeSchema = new mongoose.Schema({
   weekNo: { type: String },
   topic: { type: String },
   description: { type: String },
-  classTaken: { type: Boolean, default: true },
+  classStatus: { 
+    type: String, 
+    enum: ['Class Taken', 'Class Cancelled by Teacher', 'Class Cancelled by Student'], 
+    default: 'Class Taken' 
+  },
   graderInstruction: { type: String },
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now }

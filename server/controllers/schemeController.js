@@ -4,10 +4,10 @@ const sendEmail = require('../utils/sendEmail');
 
 exports.createReport = async (req, res) => {
   try {
-    const { date, title, weekNo, topic, description, classTaken, graderInstruction } = req.body;
+    const { date, startTime, endTime, title, weekNo, topic, description, classStatus, graderInstruction } = req.body;
     
     const report = await Scheme.create({
-      date, title, weekNo, topic, description, classTaken, graderInstruction, adminId: req.user._id
+      date, startTime, endTime, title, weekNo, topic, description, classStatus, graderInstruction, adminId: req.user._id
     });
 
     // Send Emails to Graders
@@ -18,7 +18,7 @@ exports.createReport = async (req, res) => {
       let emailSubject = '';
       let emailHtml = '';
 
-      if (classTaken) {
+      if (classStatus === 'Class Taken') {
         emailSubject = `Class Completed: ${topic || title}`;
         emailHtml = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
@@ -56,31 +56,16 @@ exports.createReport = async (req, res) => {
           </div>
         `;
       } else {
-        emailSubject = `Class Cancelled: ${topic || title}`;
+        emailSubject = `Class Cancelled: ${title}`;
         emailHtml = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
             <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
               <div style="background-color: #ef4444; padding: 25px; text-align: center;">
-                <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">❌ No Class Today</h2>
+                <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">❌ ${classStatus}</h2>
               </div>
               <div style="padding: 30px;">
                 <p style="font-size: 16px; margin-bottom: 20px;">Hello Grader,</p>
-                <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">This is to inform you that class has been marked as <strong>not taken</strong> today. No homework is required for this entry.</p>
-                
-                <table style="width: 100%; border-collapse: collapse; margin: 25px 0;">
-                  <tr>
-                    <td style="padding: 8px; color: #6b7280;"><strong>Title:</strong></td>
-                    <td style="padding: 8px; font-weight: 600;">${title}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px; color: #6b7280;"><strong>Week:</strong></td>
-                    <td style="padding: 8px; font-weight: 600;">${weekNo || 'N/A'}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px; color: #6b7280;"><strong>Topic:</strong></td>
-                    <td style="padding: 8px; font-weight: 600;">${topic || 'N/A'}</td>
-                  </tr>
-                </table>
+                <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">This is to inform you that the class was marked as <strong>${classStatus}</strong> today. No homework is required for this entry.</p>
               </div>
             </div>
           </div>

@@ -20,7 +20,10 @@ const userSchema = new mongoose.Schema({
 
   profilePic: { type: String, default: '' },
   phone: { type: String },
-  classCode: { type: String },
+  // classCode: { type: String },
+  schoolName: { type: String },
+  city: { type: String },
+  country: { type: String, default: 'United Kingdom' },
   yearGroup: { 
     type: String, 
     enum: ['Y6', 'Y7', 'Y8', 'Y9', 'Y10', 'Y11', 'AS Level', 'A level'] 

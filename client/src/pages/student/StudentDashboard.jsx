@@ -397,7 +397,7 @@ export default function StudentDashboard() {
               <div className="bg-amber-50 border border-amber-200 p-6 rounded-3xl text-center">
                 <div className="text-4xl mb-2">⏳</div>
                 <h4 className="text-xl font-black text-amber-700 mb-1">Under Review</h4>
-                <p className="text-amber-600 font-medium">You have submitted your work. Waiting for your mentor to grade it.</p>
+                <p className="text-amber-600 font-medium">You have submitted your work. Waiting for your teacher to grade it.</p>
               </div>
             ) : (
               <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-3xl text-center flex flex-col items-center">
@@ -410,7 +410,7 @@ export default function StudentDashboard() {
               
               {(modalTask.grading?.adminAnswerSheetUrl || modalTask.driveLink) ? (
                 <div className="flex flex-col gap-3 w-full mt-6 text-left">
-                  <h4 className="text-xs font-black text-emerald-600 uppercase tracking-wide">Mentor's Marked/Checked work</h4>
+                  <h4 className="text-xs font-black text-emerald-600 uppercase tracking-wide">Teacher's Marked/Checked work</h4>
                   
                   {/* 1. Show the File Attachment if it exists */}
                   {modalTask.grading?.adminAnswerSheetUrl && (
@@ -464,7 +464,7 @@ export default function StudentDashboard() {
                   )}
                 </div>
               ) : (
-                <p className="text-emerald-600 font-medium text-sm mt-2">No marked/checked work provided by mentor.</p>
+                <p className="text-emerald-600 font-medium text-sm mt-2">No marked/checked work provided by teacher.</p>
               )}
             </div>
             )}
@@ -586,9 +586,9 @@ export default function StudentDashboard() {
     <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, {studentProfile.name} 👋</h1>
     <div className="flex items-center gap-3 mt-2">
       <p className="text-[#A3AED0] font-bold tracking-wide">Stay on top of your coursework and grades.</p>
-                <div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-black tracking-widest border border-indigo-200 flex items-center gap-2 flex-wrap max-w-full">
+                <div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-black tracking-widest border border-indigo-200 flex items-center gap-2 w-fit">
   <span className="truncate">ID: {studentProfile.studentId}</span>
-  <button onClick={() => {navigator.clipboard.writeText(studentProfile.studentId); showToast("ID Copied!");}} className="hover:text-indigo-900 shrink-0" title="Copy ID">
+  <button onClick={() => {navigator.clipboard.writeText(studentProfile.studentId); showToast("ID Copied!");}} className="hover:text-indigo-900" title="Copy ID">
     📋
   </button>
 </div>
@@ -843,7 +843,7 @@ export default function StudentDashboard() {
                   <div className="flex flex-col items-center justify-center h-[300px] text-center">
                     <div className="text-6xl mb-4 opacity-50">📢</div>
                     <p className="text-[#1B2559] font-black text-xl mb-1">All caught up!</p>
-                    <p className="text-[#A3AED0] font-bold">No new announcements from your mentor.</p>
+                    <p className="text-[#A3AED0] font-bold">No new announcements from your teacher.</p>
                   </div>
                 )}
               </div>
@@ -950,7 +950,7 @@ export default function StudentDashboard() {
                   onClick={() => setChatRoom('admin')}
                   className={`flex-1 py-3 rounded-2xl font-black transition-colors ${chatRoom === 'admin' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                 >
-                  👨‍🏫 Mentor Chat
+                  👨‍🏫 Teacher Chat
                 </button>
                 <button 
                   onClick={() => setChatRoom('all')}
@@ -967,9 +967,9 @@ export default function StudentDashboard() {
                     {chatRoom === 'admin' ? '👨‍🏫' : '🌍'}
                   </div>
                   <div>
-                    <h2 className="text-xl">{chatRoom === 'admin' ? 'Mentor Support Chat' : 'Global Class Chat'}</h2>
+                    <h2 className="text-xl">{chatRoom === 'admin' ? 'Teacher Support Chat' : 'Global Class Chat'}</h2>
                     <p className="text-xs font-medium text-white/80">
-                      {chatRoom === 'admin' ? 'Ask your doubts directly here!' : 'Chat with your mentor and all other students!'}
+                      {chatRoom === 'admin' ? 'Ask your doubts directly here!' : 'Chat with your teacher and all other students!'}
                     </p>
                   </div>
                 </div>
@@ -1006,7 +1006,7 @@ export default function StudentDashboard() {
                 {messages.length === 0 && (
                   <div className="text-center text-slate-400 font-bold mt-20">
                     <p className="text-4xl mb-2">👋</p>
-                    <p>No messages yet. {chatRoom === 'admin' ? 'Drop your mentor a question!' : 'Say hello to the class!'}</p>
+                    <p>No messages yet. {chatRoom === 'admin' ? 'Drop your teacher a question!' : 'Say hello to the class!'}</p>
                   </div>
                 )}
               </div>
@@ -1027,7 +1027,7 @@ export default function StudentDashboard() {
                 <div className="bg-cyan-500 w-2 h-8 rounded-full"></div>
                 <h2 className="text-2xl font-black text-[#1B2559]">Study Materials Hub 📚</h2>
               </div>
-              <p className="text-slate-500 font-bold mb-8">Access syllabus files, reference links, and study guides provided by your mentor anytime. These are not graded tasks.</p>
+              <p className="text-slate-500 font-bold mb-8">Access syllabus files, reference links, and study guides provided by your teacher anytime. These are not graded tasks.</p>
                 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {resources.map(res => (
@@ -1062,7 +1062,7 @@ export default function StudentDashboard() {
                   <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
                     <div className="text-6xl mb-4 opacity-50">🗂️</div>
                     <h3 className="text-[#1B2559] font-black text-2xl mb-1">Library is empty!</h3>
-                    <p className="text-[#A3AED0] font-bold">Your mentor hasn't uploaded any study materials yet.</p>
+                    <p className="text-[#A3AED0] font-bold">Your Teacher hasn't uploaded any study materials yet.</p>
                   </div>
                 )}
               </div>
@@ -1079,41 +1079,45 @@ export default function StudentDashboard() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {schemes.map(report => (
-                  <div key={report._id} className={`p-6 rounded-3xl border-2 shadow-sm ${report.classTaken ? 'bg-[#F4F7FE] border-transparent' : 'bg-rose-50 border-rose-100'}`}>
+                  <div key={report._id} className={`p-6 rounded-3xl border-2 shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-[#F4F7FE] border-transparent' : 'bg-rose-50 border-rose-100'}`}>
                    <div className="flex justify-between items-start mb-4">
-  <div className="bg-fuchsia-100 text-fuchsia-800 px-4 py-3 rounded-xl border border-fuchsia-200 shadow-sm flex flex-col gap-2">
-    <span className="text-lg font-black block leading-none">
-      {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-    </span>
-  </div>
-  <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase shadow-sm ${report.classTaken ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
-    {report.classTaken ? '✅ Class Taken' : '❌ Cancelled'}
-  </span>
-</div>
-                    <h3 className="font-black text-[#1B2559] text-xl mb-1">{report.title}</h3>
-                    <p className="text-xs font-black text-[#A3AED0] mb-3">
-                      Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
-                    </p>
-
-                    {/* ALWAYS SHOW TIME AND DURATION */}
-                    <div className="flex flex-col gap-2 mb-4">
-                      <span className="text-xs font-bold text-fuchsia-700 bg-fuchsia-50 px-3 py-1.5 rounded-md border border-fuchsia-200 inline-block w-fit">
-                        ⏰ Start Time: {report.startTime || 'N/A'} | End Time: {report.endTime || 'N/A'}
-                      </span>
-                      <span className="text-xs font-black text-fuchsia-600 bg-white px-3 py-1.5 rounded-md shadow-sm border border-slate-100 inline-block w-fit">
-                        Class was taken for: {
-                          (report.startTime && report.endTime) ? (() => {
-                             const [sh, sm] = report.startTime.split(':').map(Number);
-                             const [eh, em] = report.endTime.split(':').map(Number);
-                             let diff = (eh * 60 + em) - (sh * 60 + sm);
-                             if(diff < 0) diff += 24 * 60;
-                             const h = Math.floor(diff/60);
-                             const m = diff % 60;
-                             return `${h > 0 ? h + ' hour(s) ' : ''}${m > 0 ? m + ' minute(s)' : ''}`.trim();
-                          })() : 'N/A'
-                        }
+                      <div className="bg-fuchsia-100 text-fuchsia-800 px-4 py-3 rounded-xl border border-fuchsia-200 shadow-sm flex flex-col gap-2">
+                        <span className="text-lg font-black block leading-none">
+                          {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
+                        {report.classStatus === 'Class Taken' ? '✅ Class Taken' : `❌ ${report.classStatus}`}
                       </span>
                     </div>
+                    <h3 className="font-black text-[#1B2559] text-xl mb-1">{report.title}</h3>
+                    
+                    {/* ONLY SHOW TIME AND DURATION IF CLASS WAS TAKEN */}
+                    {report.classStatus === 'Class Taken' && (
+                      <>
+                        <p className="text-xs font-black text-[#A3AED0] mb-3">
+                          Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
+                        </p>
+                        <div className="flex flex-col gap-2 mb-4">
+                          <span className="text-xs font-bold text-fuchsia-700 bg-fuchsia-50 px-3 py-1.5 rounded-md border border-fuchsia-200 inline-block w-fit">
+                            ⏰ Start Time: {report.startTime || 'N/A'} | End Time: {report.endTime || 'N/A'}
+                          </span>
+                          <span className="text-xs font-black text-fuchsia-600 bg-white px-3 py-1.5 rounded-md shadow-sm border border-slate-100 inline-block w-fit">
+                            Class was taken for: {
+                              (report.startTime && report.endTime) ? (() => {
+                                 const [sh, sm] = report.startTime.split(':').map(Number);
+                                 const [eh, em] = report.endTime.split(':').map(Number);
+                                 let diff = (eh * 60 + em) - (sh * 60 + sm);
+                                 if(diff < 0) diff += 24 * 60;
+                                 const h = Math.floor(diff/60);
+                                 const m = diff % 60;
+                                 return `${h > 0 ? h + ' hour(s) ' : ''}${m > 0 ? m + ' minute(s)' : ''}`.trim();
+                              })() : 'N/A'
+                            }
+                          </span>
+                        </div>
+                      </>
+                    )}
 
                     {report.description && <p className="text-[#1B2559] text-sm font-medium">{report.description}</p>}
                   </div>
@@ -1132,7 +1136,7 @@ export default function StudentDashboard() {
                 <div className="bg-blue-500 w-2 h-8 rounded-full"></div>
                 <h2 className="text-2xl font-black text-[#1B2559]">Shared Drive Links ☁️</h2>
               </div>
-              <p className="text-slate-500 font-bold mb-8">Access folders and marked work hosted on Google Drive by your mentor.</p>
+              <p className="text-slate-500 font-bold mb-8">Access folders and marked work hosted on Google Drive by your teacher.</p>
                 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
   {driveLinks.filter(link => link.targetAudience === 'all' || link.targetAudience === userId).map(link => (
@@ -1157,7 +1161,7 @@ export default function StudentDashboard() {
     <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
                     <div className="text-6xl mb-4 opacity-50">☁️</div>
                     <h3 className="text-[#1B2559] font-black text-2xl mb-1">No Links Shared</h3>
-                    <p className="text-[#A3AED0] font-bold">Your mentor hasn't shared any Drive links with you yet.</p>
+                    <p className="text-[#A3AED0] font-bold">Your teacher hasn't shared any Drive links with you yet.</p>
                   </div>
                 )}
               </div>

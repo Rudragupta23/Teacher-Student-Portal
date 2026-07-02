@@ -7,6 +7,22 @@ import html2canvas from 'html2canvas';
 import { useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 
+const getOverdueTime = (dueDate, submittedAt = null) => {
+  const targetDate = submittedAt ? new Date(submittedAt) : new Date();
+  const due = new Date(dueDate);
+  const diffMs = targetDate - due;
+
+  if (diffMs <= 0) return '';
+
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''}`;
+  if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+  return `${diffMins} min${diffMins > 1 ? 's' : ''}`;
+};
+
 export default function AdminDashboard() {
   // Navigation & Data State
   const { user } = useContext(AuthContext);
@@ -458,7 +474,7 @@ export default function AdminDashboard() {
       else if (modal.type === 'graderInstruction') {
         await api.post('/scheme', { ...schemeForm, graderInstruction });
         showToast("Daily Report Submitted!");
-        setSchemeForm({ date: new Date().toISOString().split('T')[0], title: '', weekNo: '', topic: '', description: '', classTaken: true });
+        setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken' });
         setGraderInstruction('');
       }
       
@@ -471,10 +487,9 @@ export default function AdminDashboard() {
   };
   const handleSchemeInitialSubmit = async (e) => {
     e.preventDefault();
-    
     if (isLoading) return; 
 
-    if (schemeForm.classTaken) {
+    if (schemeForm.classStatus === 'Class Taken') {
       setModal({ type: 'graderInstruction', data: '' });
     } else {
       await executeSchemeSubmitDirect();
@@ -489,8 +504,7 @@ export default function AdminDashboard() {
         graderInstruction: graderInstruction || '' 
       });
       showToast("Daily Report Submitted!");
-      setSchemeForm({ date: new Date().toISOString().split('T')[0], title: '', weekNo: '', topic: '', description: '', classTaken: true });
-      setGraderInstruction('');
+      setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken' });
       setModal({ type: null });
       fetchData(); 
     } catch(err) { 
@@ -854,7 +868,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
   setModal({ type: null, hwId: null, studentId: null, data: '' }); 
   setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); 
   setGraderInstruction(''); 
-  setSchemeForm({ date: new Date().toISOString().split('T')[0], title: '', weekNo: '', topic: '', description: '', classTaken: true }); 
+  setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken' }); 
 }} className="flex-1 py-4 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-2xl transition-colors">
   Cancel
 </button>
@@ -893,11 +907,11 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
           )}
           <div>
             <h1 className="text-lg font-black text-white tracking-wide leading-tight">MathCom<br/>Mentors</h1>
-            {user?.role === 'admin' && (
+            {/* {user?.role === 'admin' && (
               <p className="text-xs font-bold text-indigo-300 mt-1.5 tracking-widest uppercase bg-slate-800/80 inline-block px-2 py-1 rounded-md border border-slate-700">
                 Code: MATH_2026
               </p>
-            )}
+            )} */}
           </div>
         </div>
         
@@ -1249,10 +1263,16 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                                 📥 Submitted: {new Date(hw.submission.submittedAt).toLocaleString()}
                               </div>
                             )}
-                            {isLate && hw.status === 'Pending' && <span className="bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl text-xs font-black w-fit">Overdue</span>}
-                            {hw.submission?.submittedAt && new Date(hw.submission.submittedAt) > new Date(hw.dueDate) && (
-                               <span className="bg-rose-500 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-sm animate-pulse w-fit">⚠️ LATE SUBMISSION</span>
-                            )}
+{isLate && hw.status === 'Pending' && (
+  <span className="bg-rose-100 text-rose-600 px-3 py-1.5 rounded-xl text-xs font-black w-fit">
+    Overdue by {getOverdueTime(hw.dueDate)}
+  </span>
+)}
+{hw.submission?.submittedAt && new Date(hw.submission.submittedAt) > new Date(hw.dueDate) && (
+  <span className="bg-rose-500 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-sm animate-pulse w-fit">
+    ⚠️ LATE SUBMISSION by {getOverdueTime(hw.dueDate, hw.submission.submittedAt)}
+  </span>
+)}
                           </div>
                         </div>
                         
@@ -1853,83 +1873,95 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   
                   <form onSubmit={handleSchemeInitialSubmit} className="space-y-4">
                     <div className="mb-4">
-  <label className="text-xs font-black text-[#A3AED0] uppercase">Date</label>
-  <input type="date" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.date} onChange={e => setSchemeForm({...schemeForm, date: e.target.value})} />
-</div>
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
-  <div>
-    <label className="text-xs font-black text-[#A3AED0] uppercase">Start Time</label>
-    <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.startTime} onChange={e => setSchemeForm({...schemeForm, startTime: e.target.value})} />
-  </div>
-  <div>
-    <label className="text-xs font-black text-[#A3AED0] uppercase">End Time</label>
-    <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.endTime} onChange={e => setSchemeForm({...schemeForm, endTime: e.target.value})} />
-  </div>
-</div>
-{schemeForm.startTime && schemeForm.endTime && (
-  <div className="text-sm font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 flex justify-center items-center">
-    ⏱️ Total Duration: {(() => {
-      const [sh, sm] = schemeForm.startTime.split(':').map(Number);
-      const [eh, em] = schemeForm.endTime.split(':').map(Number);
-      let diff = (eh * 60 + em) - (sh * 60 + sm);
-      if(diff < 0) diff += 24 * 60;
-      const h = Math.floor(diff/60);
-      const m = diff % 60;
-      return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`;
-    })()}
-  </div>
-)}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-  <div>
-    <label className="text-xs font-black text-[#A3AED0] uppercase">Week No</label>
-    <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" 
-      placeholder="e.g. 1" 
-      value={schemeForm.weekNo} 
-      onChange={e => {
-        const newWeek = e.target.value;
-        setSchemeForm({
-          ...schemeForm, 
-          weekNo: newWeek, 
-          title: `WEEK ${newWeek} - ${schemeForm.topic}`.toUpperCase()
-        });
-      }} 
-    />
-  </div>
-  <div>
-    <label className="text-xs font-black text-[#A3AED0] uppercase">Topic</label>
-    <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" 
-      placeholder="e.g. Algebra" 
-      value={schemeForm.topic} 
-      onChange={e => {
-        const newTopic = e.target.value;
-        setSchemeForm({
-          ...schemeForm, 
-          topic: newTopic, 
-          title: `WEEK ${schemeForm.weekNo} - ${newTopic}`.toUpperCase()
-        });
-      }} 
-    />
-  </div>
-</div>
-<div>
-  <label className="text-xs font-black text-[#A3AED0] uppercase">Lesson Title (Auto-Generated)</label>
-  <input type="text" required placeholder="WEEK X - TOPIC" 
-    className="w-full p-4 mt-1 bg-[#E2E8F0] border-none rounded-xl font-bold opacity-70 cursor-not-allowed" 
-    value={schemeForm.title} 
-    readOnly 
-  />
-</div>
-
-                    <div>
-                      <label className="text-xs font-black text-[#A3AED0] uppercase">Description (Optional)</label>
-                      <textarea className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold min-h-[100px]" placeholder="What was covered today..." value={schemeForm.description} onChange={e => setSchemeForm({...schemeForm, description: e.target.value})} />
+                      <label className="text-xs font-black text-[#A3AED0] uppercase">Date</label>
+                      <input type="date" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.date} onChange={e => setSchemeForm({...schemeForm, date: e.target.value})} />
                     </div>
-                    
-                    <label className="flex items-center gap-3 p-4 bg-emerald-50 rounded-xl cursor-pointer">
-                      <input type="checkbox" className="w-5 h-5 text-emerald-600 rounded" checked={schemeForm.classTaken} onChange={e => setSchemeForm({...schemeForm, classTaken: e.target.checked})} />
-                      <span className="font-bold text-emerald-800 text-sm">Class Was Taken Today</span>
-                    </label>
+
+                    {/* NEW STATUS RADIO BUTTONS */}
+                    <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-xl mb-4 border border-slate-100">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Class Status</label>
+                      
+                      <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
+                        <input type="radio" name="classStatus" value="Class Taken" 
+                          checked={schemeForm.classStatus === 'Class Taken'} 
+                          onChange={e => setSchemeForm({...schemeForm, classStatus: e.target.value, title: schemeForm.weekNo && schemeForm.topic ? `WEEK ${schemeForm.weekNo} - ${schemeForm.topic}`.toUpperCase() : ''})} 
+                          className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
+                        <span className="font-bold text-slate-700 text-sm">✅ Class Taken</span>
+                      </label>
+                      
+                      <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
+                        <input type="radio" name="classStatus" value="Class Cancelled by Teacher" 
+                          checked={schemeForm.classStatus === 'Class Cancelled by Teacher'} 
+                          onChange={e => setSchemeForm({...schemeForm, classStatus: e.target.value, title: 'CANCELLED BY TEACHER'})} 
+                          className="w-5 h-5 text-rose-600 focus:ring-rose-500 cursor-pointer" />
+                        <span className="font-bold text-slate-700 text-sm">❌ Class Cancelled by Teacher</span>
+                      </label>
+
+                      <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
+                        <input type="radio" name="classStatus" value="Class Cancelled by Student" 
+                          checked={schemeForm.classStatus === 'Class Cancelled by Student'} 
+                          onChange={e => setSchemeForm({...schemeForm, classStatus: e.target.value, title: 'CANCELLED BY STUDENT'})} 
+                          className="w-5 h-5 text-rose-600 focus:ring-rose-500 cursor-pointer" />
+                        <span className="font-bold text-slate-700 text-sm">❌ Class Cancelled by Student</span>
+                      </label>
+                    </div>
+
+                    {/* CONDITIONALLY RENDER REST OF FIELDS */}
+                    {schemeForm.classStatus === 'Class Taken' && (
+                      <div className="animate-fade-in space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-black text-[#A3AED0] uppercase">Start Time</label>
+                            <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.startTime} onChange={e => setSchemeForm({...schemeForm, startTime: e.target.value})} />
+                          </div>
+                          <div>
+                            <label className="text-xs font-black text-[#A3AED0] uppercase">End Time</label>
+                            <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.endTime} onChange={e => setSchemeForm({...schemeForm, endTime: e.target.value})} />
+                          </div>
+                        </div>
+
+                        {schemeForm.startTime && schemeForm.endTime && (
+                          <div className="text-sm font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 flex justify-center items-center">
+                            ⏱️ Total Duration: {(() => {
+                              const [sh, sm] = schemeForm.startTime.split(':').map(Number);
+                              const [eh, em] = schemeForm.endTime.split(':').map(Number);
+                              let diff = (eh * 60 + em) - (sh * 60 + sm);
+                              if(diff < 0) diff += 24 * 60;
+                              const h = Math.floor(diff/60);
+                              const m = diff % 60;
+                              return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`;
+                            })()}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-black text-[#A3AED0] uppercase">Week No</label>
+                            <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" placeholder="e.g. 1" value={schemeForm.weekNo} onChange={e => {
+                                const newWeek = e.target.value;
+                                setSchemeForm({...schemeForm, weekNo: newWeek, title: `WEEK ${newWeek} - ${schemeForm.topic}`.toUpperCase()});
+                              }} />
+                          </div>
+                          <div>
+                            <label className="text-xs font-black text-[#A3AED0] uppercase">Topic</label>
+                            <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" placeholder="e.g. Algebra" value={schemeForm.topic} onChange={e => {
+                                const newTopic = e.target.value;
+                                setSchemeForm({...schemeForm, topic: newTopic, title: `WEEK ${schemeForm.weekNo} - ${newTopic}`.toUpperCase()});
+                              }} />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-black text-[#A3AED0] uppercase">Lesson Title (Auto-Generated)</label>
+                          <input type="text" required placeholder="WEEK X - TOPIC" className="w-full p-4 mt-1 bg-[#E2E8F0] border-none rounded-xl font-bold opacity-70 cursor-not-allowed" value={schemeForm.title} readOnly />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-black text-[#A3AED0] uppercase">Description (Optional)</label>
+                          <textarea className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold min-h-[100px]" placeholder="What was covered today..." value={schemeForm.description} onChange={e => setSchemeForm({...schemeForm, description: e.target.value})} />
+                        </div>
+                      </div>
+                    )}
 
                     <button type="submit" className="w-full bg-[#1B2559] hover:bg-fuchsia-600 text-white font-black py-4 rounded-xl transition-all shadow-lg mt-4">
                       Submit Daily Report
@@ -1948,36 +1980,40 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   
                   <div className="space-y-4 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
                     {schemes.map(report => (
-                      <div key={report._id} className={`p-6 rounded-3xl border-2 ${report.classTaken ? 'bg-[#F4F7FE] border-transparent' : 'bg-rose-50 border-rose-100'}`}>
+                      <div key={report._id} className={`p-6 rounded-3xl border-2 ${report.classStatus === 'Class Taken' ? 'bg-[#F4F7FE] border-transparent' : 'bg-rose-50 border-rose-100'}`}>
                         <div className="flex justify-between items-start mb-2">
                           <h3 className="font-black text-xl text-[#1B2559]">{report.title}</h3>
-                          <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase ${report.classTaken ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
-                            {report.classTaken ? '✅ Class Taken' : '❌ No Class'}
+                          <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
+                            {report.classStatus === 'Class Taken' ? '✅ Class Taken' : `❌ ${report.classStatus}`}
                           </span>
                         </div>
+                        
                         <p className="text-xs font-black text-[#A3AED0] mb-2">
-                          {new Date(report.date).toLocaleDateString()} | Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
+                          {new Date(report.date).toLocaleDateString()} 
+                          {report.classStatus === 'Class Taken' && ` | Week ${report.weekNo || 'N/A'} | Topic: ${report.topic || 'N/A'}`}
                         </p>
                         
-                        {/* ALWAYS SHOW TIME AND DURATION */}
-                        <div className="flex flex-col gap-2 mb-3 mt-1">
-                          <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-md border border-indigo-100 inline-block w-fit">
-                            ⏰ Start Time: {report.startTime || 'N/A'} | End Time: {report.endTime || 'N/A'}
-                          </span>
-                          <span className="text-xs font-black text-indigo-600 bg-white px-3 py-1.5 rounded-md shadow-sm border border-slate-100 inline-block w-fit">
-                            Class was taken for: {
-                              (report.startTime && report.endTime) ? (() => {
-                                const [sh, sm] = report.startTime.split(':').map(Number);
-                                const [eh, em] = report.endTime.split(':').map(Number);
-                                let diff = (eh * 60 + em) - (sh * 60 + sm);
-                                if(diff < 0) diff += 24 * 60;
-                                const h = Math.floor(diff/60);
-                                const m = diff % 60;
-                                return `${h > 0 ? h + ' hour(s) ' : ''}${m > 0 ? m + ' minute(s)' : ''}`.trim();
-                              })() : 'N/A'
-                            }
-                          </span>
-                        </div>
+                        {/* ONLY SHOW TIME AND DURATION IF CLASS WAS TAKEN */}
+                        {report.classStatus === 'Class Taken' && (
+                          <div className="flex flex-col gap-2 mb-3 mt-1">
+                            <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-md border border-indigo-100 inline-block w-fit">
+                              ⏰ Start Time: {report.startTime || 'N/A'} | End Time: {report.endTime || 'N/A'}
+                            </span>
+                            <span className="text-xs font-black text-indigo-600 bg-white px-3 py-1.5 rounded-md shadow-sm border border-slate-100 inline-block w-fit">
+                              Class was taken for: {
+                                (report.startTime && report.endTime) ? (() => {
+                                  const [sh, sm] = report.startTime.split(':').map(Number);
+                                  const [eh, em] = report.endTime.split(':').map(Number);
+                                  let diff = (eh * 60 + em) - (sh * 60 + sm);
+                                  if(diff < 0) diff += 24 * 60;
+                                  const h = Math.floor(diff/60);
+                                  const m = diff % 60;
+                                  return `${h > 0 ? h + ' hour(s) ' : ''}${m > 0 ? m + ' minute(s)' : ''}`.trim();
+                                })() : 'N/A'
+                              }
+                            </span>
+                          </div>
+                        )}
                         
                         {report.description && <p className="text-[#1B2559] font-medium mb-3">{report.description}</p>}
                         
@@ -1992,6 +2028,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     ))}
                     {schemes.length === 0 && <p className="text-center font-bold text-slate-400 py-10">No daily reports recorded yet.</p>}
                   </div>
+
                 </div>
               </div>
             </div>
@@ -2470,10 +2507,10 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                             {hw.status}
                           </span>
                           {hw.submission?.submittedAt && new Date(hw.submission.submittedAt) > new Date(hw.dueDate) && (
-                            <span className="text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider bg-rose-100 text-rose-700 shadow-sm border border-rose-200 animate-pulse">
-                              LATE
-                            </span>
-                          )}
+  <span className="text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider bg-rose-100 text-rose-700 shadow-sm border border-rose-200 animate-pulse">
+    LATE BY {getOverdueTime(hw.dueDate, hw.submission.submittedAt)}
+  </span>
+)}
                         </div>
                         <p className="text-sm text-[#A3AED0] font-bold mb-2">
                           Student: <span className="font-black text-[#1B2559]">{hw.studentId ? `${hw.studentId.registrationName || hw.studentId.name} ${hw.studentId.yearGroup ? `- ${hw.studentId.yearGroup}` : ''}` : "Unknown"}</span>

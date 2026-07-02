@@ -641,41 +641,45 @@ export default function ParentDashboard() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {schemes.map(report => (
-                  <div key={report._id} className={`p-6 rounded-3xl border-2 shadow-sm ${report.classTaken ? 'bg-[#F4F7FE] border-transparent' : 'bg-rose-50 border-rose-100'}`}>
+                  <div key={report._id} className={`p-6 rounded-3xl border-2 shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-[#F4F7FE] border-transparent' : 'bg-rose-50 border-rose-100'}`}>
                    <div className="flex justify-between items-start mb-4">
-  <div className="bg-violet-100 text-violet-800 px-4 py-3 rounded-xl border border-violet-200 shadow-sm flex flex-col gap-2">
-    <span className="text-lg font-black block leading-none">
-      {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-    </span>
-  </div>
-  <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase shadow-sm ${report.classTaken ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
-    {report.classTaken ? '✅ Class Taken' : '❌ Cancelled'}
-  </span>
-</div>
-                    <h3 className="font-black text-[#1B2559] text-xl mb-1">{report.title}</h3>
-                    <p className="text-xs font-black text-[#A3AED0] mb-3">
-                      Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
-                    </p>
-                    
-                    {/* ALWAYS SHOW TIME AND DURATION */}
-                    <div className="flex flex-col gap-2 mb-4">
-                      <span className="text-xs font-bold text-violet-700 bg-violet-50 px-3 py-1.5 rounded-md border border-violet-200 inline-block w-fit">
-                        ⏰ Start Time: {report.startTime || 'N/A'} | End Time: {report.endTime || 'N/A'}
-                      </span>
-                      <span className="text-xs font-black text-violet-600 bg-white px-3 py-1.5 rounded-md shadow-sm border border-slate-100 inline-block w-fit">
-                        Class was taken for: {
-                          (report.startTime && report.endTime) ? (() => {
-                             const [sh, sm] = report.startTime.split(':').map(Number);
-                             const [eh, em] = report.endTime.split(':').map(Number);
-                             let diff = (eh * 60 + em) - (sh * 60 + sm);
-                             if(diff < 0) diff += 24 * 60;
-                             const h = Math.floor(diff/60);
-                             const m = diff % 60;
-                             return `${h > 0 ? h + ' hour(s) ' : ''}${m > 0 ? m + ' minute(s)' : ''}`.trim();
-                          })() : 'N/A'
-                        }
+                      <div className="bg-violet-100 text-violet-800 px-4 py-3 rounded-xl border border-violet-200 shadow-sm flex flex-col gap-2">
+                        <span className="text-lg font-black block leading-none">
+                          {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-500 text-white'}`}>
+                        {report.classStatus === 'Class Taken' ? '✅ Class Taken' : `❌ ${report.classStatus}`}
                       </span>
                     </div>
+                    <h3 className="font-black text-[#1B2559] text-xl mb-1">{report.title}</h3>
+                    
+                    {/* ONLY SHOW TIME AND DURATION IF CLASS WAS TAKEN */}
+                    {report.classStatus === 'Class Taken' && (
+                      <>
+                        <p className="text-xs font-black text-[#A3AED0] mb-3">
+                          Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
+                        </p>
+                        <div className="flex flex-col gap-2 mb-4">
+                          <span className="text-xs font-bold text-violet-700 bg-violet-50 px-3 py-1.5 rounded-md border border-violet-200 inline-block w-fit">
+                            ⏰ Start Time: {report.startTime || 'N/A'} | End Time: {report.endTime || 'N/A'}
+                          </span>
+                          <span className="text-xs font-black text-violet-600 bg-white px-3 py-1.5 rounded-md shadow-sm border border-slate-100 inline-block w-fit">
+                            Class was taken for: {
+                              (report.startTime && report.endTime) ? (() => {
+                                 const [sh, sm] = report.startTime.split(':').map(Number);
+                                 const [eh, em] = report.endTime.split(':').map(Number);
+                                 let diff = (eh * 60 + em) - (sh * 60 + sm);
+                                 if(diff < 0) diff += 24 * 60;
+                                 const h = Math.floor(diff/60);
+                                 const m = diff % 60;
+                                 return `${h > 0 ? h + ' hour(s) ' : ''}${m > 0 ? m + ' minute(s)' : ''}`.trim();
+                              })() : 'N/A'
+                            }
+                          </span>
+                        </div>
+                      </>
+                    )}
 
                     {report.description && <p className="text-[#1B2559] text-sm font-medium">{report.description}</p>}
                   </div>

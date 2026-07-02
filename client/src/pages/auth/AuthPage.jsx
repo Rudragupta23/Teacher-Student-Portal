@@ -61,8 +61,11 @@ const AuthPage = () => {
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' }); 
   const [isLoading, setIsLoading] = useState(false); 
 
+  // const [formData, setFormData] = useState({
+  //   name: '', email: '', password: '', phone: '', classCode: '', otp: '', newPassword: '', yearGroup: '', linkedStudentId: '' 
+  // });
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', phone: '', classCode: '', otp: '', newPassword: '', yearGroup: '', linkedStudentId: '' 
+    name: '', email: '', password: '', phone: '', otp: '', newPassword: '', yearGroup: '', linkedStudentId: '', schoolName: '', city: '', country: 'United Kingdom'
   });
 
   const handleChange = (e) => {
@@ -310,10 +313,30 @@ const AuthPage = () => {
                   {/* SHOW THESE ONLY FOR STUDENTS */}
                   {!isParentMode && (
                     <>
-                      <motion.div variants={itemVariants} className="relative group">
+                      {/* <motion.div variants={itemVariants} className="relative group">
                         <Key className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
                         <input type="text" name="classCode" placeholder="Class Code (From Admin)" required onChange={handleChange}
                           className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                      </motion.div> */}
+                      <motion.div variants={itemVariants} className="relative group">
+                        <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <input type="text" name="schoolName" placeholder="School Name" required onChange={handleChange} value={formData.schoolName}
+                          className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                      </motion.div>
+
+                      <motion.div variants={itemVariants} className="relative group">
+                        <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <input type="text" name="city" placeholder="City" required onChange={handleChange} value={formData.city}
+                          className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                      </motion.div>
+
+                      <motion.div variants={itemVariants} className="relative group">
+                        <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <select name="country" required onChange={handleChange} value={formData.country}
+                          className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all appearance-none cursor-pointer">
+                          <option value="United Kingdom">United Kingdom</option>
+                          <option value="Others">Others</option>
+                        </select>
                       </motion.div>
                       <motion.div variants={itemVariants} className="relative group">
                         <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
