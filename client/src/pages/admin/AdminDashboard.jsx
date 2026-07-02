@@ -1859,15 +1859,15 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
   <div>
     <label className="text-xs font-black text-[#A3AED0] uppercase">Start Time</label>
-    <input type="time" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.startTime} onChange={e => setSchemeForm({...schemeForm, startTime: e.target.value})} />
+    <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.startTime} onChange={e => setSchemeForm({...schemeForm, startTime: e.target.value})} />
   </div>
   <div>
     <label className="text-xs font-black text-[#A3AED0] uppercase">End Time</label>
-    <input type="time" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.endTime} onChange={e => setSchemeForm({...schemeForm, endTime: e.target.value})} />
+    <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.endTime} onChange={e => setSchemeForm({...schemeForm, endTime: e.target.value})} />
   </div>
 </div>
 {schemeForm.startTime && schemeForm.endTime && (
-  <div className="text-sm font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 flex justify-end">
+  <div className="text-sm font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 flex justify-center items-center">
     ⏱️ Total Duration: {(() => {
       const [sh, sm] = schemeForm.startTime.split(':').map(Number);
       const [eh, em] = schemeForm.endTime.split(':').map(Number);
@@ -1958,24 +1958,27 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         <p className="text-xs font-black text-[#A3AED0] mb-2">
                           {new Date(report.date).toLocaleDateString()} | Week {report.weekNo || 'N/A'} | Topic: {report.topic || 'N/A'}
                         </p>
-                        {(report.startTime && report.endTime) && (
-                          <div className="flex flex-wrap items-center gap-2 mb-3">
-                            <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
-                              ⏰ {report.startTime} - {report.endTime}
-                            </span>
-                            <span className="text-xs font-black text-indigo-600 bg-white px-2 py-1 rounded-md shadow-sm border border-slate-100">
-                              Duration: {(() => {
+                        
+                        {/* ALWAYS SHOW TIME AND DURATION */}
+                        <div className="flex flex-col gap-2 mb-3 mt-1">
+                          <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-md border border-indigo-100 inline-block w-fit">
+                            ⏰ Start Time: {report.startTime || 'N/A'} | End Time: {report.endTime || 'N/A'}
+                          </span>
+                          <span className="text-xs font-black text-indigo-600 bg-white px-3 py-1.5 rounded-md shadow-sm border border-slate-100 inline-block w-fit">
+                            Class was taken for: {
+                              (report.startTime && report.endTime) ? (() => {
                                 const [sh, sm] = report.startTime.split(':').map(Number);
                                 const [eh, em] = report.endTime.split(':').map(Number);
                                 let diff = (eh * 60 + em) - (sh * 60 + sm);
                                 if(diff < 0) diff += 24 * 60;
                                 const h = Math.floor(diff/60);
                                 const m = diff % 60;
-                                return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`;
-                              })()}
-                            </span>
-                          </div>
-                        )}
+                                return `${h > 0 ? h + ' hour(s) ' : ''}${m > 0 ? m + ' minute(s)' : ''}`.trim();
+                              })() : 'N/A'
+                            }
+                          </span>
+                        </div>
+                        
                         {report.description && <p className="text-[#1B2559] font-medium mb-3">{report.description}</p>}
                         
                         {/* Only show grader instructions to Graders and Admins */}
