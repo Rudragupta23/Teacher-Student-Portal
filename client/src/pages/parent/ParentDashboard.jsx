@@ -19,6 +19,9 @@ export default function ParentDashboard() {
   const [driveLinks, setDriveLinks] = useState([]); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const [plannerSessions, setPlannerSessions] = useState([]);
+  const [plannerCurrentDate, setPlannerCurrentDate] = useState(new Date());
+
   // 1. Move fetchSchemes outside useEffect
   const fetchSchemes = async () => {
     try {
@@ -32,12 +35,19 @@ export default function ParentDashboard() {
       setDriveLinks(res.data);
     } catch (e) { console.error("Error fetching drive links"); }
   };
+  const fetchPlanner = async () => {
+    try {
+      const res = await api.get('/planner');
+      setPlannerSessions(res.data);
+    } catch (e) { console.error("Error fetching class planner"); }
+  };
   
   useEffect(() => {
     fetchChildData();
     fetchProfile();
     fetchSchemes();
     fetchDriveLinks(); 
+    fetchPlanner();
     
     const token = localStorage.getItem('token');
     if (token) {
@@ -326,6 +336,10 @@ export default function ParentDashboard() {
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
   Lesson Schedule
 </button>
+<button onClick={() => { setActiveTab('calendar'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'calendar' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              Class Calendar
+            </button>
             
             <button onClick={() => { setActiveTab('messages'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
@@ -709,6 +723,71 @@ export default function ParentDashboard() {
               </div>
             </div>
           )}
+          {/* PARENT VIEW: CLASS CALENDAR */}
+          {activeTab === 'calendar' && (() => {
+            const year = plannerCurrentDate.getFullYear();
+            const month = plannerCurrentDate.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+            const getSessionsForDay = (day) => {
+              return plannerSessions.filter(session => {
+                const d = new Date(session.startDate);
+                return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
+              });
+            };
+
+            return (
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-8 border-b border-slate-100 pb-6 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-violet-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Class Calendar</h2>
+                  </div>
+                  <div className="flex items-center gap-4 bg-[#F4F7FE] p-2 rounded-2xl">
+                    <button onClick={() => setPlannerCurrentDate(new Date(year, month - 1, 1))} className="p-3 bg-white rounded-xl shadow-sm hover:bg-slate-100">
+                      <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <h3 className="text-xl font-black text-[#1B2559] min-w-[160px] text-center">{monthNames[month]} {year}</h3>
+                    <button onClick={() => setPlannerCurrentDate(new Date(year, month + 1, 1))} className="p-3 bg-white rounded-xl shadow-sm hover:bg-slate-100">
+                      <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-7 gap-2 md:gap-4 mb-4">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} className="text-center font-black text-[#A3AED0] uppercase text-xs tracking-wider">{day}</div>
+                  ))}
+                </div>
+                
+                <div className="grid grid-cols-7 gap-2 md:gap-4">
+                  {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                    <div key={`empty-${i}`} className="min-h-[100px] md:min-h-[120px] bg-slate-50/50 rounded-2xl border border-dashed border-slate-200"></div>
+                  ))}
+                  
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const day = i + 1;
+                    const isToday = new Date().getDate() === day && new Date().getMonth() === month && new Date().getFullYear() === year;
+
+                    return (
+                      <div key={day} className={`min-h-[100px] md:min-h-[120px] p-2 md:p-3 rounded-2xl border bg-white ${isToday ? 'border-violet-300 bg-violet-50/30' : 'border-slate-100'}`}>
+                        <div className={`text-xs md:text-sm font-black w-7 h-7 flex items-center justify-center rounded-full mb-2 ${isToday ? 'bg-violet-500 text-white' : 'text-[#1B2559]'}`}>{day}</div>
+                        <div className="space-y-1.5 overflow-y-auto max-h-[70px] custom-scrollbar pr-1">
+                          {getSessionsForDay(day).map(session => (
+                            <div key={session._id} className="text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg truncate bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200">
+                              🎥 {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {session.topic}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
           
           {markedWorkPreview && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-fade-in p-6">

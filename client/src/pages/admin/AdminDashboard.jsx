@@ -100,6 +100,13 @@ export default function AdminDashboard() {
 
   const [pendingStudents, setPendingStudents] = useState([]);
 
+  // Class Planner States
+  const [plannerSessions, setPlannerSessions] = useState([]);
+  const [plannerFilter, setPlannerFilter] = useState('calendar'); 
+  const [plannerCurrentDate, setPlannerCurrentDate] = useState(new Date());
+  const [plannerModal, setPlannerModal] = useState({ show: false, selectedDate: null, data: null });
+  const [plannerForm, setPlannerForm] = useState({ topic: '', startTime: '', endTime: '', isRecurring: false });
+
   const fetchPendingStudents = async () => {
     if (user?.role === 'admin') {
       try {
@@ -159,12 +166,12 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       if (user?.role === 'admin') {
-        const [studentRes, hwRes, annRes, resRes, graderRes, schemeRes] = await Promise.all([
+        const [studentRes, hwRes, annRes, resRes, graderRes, schemeRes, plannerRes] = await Promise.all([
           api.get('/admin/students'), api.get('/homework/admin'), api.get('/announcements/admin'),
-          api.get('/resources'), api.get('/admin/graders').catch(() => ({ data: [] })), api.get('/scheme')
+          api.get('/resources'), api.get('/admin/graders').catch(() => ({ data: [] })), api.get('/scheme'), api.get('/planner')
         ]);
         setStudents(studentRes.data); setHomeworks(hwRes.data); setAnnouncements(annRes.data);
-        setResources(resRes.data); setGraders(graderRes.data); setSchemes(schemeRes.data);
+        setResources(resRes.data); setGraders(graderRes.data); setSchemes(schemeRes.data); setPlannerSessions(plannerRes.data || []);
       } else if (user?.role === 'grader') {
         const [studentRes, hwRes, schemeRes] = await Promise.all([
           api.get('/admin/students'), api.get('/homework/admin'), api.get('/scheme')
@@ -199,6 +206,41 @@ export default function AdminDashboard() {
       showToast("Drive link removed", "error");
       fetchDriveLinks();
     } catch(e) { showToast("Failed to delete link", "error"); }
+  };
+  const handlePlannerSubmit = async (e) => {
+    e.preventDefault();
+    if (!plannerForm.startTime || !plannerForm.endTime || !plannerForm.topic) {
+      return showToast("Please fill all fields", "error");
+    }
+
+    const startDateTime = new Date(`${plannerModal.selectedDate}T${plannerForm.startTime}`);
+    const endDateTime = new Date(`${plannerModal.selectedDate}T${plannerForm.endTime}`);
+
+    try {
+      await api.post('/planner', {
+        topic: plannerForm.topic,
+        startDate: startDateTime,
+        endDate: endDateTime,
+        isRecurring: plannerForm.isRecurring
+      });
+      showToast('Class scheduled successfully!');
+      setPlannerModal({ show: false, selectedDate: null, data: null });
+      setPlannerForm({ topic: '', startTime: '', endTime: '', isRecurring: false });
+      fetchData();
+    } catch (err) {
+      showToast('Error scheduling class.', "error");
+    }
+  };
+
+  const handlePlannerDelete = async (id, deleteAllRecurring = false) => {
+    try {
+      await api.delete(`/planner/${id}?deleteAllRecurring=${deleteAllRecurring}`);
+      showToast('Class deleted successfully!', 'error');
+      setPlannerModal({ show: false, selectedDate: null, data: null });
+      fetchData();
+    } catch (err) {
+      showToast('Error deleting class.', 'error');
+    }
   };
 
   const handleResourceFile = (e) => {
@@ -963,6 +1005,10 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 <button onClick={() => { setActiveTab('students'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'students' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                   Students Enrolled
+                </button>
+                <button onClick={() => { setActiveTab('planner'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'planner' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                   Class Planner
                 </button>
 
                 {/* 👨‍🏫 Manage Graders Tab (Admin Only) - Added matching SVG Icon */}
@@ -2709,7 +2755,193 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
               </div>
             </div>
           )}
+          {/* VIEW: CLASS PLANNER */}
+          {activeTab === 'planner' && (() => {
+            const year = plannerCurrentDate.getFullYear();
+            const month = plannerCurrentDate.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+            const getSessionsForDay = (day, m = month, y = year) => {
+              return plannerSessions.filter(session => {
+                const d = new Date(session.startDate);
+                return d.getDate() === day && d.getMonth() === m && d.getFullYear() === y;
+              });
+            };
+
+            const generateList = () => {
+              if (plannerFilter === 'day') {
+                const today = new Date().toLocaleDateString();
+                return plannerSessions.filter(s => new Date(s.startDate).toLocaleDateString() === today);
+              }
+              if (plannerFilter === 'week') {
+                const now = new Date();
+                const first = now.getDate() - now.getDay();
+                const firstDay = new Date(new Date().setDate(first));
+                const lastDay = new Date(new Date().setDate(first + 6));
+                return plannerSessions.filter(s => {
+                  const d = new Date(s.startDate);
+                  return d >= firstDay && d <= lastDay;
+                });
+              }
+              if (plannerFilter === 'month') {
+                return plannerSessions.filter(s => new Date(s.startDate).getMonth() === month && new Date(s.startDate).getFullYear() === year);
+              }
+              return [];
+            };
+
+            return (
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in relative">
+                
+                {/* Planner Form Modal */}
+                {plannerModal.show && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
+                      <h3 className="text-2xl font-black text-[#1B2559] mb-4">
+                        {plannerModal.data ? 'Edit Class Session' : `Schedule Class for ${plannerModal.selectedDate}`}
+                      </h3>
+                      
+                      <form onSubmit={handlePlannerSubmit} className="space-y-4">
+                        <div>
+                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Topic</label>
+                          <input type="text" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
+                            value={plannerForm.topic} onChange={e => setPlannerForm({...plannerForm, topic: e.target.value})} 
+                            readOnly={!!plannerModal.data} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Start Time</label>
+                            <input type="time" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
+                              value={plannerForm.startTime} onChange={e => setPlannerForm({...plannerForm, startTime: e.target.value})}
+                              readOnly={!!plannerModal.data} />
+                          </div>
+                          <div>
+                            <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">End Time</label>
+                            <input type="time" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
+                              value={plannerForm.endTime} onChange={e => setPlannerForm({...plannerForm, endTime: e.target.value})}
+                              readOnly={!!plannerModal.data} />
+                          </div>
+                        </div>
+
+                        {/* --- NEW DURATION CALCULATOR --- */}
+                        {plannerForm.startTime && plannerForm.endTime && (
+                          <div className="text-sm font-black text-indigo-600 bg-indigo-50 px-4 py-3 rounded-xl border border-indigo-100 flex justify-center items-center mt-4 shadow-sm">
+                            ⏱️ Total Duration: {(() => {
+                              const [sh, sm] = plannerForm.startTime.split(':').map(Number);
+                              const [eh, em] = plannerForm.endTime.split(':').map(Number);
+                              let diff = (eh * 60 + em) - (sh * 60 + sm);
+                              if (diff < 0) diff += 24 * 60; 
+                              const h = Math.floor(diff / 60);
+                              const m = diff % 60;
+                              return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`.trim();
+                            })()}
+                          </div>
+                        )}
+                        
+                        {!plannerModal.data && (
+                          <label className="flex items-center gap-3 cursor-pointer p-4 bg-indigo-50 rounded-xl mt-4">
+                            <input type="checkbox" className="w-5 h-5 text-indigo-600 rounded" 
+                              checked={plannerForm.isRecurring} onChange={e => setPlannerForm({...plannerForm, isRecurring: e.target.checked})} />
+                            <span className="font-bold text-indigo-900 text-sm">Make recurring (Weekly for 2 months)</span>
+                          </label>
+                        )}
+
+                        <div className="flex gap-4 mt-6">
+                          <button type="button" onClick={() => setPlannerModal({show: false})} className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancel</button>
+                          {!plannerModal.data ? (
+                            <button type="submit" className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700">Save Class</button>
+                          ) : (
+                            <>
+                              <button type="button" onClick={() => handlePlannerDelete(plannerModal.data._id, false)} className="flex-1 py-4 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600">Delete One</button>
+                              {plannerModal.data.isRecurring && (
+                                <button type="button" onClick={() => handlePlannerDelete(plannerModal.data._id, true)} className="flex-1 py-4 bg-red-700 text-white font-bold rounded-xl hover:bg-red-800 text-xs">Delete Series</button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+
+                {/* Filters */}
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 border-b border-slate-100 pb-6 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Class Planner</h2>
+                  </div>
+                  
+                  <div className="flex gap-2 bg-[#F4F7FE] p-2 rounded-2xl">
+                    <button onClick={() => setPlannerFilter('calendar')} className={`px-4 py-2 rounded-xl font-bold text-sm ${plannerFilter === 'calendar' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>Calendar</button>
+                    <button onClick={() => setPlannerFilter('day')} className={`px-4 py-2 rounded-xl font-bold text-sm ${plannerFilter === 'day' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>Day</button>
+                    <button onClick={() => setPlannerFilter('week')} className={`px-4 py-2 rounded-xl font-bold text-sm ${plannerFilter === 'week' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>Week</button>
+                    <button onClick={() => setPlannerFilter('month')} className={`px-4 py-2 rounded-xl font-bold text-sm ${plannerFilter === 'month' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>Month</button>
+                  </div>
+
+                  {plannerFilter === 'calendar' && (
+                    <div className="flex items-center gap-4 bg-[#F4F7FE] p-2 rounded-2xl">
+                      <button onClick={() => setPlannerCurrentDate(new Date(year, month - 1, 1))} className="p-3 bg-white hover:bg-slate-100 rounded-xl shadow-sm">{'<'}</button>
+                      <h3 className="text-xl font-black text-[#1B2559] min-w-[160px] text-center">{monthNames[month]} {year}</h3>
+                      <button onClick={() => setPlannerCurrentDate(new Date(year, month + 1, 1))} className="p-3 bg-white hover:bg-slate-100 rounded-xl shadow-sm">{'>'}</button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Calendar View */}
+                {plannerFilter === 'calendar' ? (
+                  <>
+                    <div className="grid grid-cols-7 gap-2 md:gap-4 mb-4">
+                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                        <div key={day} className="text-center font-black text-[#A3AED0] uppercase text-xs tracking-wider">{day}</div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-2 md:gap-4">
+                      {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                        <div key={`empty-${i}`} className="min-h-[100px] md:min-h-[120px] bg-slate-50/50 rounded-2xl border border-dashed border-slate-200"></div>
+                      ))}
+                      {Array.from({ length: daysInMonth }).map((_, i) => {
+                        const day = i + 1;
+                        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const daySessions = getSessionsForDay(day);
+                        return (
+                          <div key={day} onClick={() => setPlannerModal({show: true, selectedDate: dateStr, data: null})} 
+                               className="min-h-[100px] md:min-h-[120px] p-2 md:p-3 rounded-2xl border bg-white border-slate-100 hover:border-indigo-300 cursor-pointer transition-all">
+                            <div className="text-xs md:text-sm font-black w-7 h-7 flex items-center justify-center rounded-full mb-2 text-[#1B2559]">{day}</div>
+                            <div className="space-y-1.5 overflow-y-auto max-h-[70px] custom-scrollbar">
+                              {daySessions.map(session => (
+                                <div key={session._id} onClick={(e) => { e.stopPropagation(); setPlannerForm({ topic: session.topic, startTime: new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), endTime: new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), isRecurring: session.isRecurring }); setPlannerModal({show: true, selectedDate: dateStr, data: session}); }}
+                                  className="text-[10px] font-bold p-1.5 rounded-lg truncate bg-indigo-100 text-indigo-700 shadow-sm" title={session.topic}>
+                                  {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - {session.topic}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+                    {generateList().map(session => (
+                      <div key={session._id} className="p-5 bg-[#F4F7FE] rounded-2xl flex justify-between items-center border border-slate-100">
+                        <div>
+                          <p className="text-xs font-bold text-[#A3AED0] mb-1">{new Date(session.startDate).toLocaleDateString()}</p>
+                          <h3 className="font-black text-lg text-[#1B2559]">{session.topic}</h3>
+                          <p className="text-sm font-bold text-indigo-500 mt-1">
+                            {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - {new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                            {session.isRecurring && <span className="ml-3 bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-[10px] uppercase">Recurring</span>}
+                          </p>
+                        </div>
+                        <button onClick={() => handlePlannerDelete(session._id, false)} className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white font-bold transition-colors">Delete</button>
+                      </div>
+                    ))}
+                    {generateList().length === 0 && <p className="text-center font-bold text-slate-400 py-10">No classes scheduled for this view.</p>}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const announcementRoutes = require('./routes/announcementRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const resourceRoutes = require('./routes/resourceRoutes');
+const classPlannerRoutes = require('./routes/classPlannerRoutes');
 
 // Connect to Database
 connectDB();
@@ -34,6 +35,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/scheme', require('./routes/schemeRoutes'));
 app.use('/api/drive-links', require('./routes/driveRoutes'));
+app.use('/api/planner', classPlannerRoutes);
 require('./jobs/reminderJob');
 const PORT = process.env.PORT || 5000;
 

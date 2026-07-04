@@ -37,6 +37,8 @@ export default function StudentDashboard() {
   const [schemes, setSchemes] = useState([]);
   const [driveLinks, setDriveLinks] = useState([]); 
 
+  const [plannerSessions, setPlannerSessions] = useState([]);
+
   // Move this function outside the useEffect
   const fetchSchemes = async () => {
     try {
@@ -50,6 +52,12 @@ export default function StudentDashboard() {
       setDriveLinks(res.data);
     } catch (e) { console.error("Error fetching drive links"); }
   };
+  const fetchPlanner = async () => {
+    try {
+      const res = await api.get('/planner');
+      setPlannerSessions(res.data);
+    } catch (e) { console.error("Error fetching class planner"); }
+  };
 
   useEffect(() => {
     fetchAssignments();
@@ -58,6 +66,7 @@ export default function StudentDashboard() {
     fetchResources();
     fetchSchemes(); 
     fetchDriveLinks();
+    fetchPlanner();
     
     const token = localStorage.getItem('token');
     if (token) {
@@ -863,6 +872,12 @@ export default function StudentDashboard() {
                 return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
               });
             };
+            const getSessionsForDay = (day) => {
+              return plannerSessions.filter(session => {
+                const d = new Date(session.startDate);
+                return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
+              });
+            };
 
             return (
               <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
@@ -912,6 +927,15 @@ export default function StudentDashboard() {
                         </div>
                         
                         <div className="space-y-1.5 overflow-y-auto max-h-[70px] custom-scrollbar pr-1">
+                          
+                          {/* 1. Map Class Sessions First */}
+                          {getSessionsForDay(day).map(session => (
+                            <div key={session._id} className="text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg truncate bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200">
+                              🎥 {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {session.topic}
+                            </div>
+                          ))}
+
+                          {/* 2. Map Assignments Below */}
                           {dayAssignments.map(hw => (
                             <div key={hw._id} 
                               onClick={() => setModalTask(hw)}
