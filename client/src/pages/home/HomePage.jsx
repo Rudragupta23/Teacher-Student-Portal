@@ -48,6 +48,13 @@ const HomePage = () => {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.2 } }
   };
+  const testimonials = [
+    { name: "Rahul S.", role: "B.Tech CSE Student", text: "Dr. Vikas Goyal's teaching style is unparalleled. He breaks down complex math into simple logical steps. I aced my Engineering Math exam because of him!" },
+    { name: "Priya M.", role: "Computer Science Major", text: "The Discrete Math series was a lifesaver. Never thought I would actually enjoy studying Graph Theory. Highly recommended for every engineering student." },
+    { name: "Ankit K.", role: "Software Engineer", text: "Even after college, I come back to these lectures to brush up on my Automata Theory. Pure gold content, absolutely free." },
+    { name: "Sneha R.", role: "B.Tech IT", text: "I was struggling with Data Structures, but the way concepts are visualized and explained here made everything crystal clear. Best mentor ever!" },
+    { name: "Aman D.", role: "B.Tech CSE Student", text: "The community support and the quality of these free lectures are better than any paid coaching I've attended." },
+  ];
 
   return (
     <div className="min-h-screen bg-[#070B14] text-slate-300 font-sans overflow-x-hidden selection:bg-indigo-500/30">
@@ -278,6 +285,47 @@ const HomePage = () => {
                 <h3 className="text-xl font-bold text-white mb-3">{subject.title}</h3>
                 <p className="text-slate-400 leading-relaxed text-sm">{subject.desc}</p>
               </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+      {/* Testimonials Section - Auto Sliding Marquee */}
+      <div className="py-24 bg-[#0A0F1C] relative overflow-hidden border-t border-slate-800/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-16 relative z-10">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">Student Success Stories</h2>
+          <p className="text-xl text-slate-400">Join thousands of students who have transformed their engineering journey.</p>
+        </div>
+
+        <div className="relative w-full flex overflow-hidden group">
+          {/* Left and Right fade overlays for a seamless appearance */}
+          <div className="absolute left-0 top-0 bottom-0 w-24 sm:w-40 bg-gradient-to-r from-[#0A0F1C] to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-24 sm:w-40 bg-gradient-to-l from-[#0A0F1C] to-transparent z-10 pointer-events-none"></div>
+
+          {/* Framer Motion Auto-Slider */}
+          <motion.div 
+            className="flex gap-6 w-max"
+            animate={{ x: ["0%", "-50%"] }}
+            transition={{ ease: "linear", duration: 35, repeat: Infinity }}
+          >
+            {/* We duplicate the array to create a continuous, infinite loop */}
+            {[...testimonials, ...testimonials].map((t, index) => (
+              <div key={index} className="w-[350px] sm:w-[420px] bg-slate-900/60 backdrop-blur-md p-8 rounded-3xl border border-slate-800 flex flex-col justify-between flex-shrink-0 hover:bg-slate-800/60 transition-colors">
+                <div>
+                  <div className="flex text-amber-400 mb-4 gap-1">
+                    {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
+                  </div>
+                  <p className="text-slate-300 leading-relaxed mb-6 italic">"{t.text}"</p>
+                </div>
+                <div className="flex items-center gap-4 border-t border-slate-800/80 pt-5">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-extrabold text-lg shadow-lg">
+                    {t.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h4 className="text-white font-bold">{t.name}</h4>
+                    <p className="text-xs text-indigo-400 font-medium">{t.role}</p>
+                  </div>
+                </div>
+              </div>
             ))}
           </motion.div>
         </div>
