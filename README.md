@@ -23,7 +23,6 @@ A full-stack MERN (MongoDB, Express, React, Node.js) educational platform design
 | **Quiz & Assessment Support** | Conduct quizzes, objective tests, descriptive assessments, and evaluate student performance with automated or manual grading. |
 | **Grading & Evaluation System** | Grade assignments, provide comments, calculate total marks, maintain grade history, and generate performance reports. |
 | **Academic Performance Tracking** | Monitor student progress using grades, assignment completion rates, quiz performance, and overall academic statistics. |
-| **Attendance Management** | Teachers can record attendance while students and parents can view attendance reports and summaries. |
 | **Learning Progress Analytics** | Interactive dashboards displaying assignment completion, academic growth, grades, attendance, and learning trends through visual statistics. |
 | **Adaptive Learning Engine** | Intelligent recommendation system that adjusts learning difficulty and suggests additional practice based on student performance. |
 | **Study Resource Management** | Upload, organize, categorize, download, and share notes, PDFs, presentations, videos, worksheets, and reference materials. |
@@ -47,7 +46,7 @@ A full-stack MERN (MongoDB, Express, React, Node.js) educational platform design
 | **Cloud-Ready Architecture** | Easily deployable using MongoDB Atlas, Render, Vercel, AWS, or any cloud hosting platform. |
 | **Scalable MERN Architecture** | Modular project structure following industry-standard MERN practices with reusable components and clean separation of concerns. |
 | **Security Features** | Password hashing, JWT authentication, protected APIs, middleware validation, input sanitization, secure routing, and role-based authorization. |
-| **Future Extensibility** | Easily extendable architecture supporting online examinations, live classes, AI-based recommendations, payment integration, and additional educational modules. |
+
 
 ---
 
