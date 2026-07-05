@@ -733,6 +733,21 @@ export default function ParentDashboard() {
 
             const getSessionsForDay = (day) => {
               return plannerSessions.filter(session => {
+                // Determine Visibility
+                let isVisible = false;
+                if (!session.studentId || session.studentId === 'all') {
+                    if (session.yearGroupFilter && session.yearGroupFilter !== 'all') {
+                        isVisible = childData?.yearGroup === session.yearGroupFilter;
+                    } else {
+                        isVisible = true;
+                    }
+                } else {
+                    isVisible = session.studentId === childData?._id;
+                }
+
+                if (!isVisible) return false;
+
+                // Match Date
                 const d = new Date(session.startDate);
                 return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
               });
@@ -776,8 +791,11 @@ export default function ParentDashboard() {
                         <div className={`text-xs md:text-sm font-black w-7 h-7 flex items-center justify-center rounded-full mb-2 ${isToday ? 'bg-violet-500 text-white' : 'text-[#1B2559]'}`}>{day}</div>
                         <div className="space-y-1.5 overflow-y-auto max-h-[70px] custom-scrollbar pr-1">
                           {getSessionsForDay(day).map(session => (
-                            <div key={session._id} className="text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg truncate bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200">
-                              🎥 {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {session.topic}
+                            <div key={session._id} 
+                              className="text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200 flex items-center gap-1 overflow-hidden" 
+                              title={session.topic}>
+                              <span className="shrink-0">🎥 {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                              <span className="truncate">- {session.topic}</span>
                             </div>
                           ))}
                         </div>

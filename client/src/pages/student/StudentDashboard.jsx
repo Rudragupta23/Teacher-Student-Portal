@@ -874,6 +874,21 @@ export default function StudentDashboard() {
             };
             const getSessionsForDay = (day) => {
               return plannerSessions.filter(session => {
+                // Determine Visibility
+                let isVisible = false;
+                if (!session.studentId || session.studentId === 'all') {
+                    if (session.yearGroupFilter && session.yearGroupFilter !== 'all') {
+                        isVisible = studentProfile.yearGroup === session.yearGroupFilter;
+                    } else {
+                        isVisible = true;
+                    }
+                } else {
+                    isVisible = session.studentId === userId;
+                }
+
+                if (!isVisible) return false;
+
+                // Match Date
                 const d = new Date(session.startDate);
                 return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
               });
@@ -930,8 +945,11 @@ export default function StudentDashboard() {
                           
                           {/* 1. Map Class Sessions First */}
                           {getSessionsForDay(day).map(session => (
-                            <div key={session._id} className="text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg truncate bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200">
-                              🎥 {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {session.topic}
+                            <div key={session._id} 
+                              className="text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200 flex items-center gap-1 overflow-hidden" 
+                              title={session.topic}>
+                              <span className="shrink-0">🎥 {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                              <span className="truncate">- {session.topic}</span>
                             </div>
                           ))}
 

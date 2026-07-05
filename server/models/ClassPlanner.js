@@ -5,7 +5,9 @@ const classPlannerSchema = new mongoose.Schema({
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   isRecurring: { type: Boolean, default: false },
-  groupId: { type: String } 
+  groupId: { type: String },
+  yearGroupFilter: { type: String, default: 'all' },
+  studentId: { type: String, default: 'all' } 
 }, { timestamps: true });
 
 module.exports = mongoose.model('ClassPlanner', classPlannerSchema);

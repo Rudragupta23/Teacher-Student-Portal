@@ -105,7 +105,7 @@ export default function AdminDashboard() {
   const [plannerFilter, setPlannerFilter] = useState('calendar'); 
   const [plannerCurrentDate, setPlannerCurrentDate] = useState(new Date());
   const [plannerModal, setPlannerModal] = useState({ show: false, selectedDate: null, data: null });
-  const [plannerForm, setPlannerForm] = useState({ topic: '', startTime: '', endTime: '', isRecurring: false });
+  const [plannerForm, setPlannerForm] = useState({ topic: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: 'all' });
 
   const fetchPendingStudents = async () => {
     if (user?.role === 'admin') {
@@ -221,7 +221,9 @@ export default function AdminDashboard() {
         topic: plannerForm.topic,
         startDate: startDateTime,
         endDate: endDateTime,
-        isRecurring: plannerForm.isRecurring
+        isRecurring: plannerForm.isRecurring,
+        yearGroupFilter: plannerForm.yearGroupFilter,
+        studentId: plannerForm.studentId
       });
       showToast('Class scheduled successfully!');
       setPlannerModal({ show: false, selectedDate: null, data: null });
@@ -2840,12 +2842,53 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         )}
                         
                         {!plannerModal.data && (
-                          <label className="flex items-center gap-3 cursor-pointer p-4 bg-indigo-50 rounded-xl mt-4">
-                            <input type="checkbox" className="w-5 h-5 text-indigo-600 rounded" 
-                              checked={plannerForm.isRecurring} onChange={e => setPlannerForm({...plannerForm, isRecurring: e.target.checked})} />
-                            <span className="font-bold text-indigo-900 text-sm">Make recurring (Weekly for 2 months)</span>
-                          </label>
-                        )}
+  <>
+    {/* 1. Year Group Filter Dropdown */}
+    <div className="space-y-2 mt-4">
+        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
+        <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl outline-none font-bold text-[#1B2559]"
+          value={plannerForm.yearGroupFilter}
+          onChange={e => {
+              const selectedYear = e.target.value;
+              const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
+              setPlannerForm({
+                  ...plannerForm,
+                  yearGroupFilter: selectedYear,
+                  // Auto-select the first student in the filtered list, or default back to 'all'
+                  studentId: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
+              });
+          }}>
+          <option value="all">All Years</option>
+          {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+              <option key={yg} value={yg}>{yg}</option>
+          ))}
+        </select>
+    </div>
+
+    {/* 2. Specific Student Dropdown */}
+    <div className="space-y-2 mt-4">
+        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Student</label>
+        <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl outline-none font-bold text-[#1B2559]"
+          value={plannerForm.studentId}
+          onChange={e => setPlannerForm({...plannerForm, studentId: e.target.value})}>
+          
+          {/* Only show "All Students" if the Year Filter is set to All */}
+          {plannerForm.yearGroupFilter === 'all' && <option value="all">📢 All Students</option>}
+          
+          {students.filter(s => plannerForm.yearGroupFilter === 'all' || s.yearGroup === plannerForm.yearGroupFilter).map(s => (
+              <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+          ))}
+        </select>
+    </div>
+
+    {/* 3. Original Recurring Checkbox */}
+    <label className="flex items-center gap-3 cursor-pointer p-4 bg-indigo-50 rounded-xl mt-4">
+      <input type="checkbox" className="w-5 h-5 text-indigo-600 rounded" 
+        checked={plannerForm.isRecurring} onChange={e => setPlannerForm({...plannerForm, isRecurring: e.target.checked})} />
+      <span className="font-bold text-indigo-900 text-sm">Make recurring (Weekly for 2 months)</span>
+    </label>
+  </>
+)}
 
                         <div className="flex gap-4 mt-6">
                           <button type="button" onClick={() => setPlannerModal({show: false})} className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancel</button>
@@ -2911,8 +2954,10 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                             <div className="space-y-1.5 overflow-y-auto max-h-[70px] custom-scrollbar">
                               {daySessions.map(session => (
                                 <div key={session._id} onClick={(e) => { e.stopPropagation(); setPlannerForm({ topic: session.topic, startTime: new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), endTime: new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), isRecurring: session.isRecurring }); setPlannerModal({show: true, selectedDate: dateStr, data: session}); }}
-                                  className="text-[10px] font-bold p-1.5 rounded-lg truncate bg-indigo-100 text-indigo-700 shadow-sm" title={session.topic}>
-                                  {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - {session.topic}
+                                  className="text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg bg-indigo-100 text-indigo-700 shadow-sm flex items-center gap-1 overflow-hidden" title={session.topic}>
+                                  <span className="shrink-0">{new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
+                                  {session.studentId && session.studentId !== 'all' && <span className="shrink-0 text-[10px] md:text-xs">👤</span>}
+                                  <span className="truncate">{session.topic}</span>
                                 </div>
                               ))}
                             </div>
@@ -2927,7 +2972,10 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       <div key={session._id} className="p-5 bg-[#F4F7FE] rounded-2xl flex justify-between items-center border border-slate-100">
                         <div>
                           <p className="text-xs font-bold text-[#A3AED0] mb-1">{new Date(session.startDate).toLocaleDateString()}</p>
-                          <h3 className="font-black text-lg text-[#1B2559]">{session.topic}</h3>
+                          <h3 className="font-black text-lg text-[#1B2559] flex items-center gap-2">
+                            {session.studentId && session.studentId !== 'all' && <span className="shrink-0">👤</span>}
+                            <span className="break-words">{session.topic}</span>
+                          </h3>
                           <p className="text-sm font-bold text-indigo-500 mt-1">
                             {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - {new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                             {session.isRecurring && <span className="ml-3 bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-[10px] uppercase">Recurring</span>}

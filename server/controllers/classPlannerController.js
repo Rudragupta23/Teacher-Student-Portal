@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 
 exports.createClassSession = async (req, res) => {
   try {
-    const { topic, startDate, endDate, isRecurring } = req.body;
+    const { topic, startDate, endDate, isRecurring, yearGroupFilter, studentId } = req.body;
     const start = new Date(startDate);
     const end = new Date(endDate);
     const sessions = [];
@@ -13,7 +13,6 @@ exports.createClassSession = async (req, res) => {
       let currentStart = new Date(start);
       let currentEnd = new Date(end);
       
-      // Calculate limit: exactly 2 months from the start date
       const limitDate = new Date(start);
       limitDate.setMonth(limitDate.getMonth() + 2);
 
@@ -23,14 +22,23 @@ exports.createClassSession = async (req, res) => {
           startDate: new Date(currentStart),
           endDate: new Date(currentEnd),
           isRecurring: true,
-          groupId
+          groupId,
+          yearGroupFilter: yearGroupFilter || 'all',
+          studentId: studentId || 'all'
         });
-        // Add 7 days for the next recurring week
         currentStart.setDate(currentStart.getDate() + 7);
         currentEnd.setDate(currentEnd.getDate() + 7);
       }
     } else {
-      sessions.push({ topic, startDate: start, endDate: end, isRecurring: false, groupId });
+      sessions.push({ 
+        topic, 
+        startDate: start, 
+        endDate: end, 
+        isRecurring: false, 
+        groupId,
+        yearGroupFilter: yearGroupFilter || 'all',
+        studentId: studentId || 'all'
+      });
     }
 
     await ClassPlanner.insertMany(sessions);
