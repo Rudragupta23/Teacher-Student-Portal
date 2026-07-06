@@ -18,7 +18,9 @@ import {
   Sun,
   ChevronUp,
   Plus,
-  Minus
+  Minus,
+  GraduationCap,
+  PlayCircle
 } from 'lucide-react';
 
 // --- Custom Typewriter Hook Component ---
@@ -103,11 +105,72 @@ const FAQItem = ({ q, a, isDark }) => {
   );
 };
 
+// --- 3D Flip Card Component for Syllabus ---
+const FlipCard = ({ subject, isDark }) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+  
+  return (
+    <div 
+      className="relative w-full h-[320px] cursor-pointer group"
+      style={{ perspective: 1000 }}
+      onMouseEnter={() => setIsFlipped(true)}
+      onMouseLeave={() => setIsFlipped(false)}
+    >
+      <motion.div
+        className="w-full h-full relative"
+        style={{ transformStyle: "preserve-3d" }}
+        animate={{ rotateY: isFlipped ? 180 : 0 }}
+        transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
+      >
+        {/* Front of Card */}
+        <div 
+          className={`absolute w-full h-full backdrop-blur-sm p-8 rounded-3xl border transition-all ${isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-sm'} ${subject.border}`} 
+          style={{ backfaceVisibility: "hidden" }}
+        >
+          <div className={`${subject.bg} w-16 h-16 rounded-2xl flex items-center justify-center mb-6`}>
+            <subject.icon className={`w-8 h-8 ${subject.color}`} />
+          </div>
+          <h3 className={`text-xl font-bold mb-3 transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>{subject.title}</h3>
+          <p className={`leading-relaxed text-sm transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{subject.desc}</p>
+          <div className="absolute bottom-6 right-8 text-sm font-semibold text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">
+            View Syllabus →
+          </div>
+        </div>
+
+        {/* Back of Card */}
+        <div 
+          className={`absolute w-full h-full backdrop-blur-sm p-8 rounded-3xl border transition-all flex flex-col justify-center ${isDark ? 'bg-slate-800/90 border-slate-700 shadow-[0_0_20px_rgba(79,70,229,0.1)]' : 'bg-white border-indigo-100 shadow-xl'}`} 
+          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+        >
+          <h3 className={`text-xl font-extrabold mb-5 ${isDark ? 'text-white' : 'text-slate-900'}`}>{subject.title} Syllabus</h3>
+          <ul className="space-y-3">
+            {subject.topics.map((topic, i) => (
+              <li key={i} className={`flex items-start gap-3 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${subject.bulletColor}`}></div>
+                <span className="text-sm font-medium">{topic}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 // --- MAIN PAGE COMPONENT ---
 const HomePage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isDark, setIsDark] = useState(true);
   const [showTopBtn, setShowTopBtn] = useState(false);
+
+  // FIX: Persist theme state using localStorage
+  const [isDark, setIsDark] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme ? savedTheme === 'dark' : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   // Scroll Progress Setup
   const { scrollYProgress } = useScroll();
@@ -130,6 +193,29 @@ const HomePage = () => {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.2 } }
   };
+
+  const curriculumSubjects = [
+    { 
+      icon: Calculator, title: "Engineering Math", desc: "Deep dives into the foundational mathematics required for advanced engineering concepts.", 
+      topics: ["Calculus & Differential Equations", "Linear Algebra & Matrices", "Complex Variables"], 
+      color: "text-indigo-500", bg: "bg-indigo-500/10", border: isDark ? "hover:border-indigo-500/50" : "hover:border-indigo-400", bulletColor: "bg-indigo-500" 
+    },
+    { 
+      icon: BookOpen, title: "Discrete Math", desc: "Essential logic, set theory, and statistical modeling for computer science students.", 
+      topics: ["Propositional Logic", "Set Theory & Relations", "Graph Theory & Trees"], 
+      color: "text-violet-500", bg: "bg-violet-500/10", border: isDark ? "hover:border-violet-500/50" : "hover:border-violet-400", bulletColor: "bg-violet-500" 
+    },
+    { 
+      icon: Cpu, title: "Automata Theory", desc: "Master the theory of computation, finite automata, and formal languages.", 
+      topics: ["Finite Automata (DFA/NFA)", "Context-Free Grammars", "Turing Machines"], 
+      color: "text-cyan-500", bg: "bg-cyan-500/10", border: isDark ? "hover:border-cyan-500/50" : "hover:border-cyan-400", bulletColor: "bg-cyan-500" 
+    },
+    { 
+      icon: Network, title: "Data Structures", desc: "Build efficient algorithms and understand core data structures for problem-solving.", 
+      topics: ["Arrays & Linked Lists", "Stacks & Queues", "Sorting & Searching Algorithms"], 
+      color: "text-emerald-500", bg: "bg-emerald-500/10", border: isDark ? "hover:border-emerald-500/50" : "hover:border-emerald-400", bulletColor: "bg-emerald-500" 
+    },
+  ];
 
   const testimonials = [
     { name: "Rahul S.", role: "B.Tech CSE Student", text: "Dr. Vikas Goyal's teaching style is unparalleled. He breaks down complex math into simple logical steps. I aced my Engineering Math exam because of him!" },
@@ -186,7 +272,7 @@ const HomePage = () => {
             {/* Desktop Links */}
             <div className="hidden md:flex items-center gap-8 font-medium">
               <a href="#about" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Mission</a>
-              <a href="#features" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Features</a>
+              <a href="#mentor" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Mentor</a>
               <a href="#subjects" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Curriculum</a>
               
               {/* Theme Toggle Button */}
@@ -226,7 +312,7 @@ const HomePage = () => {
             >
               <div className="px-4 pt-2 pb-6 space-y-4 flex flex-col">
                 <a href="#about" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Mission</a>
-                <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Features</a>
+                <a href="#mentor" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Mentor</a>
                 <a href="#subjects" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Curriculum</a>
                 <Link to="/login" className="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold text-center mt-4 w-full block shadow-md">Portal Login</Link>
               </div>
@@ -256,7 +342,6 @@ const HomePage = () => {
             Dr. Vikas Goyal's Official Learning Portal
           </motion.div>
 
-          {/* DYNAMIC TYPING EFFECT IMPLEMENTED HERE */}
           <motion.h1 variants={fadeUp} className={`text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight mb-8 leading-tight transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>
             Engineer Your <Typewriter words={['Future.', 'Career.', 'Logic.']} /> <br/>
             With Precision.
@@ -270,13 +355,11 @@ const HomePage = () => {
             <motion.a 
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
-              href="https://www.youtube.com/@MathComMentors" 
-              target="_blank" 
-              rel="noreferrer"
+              href="#featured-video"
               className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:from-indigo-500 hover:to-violet-500 transition-all shadow-[0_0_30px_rgba(79,70,229,0.3)]"
             >
-              <Video className="w-5 h-5" />
-              Start Learning Now
+              <PlayCircle className="w-5 h-5" />
+              Watch Sample Lecture
             </motion.a>
             
             <Link to="/login">
@@ -290,6 +373,28 @@ const HomePage = () => {
             </Link>
           </motion.div>
         </motion.div>
+      </div>
+
+      {/* NEW: Featured Video Section */}
+      <div id="featured-video" className={`py-16 relative z-10 transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-indigo-50/50'}`}>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className={`p-4 md:p-6 rounded-3xl border shadow-2xl transition-colors ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-indigo-100'}`}>
+            <div className="flex items-center justify-between mb-4 px-2">
+              <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Most Popular: Complex Analysis & Analytic Functions</h3>
+              <a href="https://www.youtube.com/@MathComMentors" target="_blank" rel="noreferrer" className="text-indigo-500 hover:text-indigo-400 font-semibold text-sm flex items-center gap-1">View Channel <ArrowRight className="w-4 h-4" /></a>
+            </div>
+            <div className="relative w-full overflow-hidden pt-[56.25%] rounded-2xl bg-slate-900">
+              <iframe 
+                className="absolute top-0 left-0 bottom-0 right-0 w-full h-full"
+                src="https://www.youtube.com/embed/jm0JLx9cT5c" 
+                title="MathCom Mentors Featured Video" 
+                frameBorder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen>
+              </iframe>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Statistics / Impact Section */}
@@ -319,8 +424,44 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* NEW: Meet the Mentor Section */}
+      <div id="mentor" className={`py-24 relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#070B14]' : 'bg-slate-50'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className={`flex flex-col md:flex-row items-center gap-12 p-8 md:p-12 rounded-3xl border shadow-xl transition-colors ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div className="w-full md:w-1/3 relative group">
+              <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-cyan-500 rounded-3xl blur-lg opacity-40 group-hover:opacity-60 transition-opacity"></div>
+              {/* Replace placeholder with actual headshot */}
+              <img 
+                src="/pic.jpg"
+                alt="Dr. Vikas Goyal" 
+                className="relative z-10 w-full h-auto object-cover rounded-3xl shadow-lg border-2 border-slate-700/50"
+              />
+            </div>
+            <div className="w-full md:w-2/3">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 text-indigo-500 text-sm font-bold mb-4">
+                <GraduationCap className="w-4 h-4" /> Chief Mentor & Founder
+              </div>
+              <h2 className={`text-4xl font-extrabold mb-4 transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>Meet Dr. Vikas Goyal</h2>
+              <p className={`text-lg mb-6 leading-relaxed transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                With over a decade of teaching experience in advanced mathematics and computer science, Dr. Goyal has dedicated his career to simplifying complex engineering concepts. His unique approach bridges the gap between theoretical math and practical software engineering.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-4 mb-8">
+                <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <h4 className={`font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Teaching Philosophy</h4>
+                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Logic over memorization. Building foundations that last a lifetime.</p>
+                </div>
+                <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <h4 className={`font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Professional Impact</h4>
+                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Mentored 100,000+ students across India to ace their university exams.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Why Choose Us Section */}
-      <div id="features" className={`py-24 relative transition-colors duration-500 ${isDark ? 'bg-[#070B14]' : 'bg-slate-50'}`}>
+      <div id="features" className={`py-24 relative transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-white'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className={`text-3xl md:text-5xl font-extrabold mb-4 transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>The MathCom Advantage</h2>
@@ -354,7 +495,7 @@ const HomePage = () => {
       </div>
 
       {/* Mission Section */}
-      <div id="about" className={`py-24 relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-indigo-50'}`}>
+      <div id="about" className={`py-24 relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#070B14]' : 'bg-indigo-50'}`}>
         {/* Tech Grid Pattern */}
         <div className={`absolute inset-0 bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30 ${isDark ? 'bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)]' : 'bg-[linear-gradient(to_right,#cbd5e1_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e1_1px,transparent_1px)]'}`}></div>
         
@@ -383,12 +524,12 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Subjects Section */}
-      <div id="subjects" className={`py-32 relative transition-colors duration-500 ${isDark ? 'bg-[#070B14]' : 'bg-white'}`}>
+      {/* UPDATED: Subjects Section with 3D Hover Flip */}
+      <div id="subjects" className={`py-32 relative transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-white'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
             <h2 className={`text-4xl md:text-5xl font-extrabold mb-6 transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>Master the Curriculum</h2>
-            <p className={`text-xl transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Comprehensive coverage of crucial B.Tech CSE subjects.</p>
+            <p className={`text-xl transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Hover over any subject to view the core syllabus.</p>
           </div>
 
           <motion.div 
@@ -398,30 +539,15 @@ const HomePage = () => {
             transition={{ duration: 0.8 }}
             className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
           >
-            {[
-              { icon: Calculator, title: "Engineering Math", desc: "Deep dives into the foundational mathematics required for advanced engineering concepts.", color: "text-indigo-500", bg: "bg-indigo-500/10", border: isDark ? "hover:border-indigo-500/50" : "hover:border-indigo-400" },
-              { icon: BookOpen, title: "Discrete Math", desc: "Essential logic, set theory, and statistical modeling for computer science students.", color: "text-violet-500", bg: "bg-violet-500/10", border: isDark ? "hover:border-violet-500/50" : "hover:border-violet-400" },
-              { icon: Cpu, title: "Automata Theory", desc: "Master the theory of computation, finite automata, and formal languages.", color: "text-cyan-500", bg: "bg-cyan-500/10", border: isDark ? "hover:border-cyan-500/50" : "hover:border-cyan-400" },
-              { icon: Network, title: "Data Structures", desc: "Build efficient algorithms and understand core data structures for problem-solving.", color: "text-emerald-500", bg: "bg-emerald-500/10", border: isDark ? "hover:border-emerald-500/50" : "hover:border-emerald-400" },
-            ].map((subject, index) => (
-              <motion.div 
-                key={index}
-                whileHover={{ y: -10 }}
-                className={`backdrop-blur-sm p-8 rounded-3xl border transition-all cursor-default ${isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-sm'} ${subject.border}`}
-              >
-                <div className={`${subject.bg} w-16 h-16 rounded-2xl flex items-center justify-center mb-6`}>
-                  <subject.icon className={`w-8 h-8 ${subject.color}`} />
-                </div>
-                <h3 className={`text-xl font-bold mb-3 transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>{subject.title}</h3>
-                <p className={`leading-relaxed text-sm transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{subject.desc}</p>
-              </motion.div>
+            {curriculumSubjects.map((subject, index) => (
+              <FlipCard key={index} subject={subject} isDark={isDark} />
             ))}
           </motion.div>
         </div>
       </div>
 
       {/* Testimonials Section - Auto Sliding Marquee */}
-      <div className={`py-24 relative overflow-hidden border-t transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C] border-slate-800/50' : 'bg-indigo-50/50 border-slate-200'}`}>
+      <div className={`py-24 relative overflow-hidden border-t transition-colors duration-500 ${isDark ? 'bg-[#070B14] border-slate-800/50' : 'bg-indigo-50/50 border-slate-200'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-16 relative z-10">
           <h2 className={`text-4xl md:text-5xl font-extrabold mb-4 transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>Student Success Stories</h2>
           <p className={`text-xl transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Join thousands of students who have transformed their engineering journey.</p>
@@ -429,8 +555,8 @@ const HomePage = () => {
 
         <div className="relative w-full flex overflow-hidden group">
           {/* Left and Right fade overlays for a seamless appearance */}
-          <div className={`absolute left-0 top-0 bottom-0 w-24 sm:w-40 z-10 pointer-events-none transition-colors duration-500 ${isDark ? 'bg-gradient-to-r from-[#0A0F1C] to-transparent' : 'bg-gradient-to-r from-indigo-50/50 to-transparent'}`}></div>
-          <div className={`absolute right-0 top-0 bottom-0 w-24 sm:w-40 z-10 pointer-events-none transition-colors duration-500 ${isDark ? 'bg-gradient-to-l from-[#0A0F1C] to-transparent' : 'bg-gradient-to-l from-indigo-50/50 to-transparent'}`}></div>
+          <div className={`absolute left-0 top-0 bottom-0 w-24 sm:w-40 z-10 pointer-events-none transition-colors duration-500 ${isDark ? 'bg-gradient-to-r from-[#070B14] to-transparent' : 'bg-gradient-to-r from-indigo-50/50 to-transparent'}`}></div>
+          <div className={`absolute right-0 top-0 bottom-0 w-24 sm:w-40 z-10 pointer-events-none transition-colors duration-500 ${isDark ? 'bg-gradient-to-l from-[#070B14] to-transparent' : 'bg-gradient-to-l from-indigo-50/50 to-transparent'}`}></div>
 
           {/* Framer Motion Auto-Slider */}
           <motion.div 
@@ -461,8 +587,8 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* NEW: FAQ ACCORDION SECTION */}
-      <div className={`py-24 relative transition-colors duration-500 ${isDark ? 'bg-[#070B14]' : 'bg-white'}`}>
+      {/* FAQ ACCORDION SECTION */}
+      <div className={`py-24 relative transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-white'}`}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className={`text-3xl md:text-5xl font-extrabold mb-4 transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>Frequently Asked Questions</h2>
@@ -566,7 +692,6 @@ const HomePage = () => {
           </div>
         </div>
       </footer>
-
     </div>
   );
 };
