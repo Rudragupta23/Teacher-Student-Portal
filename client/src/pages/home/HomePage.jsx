@@ -20,16 +20,19 @@ import {
   Plus,
   Minus,
   GraduationCap,
-  PlayCircle
+  PlayCircle,
+  Send,
+  Loader2,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 
-// --- FEATURE 3: Mathematical Splash Screen / Preloader (Shortened Time) ---
 const Preloader = ({ onComplete }) => {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    const timer1 = setTimeout(() => setStep(1), 300); // Reduced from 600 to 300
-    const timer2 = setTimeout(() => onComplete(), 1000); // Reduced from 1400 to 1000
+    const timer1 = setTimeout(() => setStep(1), 300); 
+    const timer2 = setTimeout(() => onComplete(), 1000); 
     return () => { clearTimeout(timer1); clearTimeout(timer2); };
   }, [onComplete]);
 
@@ -66,7 +69,6 @@ const Preloader = ({ onComplete }) => {
   );
 };
 
-// --- FEATURE 6: Magnetic Button Wrapper ---
 const MagneticElement = ({ children, className }) => {
   const ref = useRef(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -95,7 +97,6 @@ const MagneticElement = ({ children, className }) => {
   );
 };
 
-// --- FEATURE 7: Scroll-Triggered Typography Reveal ---
 const TextReveal = ({ text, className, isDark }) => {
   const words = text.split(" ");
   return (
@@ -116,7 +117,6 @@ const TextReveal = ({ text, className, isDark }) => {
   );
 };
 
-// --- Custom Typewriter Hook Component ---
 const Typewriter = ({ words }) => {
   const [currentWord, setCurrentWord] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -149,7 +149,6 @@ const Typewriter = ({ words }) => {
   );
 };
 
-// --- Animated Counter Component ---
 const AnimatedCounter = ({ target, suffix, isDark }) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
@@ -171,7 +170,6 @@ const AnimatedCounter = ({ target, suffix, isDark }) => {
   return <span ref={ref} className={isDark ? "text-white" : "text-slate-900"}>0{suffix}</span>;
 };
 
-// --- FAQ Item Component ---
 const FAQItem = ({ q, a, isDark }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
@@ -198,7 +196,6 @@ const FAQItem = ({ q, a, isDark }) => {
   );
 };
 
-// --- 3D Flip Card Component for Syllabus ---
 const FlipCard = ({ subject, isDark }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   
@@ -250,7 +247,7 @@ const FlipCard = ({ subject, isDark }) => {
   );
 };
 
-// --- MAIN PAGE COMPONENT ---
+// MAIN PAGE COMPONENT
 const HomePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -258,8 +255,32 @@ const HomePage = () => {
   
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 }); 
   const [themeRipple, setThemeRipple] = useState(false); 
+  const [contactData, setContactData] = useState({ name: '', email: '', message: '' });
+  const [contactStatus, setContactStatus] = useState({ loading: false, message: '', isError: false });
 
-  // Persist theme state using localStorage
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    setContactStatus({ loading: true, message: '', isError: false });
+    
+    try {
+      const res = await fetch('http://localhost:5000/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactData)
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setContactStatus({ loading: false, message: 'Message sent successfully!', isError: false });
+        setContactData({ name: '', email: '', message: '' }); 
+      } else {
+        setContactStatus({ loading: false, message: data.message || 'Something went wrong.', isError: true });
+      }
+    } catch (error) {
+      setContactStatus({ loading: false, message: 'Failed to connect to server.', isError: true });
+    }
+  };
+
   const [isDark, setIsDark] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme ? savedTheme === 'dark' : true;
@@ -269,30 +290,25 @@ const HomePage = () => {
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
-  // Track global mouse for particle effect
   useEffect(() => {
     const handleGlobalMouse = (e) => setMousePos({ x: e.clientX, y: e.clientY });
     window.addEventListener('mousemove', handleGlobalMouse);
     return () => window.removeEventListener('mousemove', handleGlobalMouse);
   }, []);
 
-  // Scroll Progress Setup
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
 
-  // Parallax Values
   const yParallaxFast = useTransform(scrollYProgress, [0, 1], [0, -500]);
   const yParallaxSlow = useTransform(scrollYProgress, [0, 1], [0, -250]);
   const rotateParallax = useTransform(scrollYProgress, [0, 1], [0, 360]);
 
-  // Back to Top Button Listener
   useEffect(() => {
     const handleScroll = () => setShowTopBtn(window.scrollY > 400);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Dynamic Theme Transition Handler
   const handleThemeToggle = () => {
     setThemeRipple(true);
     setTimeout(() => {
@@ -301,7 +317,6 @@ const HomePage = () => {
     }, 100); 
   };
 
-  // Animation configurations
   const fadeUp = {
     hidden: { opacity: 0, y: 40 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
@@ -368,7 +383,7 @@ const HomePage = () => {
           )}
         </AnimatePresence>
 
-        {/* Scroll Progress Indicator */}
+        {/* Scroll Indicator */}
         <motion.div 
           style={{ scaleX }} 
           className="fixed top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-500 origin-left z-[100]" 
@@ -389,7 +404,7 @@ const HomePage = () => {
           )}
         </AnimatePresence>
 
-        {/* Navbar - Glassmorphic */}
+        {/* Navbar */}
         <nav className={`fixed w-full z-50 top-0 backdrop-blur-xl border-b transition-colors duration-500 ${isDark ? 'bg-[#070B14]/90 border-slate-800/50 shadow-2xl shadow-black/50' : 'bg-white/80 border-slate-200 shadow-sm'}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-20">
@@ -407,6 +422,7 @@ const HomePage = () => {
                 <a href="#about" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Mission</a>
                 <a href="#mentor" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Mentor</a>
                 <a href="#subjects" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Curriculum</a>
+                <a href="#contact" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Contact Us</a>
                 
                 {/* Theme Toggle Button */}
                 <button onClick={handleThemeToggle} className={`p-2 rounded-full transition-colors ${isDark ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}>
@@ -449,6 +465,7 @@ const HomePage = () => {
                   <a href="#about" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Mission</a>
                   <a href="#mentor" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Mentor</a>
                   <a href="#subjects" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Curriculum</a>
+                  <a href="#contact" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Contact Us</a>
                   <Link to="/login" className="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold text-center mt-4 w-full block shadow-md">Portal Login</Link>
                 </div>
               </motion.div>
@@ -459,7 +476,6 @@ const HomePage = () => {
         {/* Hero Section */}
         <div className="relative pt-32 pb-20 sm:pt-48 sm:pb-32 flex items-center justify-center min-h-screen overflow-hidden">
           
-          {/* Interactive Particles & Parallax Shapes */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <motion.div animate={{ x: mousePos.x * 0.05, y: mousePos.y * 0.05 }} className={`absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full blur-[120px] -z-10 mix-blend-screen transition-opacity duration-700 ${isDark ? 'bg-indigo-600/15' : 'bg-indigo-300/30'}`} />
             <motion.div animate={{ x: mousePos.x * -0.05, y: mousePos.y * -0.05 }} className={`absolute bottom-1/4 right-1/4 w-[600px] h-[600px] rounded-full blur-[120px] -z-10 mix-blend-screen transition-opacity duration-700 ${isDark ? 'bg-cyan-600/15' : 'bg-cyan-300/30'}`} />
@@ -668,7 +684,7 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* FEATURE 5: Interactive Learning Roadmap (Fixed Alternating Timeline) */}
+        {/* FEATURE 5: Interactive Learning Roadmap */}
         <div id="roadmap" className={`py-24 relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-slate-50'}`}>
            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
              <div className="text-center mb-24">
@@ -676,9 +692,7 @@ const HomePage = () => {
                <p className={`text-xl ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Follow the logical progression of subjects to build a rock-solid foundation.</p>
              </div>
              
-             {/* Timeline Wrapper */}
              <div className="relative max-w-5xl mx-auto">
-                {/* Vertical Line */}
                 <div className="absolute left-[28px] md:left-1/2 top-0 bottom-0 w-1 bg-indigo-500/30 md:-translate-x-1/2 rounded-full"></div>
                 
                 <div className="space-y-12">
@@ -693,13 +707,10 @@ const HomePage = () => {
                         transition={{ duration: 0.6 }}
                         className={`relative flex items-center justify-between flex-col md:flex-row w-full ${isEven ? 'md:flex-row-reverse' : ''}`}
                       >
-                        {/* Empty Spacer for Desktop Layout */}
                         <div className="hidden md:block w-[45%]"></div>
                         
-                        {/* Center Glowing Dot */}
                         <div className={`absolute left-[28px] md:left-1/2 top-8 md:top-1/2 w-5 h-5 rounded-full border-4 ${isDark ? 'border-[#0A0F1C]' : 'border-slate-50'} ${sub.bulletColor} shadow-[0_0_15px_rgba(99,102,241,0.6)] -translate-x-1/2 md:-translate-y-1/2 z-10`}></div>
                         
-                        {/* Content Card */}
                         <div className={`w-full pl-16 md:pl-0 md:w-[45%] ${isEven ? 'md:text-right' : 'text-left'}`}>
                           <div className={`p-6 rounded-2xl border backdrop-blur-sm transition-transform hover:-translate-y-1 ${isDark ? 'bg-slate-900/60 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-200 shadow-sm hover:border-slate-300'}`}>
                             <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl mb-4 ${sub.bg} ${sub.color} ${isEven ? 'md:ml-auto md:mr-0' : ''}`}>
@@ -717,7 +728,6 @@ const HomePage = () => {
            </div>
         </div>
 
-        {/* Subjects Section with 3D Hover Flip */}
         <div id="subjects" className={`py-32 relative transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-white'}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-20">
@@ -739,7 +749,7 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* Testimonials Section - Auto Sliding Marquee */}
+        {/* Testimonials Section */}
         <div className={`py-24 relative overflow-hidden border-t transition-colors duration-500 ${isDark ? 'bg-[#070B14] border-slate-800/50' : 'bg-indigo-50/50 border-slate-200'}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-16 relative z-10">
             <TextReveal text="Student Success Stories" className="text-4xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
@@ -789,6 +799,138 @@ const HomePage = () => {
               {faqs.map((faq, index) => (
                 <FAQItem key={index} q={faq.q} a={faq.a} isDark={isDark} />
               ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Us Section */}
+        <div id="contact" className={`py-24 relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-slate-50'}`}>
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none"></div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center mb-16">
+              <TextReveal text="Let's Connect" className="text-4xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
+              <p className={`text-lg transition-colors max-w-2xl mx-auto ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                Have a question about the lectures or facing an issue with the portal? Drop us a message and we'll get back to you.
+              </p>
+            </div>
+            
+            <div className="grid lg:grid-cols-5 gap-12 items-start">
+              
+              <motion.div 
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="lg:col-span-2 space-y-6"
+              >
+                 <div className={`p-8 rounded-3xl border shadow-lg transition-transform hover:-translate-y-1 ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-6 border border-indigo-500/20">
+                      <Mail className="w-7 h-7 text-indigo-500" />
+                    </div>
+                    <h3 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Email Us</h3>
+                    <p className={`mb-6 text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Send us an email directly. We usually respond within 24 hours.</p>
+                    <a href="mailto:mathcommentors@gmail.com" className="inline-flex items-center gap-2 text-indigo-500 font-bold hover:text-indigo-400 transition-colors">
+                      mathcommentors@gmail.com <ArrowRight className="w-4 h-4" />
+                    </a>
+                 </div>
+
+                 <div className={`p-8 rounded-3xl border shadow-lg transition-transform hover:-translate-y-1 ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center mb-6 border border-cyan-500/20">
+                      <Users className="w-7 h-7 text-cyan-500" />
+                    </div>
+                    <h3 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Join Community</h3>
+                    <p className={`mb-6 text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Connect with thousands of students on our official channel.</p>
+                    <a href="https://www.youtube.com/@MathComMentors" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-cyan-500 font-bold hover:text-cyan-400 transition-colors">
+                      Visit YouTube <ArrowRight className="w-4 h-4" />
+                    </a>
+                 </div>
+              </motion.div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className={`lg:col-span-3 p-8 md:p-10 rounded-3xl border shadow-2xl relative overflow-hidden transition-colors ${isDark ? 'bg-slate-900/80 border-slate-800 shadow-indigo-900/10' : 'bg-white border-slate-200 shadow-indigo-100'}`}
+              >
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-500"></div>
+
+                <h3 className={`text-2xl font-bold mb-8 ${isDark ? 'text-white' : 'text-slate-900'}`}>Send a Message</h3>
+
+                <form onSubmit={handleContactSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="relative">
+                      <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Your Name</label>
+                      <input 
+                        type="text" required
+                        value={contactData.name}
+                        onChange={(e) => setContactData({...contactData, name: e.target.value})}
+                        className={`w-full px-5 py-4 rounded-xl border-2 focus:border-indigo-500 focus:ring-0 outline-none transition-all ${isDark ? 'bg-[#0A0F1C] border-slate-800 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                    <div className="relative">
+                      <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Your Email</label>
+                      <input 
+                        type="email" required
+                        value={contactData.email}
+                        onChange={(e) => setContactData({...contactData, email: e.target.value})}
+                        className={`w-full px-5 py-4 rounded-xl border-2 focus:border-indigo-500 focus:ring-0 outline-none transition-all ${isDark ? 'bg-[#0A0F1C] border-slate-800 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                        placeholder="Enter your email address"
+                      />
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Your Message</label>
+                    <textarea 
+                      required rows="5"
+                      value={contactData.message}
+                      onChange={(e) => setContactData({...contactData, message: e.target.value})}
+                      className={`w-full px-5 py-4 rounded-xl border-2 focus:border-indigo-500 focus:ring-0 outline-none transition-all resize-none ${isDark ? 'bg-[#0A0F1C] border-slate-800 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                      placeholder="How can we help you today?"
+                    ></textarea>
+                  </div>
+                  
+                  <AnimatePresence>
+                    {contactStatus.message && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0, y: -10 }}
+                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className={`p-4 rounded-xl text-sm font-bold flex items-center gap-3 ${contactStatus.isError ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'}`}
+                      >
+                        {contactStatus.isError ? <AlertCircle className="w-5 h-5 shrink-0" /> : <CheckCircle className="w-5 h-5 shrink-0" />}
+                        {contactStatus.message}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <motion.button 
+                    whileHover={{ scale: contactStatus.loading ? 1 : 1.02 }}
+                    whileTap={{ scale: contactStatus.loading ? 1 : 0.98 }}
+                    type="submit" 
+                    disabled={contactStatus.loading}
+                    className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-80 flex items-center justify-center gap-3 shadow-lg shadow-indigo-500/30 relative overflow-hidden"
+                  >
+                    {contactStatus.loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" /> 
+                        Sending Message...
+                      </>
+                    ) : contactStatus.message && !contactStatus.isError ? (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        Sent Successfully!
+                      </>
+                    ) : (
+                      <>
+                        Send Message <Send className="w-5 h-5" />
+                      </>
+                    )}
+                  </motion.button>
+                </form>
+              </motion.div>
+
             </div>
           </div>
         </div>
