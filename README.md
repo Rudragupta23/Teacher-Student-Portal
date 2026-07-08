@@ -1,4 +1,4 @@
-# Teacher-Student-Parent-Grader Portal
+# Classroom Portal
 
 A full-stack MERN (MongoDB, Express, React, Node.js) educational platform designed to streamline communication, resource sharing, and academic tracking between teachers, students, graders and parents.
 
@@ -9,7 +9,7 @@ A full-stack MERN (MongoDB, Express, React, Node.js) educational platform design
 | Feature Category | Specific Capabilities |
 | :--- | :--- |
 | **Authentication & Account Security** | Secure user registration, JWT-based authentication, encrypted passwords, secure session handling, role-based login, password reset, email verification, and protected routes. |
-| **Role-Based Access Control (RBAC)** | Dedicated permission levels for Admin, Teacher, Student, Parent, and Grader ensuring each user accesses only authorized features and data. |
+| **Role-Based Access Control** | Dedicated permission levels for Admin, Teacher, Student, Parent, and Grader ensuring each user accesses only authorized features and data. |
 | **Admin Dashboard** | Complete system management including user administration, class management, announcements, resources, reports, academic monitoring, and platform configuration. |
 | **Teacher Dashboard** | Manage classes, create assignments, upload study materials, publish announcements, monitor student performance, communicate with parents, and evaluate submissions. |
 | **Student Dashboard** | View assignments, submit homework, access learning resources, check grades, receive notifications, track academic progress, and communicate with teachers. |
@@ -24,7 +24,6 @@ A full-stack MERN (MongoDB, Express, React, Node.js) educational platform design
 | **Grading & Evaluation System** | Grade assignments, provide comments, calculate total marks, maintain grade history, and generate performance reports. |
 | **Academic Performance Tracking** | Monitor student progress using grades, assignment completion rates, quiz performance, and overall academic statistics. |
 | **Learning Progress Analytics** | Interactive dashboards displaying assignment completion, academic growth, grades, attendance, and learning trends through visual statistics. |
-| **Adaptive Learning Engine** | Intelligent recommendation system that adjusts learning difficulty and suggests additional practice based on student performance. |
 | **Study Resource Management** | Upload, organize, categorize, download, and share notes, PDFs, presentations, videos, worksheets, and reference materials. |
 | **Google Drive Integration** | Store and share large educational resources securely through Google Drive integration and external cloud links. |
 | **Curriculum & Scheme Management** | Manage syllabus, lesson plans, schemes of work, curriculum progress, and teaching schedules for different classes. |
@@ -40,13 +39,6 @@ A full-stack MERN (MongoDB, Express, React, Node.js) educational platform design
 | **Parent-Teacher Communication** | Dedicated communication channel allowing parents and teachers to discuss student progress and academic concerns. |
 | **Student Progress Reports** | Generate comprehensive academic reports including grades, attendance, assignments, feedback, and performance summaries. |
 | **Performance Dashboard** | Visual charts and statistics displaying assignment completion, attendance percentage, academic scores, and grading trends. |
-| **Secure REST API** | Fully structured RESTful API architecture with authentication, authorization, validation, and error handling. |
-| **Database Management** | Efficient MongoDB schema design with optimized relationships, indexing, and scalable data management. |
-| **Responsive User Interface** | Fully responsive interface optimized for desktops, tablets, and mobile devices using React and Tailwind CSS. |
-| **Cloud-Ready Architecture** | Easily deployable using MongoDB Atlas, Render, Vercel, AWS, or any cloud hosting platform. |
-| **Scalable MERN Architecture** | Modular project structure following industry-standard MERN practices with reusable components and clean separation of concerns. |
-| **Security Features** | Password hashing, JWT authentication, protected APIs, middleware validation, input sanitization, secure routing, and role-based authorization. |
-
 
 ---
 

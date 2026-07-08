@@ -307,12 +307,37 @@ const HomePage = () => {
   ];
 
   const testimonials = [
-    { name: "Rahul S.", role: "B.Tech CSE Student", text: "Dr. Vikas Goyal's teaching style is unparalleled. He breaks down complex math into simple logical steps. I aced my Engineering Math exam because of him!" },
-    { name: "Priya M.", role: "Computer Science Major", text: "The Discrete Math series was a lifesaver. Never thought I would actually enjoy studying Graph Theory. Highly recommended for every engineering student." },
-    { name: "Ankit K.", role: "Software Engineer", text: "Even after college, I come back to these lectures to brush up on my Automata Theory. Pure gold content, absolutely free." },
-    { name: "Sneha R.", role: "B.Tech IT", text: "I was struggling with Data Structures, but the way concepts are visualized and explained here made everything crystal clear. Best mentor ever!" },
-    { name: "Aman D.", role: "B.Tech CSE Student", text: "The community support and the quality of these free lectures are better than any paid coaching I've attended." },
-  ];
+  {
+    name: "Rahul S.",
+    role: "B.Tech CSE Student",
+    rating: 5,
+    text: "Dr. Vikas Goyal's teaching style is unparalleled. He breaks down complex math into simple logical steps. I aced my Engineering Math exam because of him!"
+  },
+  {
+    name: "Priya M.",
+    role: "Computer Science Major",
+    rating: 4,
+    text: "The Discrete Math series was a lifesaver. Never thought I would actually enjoy studying Graph Theory. Highly recommended for every engineering student."
+  },
+  {
+    name: "Ankit K.",
+    role: "Software Engineer",
+    rating: 5,
+    text: "Even after college, I come back to these lectures to brush up on my Automata Theory. Pure gold content, absolutely free."
+  },
+  {
+    name: "Sneha R.",
+    role: "B.Tech IT",
+    rating: 4,
+    text: "I was struggling with Data Structures, but the way concepts are visualized and explained here made everything crystal clear. Best mentor ever!"
+  },
+  {
+    name: "Aman D.",
+    role: "B.Tech CSE Student",
+    rating: 5,
+    text: "The community support and the quality of these free lectures are better than any paid coaching I've attended."
+  },
+];
 
   const faqs = [
     { 
@@ -743,9 +768,14 @@ const HomePage = () => {
               {[...testimonials, ...testimonials].map((t, index) => (
                 <div key={index} className={`w-[350px] sm:w-[420px] backdrop-blur-md p-8 rounded-3xl border flex flex-col justify-between flex-shrink-0 transition-colors ${isDark ? 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60' : 'bg-white border-slate-200 hover:border-indigo-200 shadow-sm'}`}>
                   <div>
-                    <div className="flex text-amber-400 mb-4 gap-1">
-                      {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
-                    </div>
+                    <div className="flex mb-4 gap-1">
+  {[...Array(t.rating)].map((_, i) => (
+    <Star
+      key={i}
+      className="w-5 h-5 text-amber-400 fill-amber-400"
+    />
+  ))}
+</div>
                     <p className={`leading-relaxed mb-6 italic transition-colors ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>"{t.text}"</p>
                   </div>
                   <div className={`flex items-center gap-4 border-t pt-5 transition-colors ${isDark ? 'border-slate-800/80' : 'border-slate-100'}`}>
