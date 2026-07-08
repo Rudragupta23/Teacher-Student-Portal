@@ -26,7 +26,6 @@ const getOverdueTime = (dueDate, submittedAt = null) => {
 export default function AdminDashboard() {
   // Navigation & Data State
   const { user } = useContext(AuthContext);
-  // const [activeTab, setActiveTab] = useState(user?.role === 'grader' ? 'submitted' : 'dashboard');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [students, setStudents] = useState([]);
   const [homeworks, setHomeworks] = useState([]);
@@ -125,8 +124,8 @@ export default function AdminDashboard() {
     try {
       await api.put(`/admin/students/${studentId}/approve`);
       showToast('✅ Student approved successfully!');
-      fetchPendingStudents(); // Refresh the pending list
-      fetchData(); // Refresh the main enrolled students list
+      fetchPendingStudents(); 
+      fetchData(); 
     } catch (error) {
       showToast('Failed to approve student', 'error');
     }
@@ -754,7 +753,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                   {answerSheet.isUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
                 </div>
 
-                {/*  NEW DRIVE LINK INPUT  */}
                 <p className="text-slate-500 text-sm mb-2 font-bold">Attach Google Drive Link (Optional)</p>
                 <input type="url" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 outline-none font-bold text-slate-700 mb-6" 
                   placeholder="https://drive.google.com/..." 
@@ -768,7 +766,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 <h3 className="text-2xl font-black text-slate-800 mb-2">Allocate Students</h3>
                 <p className="text-slate-500 text-sm mb-4">Select the specific students this grader will mark.</p>
                 
-                {/* Grader Info & Currently Assigned Counter */}
                 {(() => {
                   const currentGrader = graders.find(g => g._id === modal.graderId);
                   const initiallyAssigned = currentGrader?.allocatedStudents?.length || 0;
@@ -807,7 +804,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                           <span className="font-bold text-sm text-slate-700">{s.registrationName || s.name} {s.yearGroup ? `(${s.yearGroup})` : ''}</span>
                         </div>
                         
-                        {/* Badge for already assigned students */}
                         {isInitiallyAllocated && (
                            <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md shadow-sm">
                              Already Assigned
@@ -945,7 +941,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
         </div>
       )}
 
-      {/* Mobile Overlay */}
 {isSidebarOpen && (
   <div 
     className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm" 
@@ -1077,7 +1072,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
       {/* MAIN CONTENT */}
 <div className="flex-1 overflow-y-auto scroll-smooth p-3 sm:p-6 lg:p-10 w-full overflow-x-hidden">
         <div className="max-w-[1600px] mx-auto">
-          {/* MOBILE HAMBURGER HEADER */}
     <div className="lg:hidden flex items-center justify-between mb-8 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
       <div className="flex items-center gap-3">
         <div className="bg-indigo-500 w-10 h-10 flex items-center justify-center rounded-xl text-white font-bold">M</div>
@@ -1983,7 +1977,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       </label>
                     </div>
 
-                    {/* --- YEAR AND STUDENT FILTERS (ALWAYS VISIBLE - SEPARATE ROWS) --- */}
                     <div className="flex flex-col gap-4 mb-6 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
                       <div>
                         <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
@@ -2017,7 +2010,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       </div>
                     </div>
 
-                    {/* CONDITIONALLY RENDER REST OF FIELDS */}
                     {schemeForm.classStatus === 'Class Taken' && (
                       <div className="animate-fade-in space-y-4">
                         
@@ -2144,7 +2136,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                           }
                           
                           if (schemeListYear !== 'all') {
-                            // If the report was sent to a specific student, check THAT student's year group!
                             if (report.studentId && report.studentId !== 'all') {
                               const studentForReport = students.find(s => s._id === report.studentId);
                               if (!studentForReport || studentForReport.yearGroup !== schemeListYear) {
@@ -2172,7 +2163,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                           <p className="font-bold text-[#1B2559]">{report.title}</p>
                           {report.topic && <p className="text-xs font-bold text-slate-500 mt-1 mb-1">Topic: {report.topic}</p>}
                           
-                          {/* NEW: Show which student this report belongs to */}
                           {report.studentId && report.studentId !== 'all' ? (
                             <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
                               👤 {students.find(s => s._id === report.studentId)?.name || 'Specific Student'}
@@ -2232,7 +2222,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                                   )}
                                 </div>
 
-                                {/* Single Delete Button - Now using Flex instead of Absolute */}
                                 {user?.role === 'admin' && (
                                   <button onClick={() => setModal({ type: 'deleteScheme', hwId: report._id, data: '' })} 
                                     className="shrink-0 mt-1 p-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg shadow-sm transition-all" title="Delete Report">
@@ -2320,7 +2309,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       </div>
                       
                       {/* Individual Student Filter Dropdown */}
-                      {/* Individual Student Filter Dropdown */}
 <select 
   className="w-full sm:w-auto p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559] text-sm sm:text-base max-w-full"
   value={selectedStudentForChart}
@@ -2369,7 +2357,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 <h2 className="text-xl font-black text-[#1B2559] mb-6">Conversations</h2>
                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-2">
                   
-                  {/* --- GLOBAL CHAT BUTTON (ADMIN ONLY) --- */}
+                  {/* GLOBAL CHAT BUTTON (ADMIN ONLY) */}
                   {user?.role === 'admin' && (
                     <button 
                       onClick={() => { setSelectedStudentForChat({ _id: 'all', name: 'Entire Class', registrationName: 'Entire Class', yearGroup: '' }); fetchMessages('all'); }}
@@ -2819,7 +2807,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
       setDriveForm({
         ...driveForm, 
         yearGroupFilter: selectedYear, 
-        // Automatically default to the first student in the filtered list so it doesn't default to 'all'
         targetAudience: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
       });
     }}>
@@ -2835,7 +2822,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
   <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
   value={driveForm.targetAudience} onChange={e => setDriveForm({...driveForm, targetAudience: e.target.value})}>
     
-    {/* Only show "Share to Everyone" if Year Filter is set to All */}
     {driveForm.yearGroupFilter === 'all' && (
       <option value="all">📢 Share to Everyone</option>
     )}
@@ -2931,23 +2917,23 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                 {/* Planner Form Modal */}
                 {plannerModal.show && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
-                      <h3 className="text-2xl font-black text-[#1B2559] mb-4">
+                    <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col">
+                      <h3 className="text-xl sm:text-2xl font-black text-[#1B2559] mb-4 shrink-0">
                         {plannerModal.data ? 'Edit Class Session' : `Schedule Class for ${plannerModal.selectedDate}`}
                       </h3>
                       
-                      <form onSubmit={handlePlannerSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                      <form onSubmit={handlePlannerSubmit} className="space-y-3 sm:space-y-4 shrink-0">
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
                           <div>
                             <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Week No</label>
-                            <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
+                            <input type="text" className="w-full p-3 sm:p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
                               placeholder="e.g. 1" value={plannerForm.weekNo} 
                               onChange={e => setPlannerForm({...plannerForm, weekNo: e.target.value, title: e.target.value && plannerForm.topic ? `WEEK ${e.target.value} - ${plannerForm.topic}`.toUpperCase() : plannerForm.topic.toUpperCase()})} 
                               readOnly={!!plannerModal.data} />
                           </div>
                           <div>
                             <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Topic</label>
-                            <input type="text" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
+                            <input type="text" required className="w-full p-3 sm:p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
                               placeholder="e.g. Algebra" value={plannerForm.topic} 
                               onChange={e => setPlannerForm({...plannerForm, topic: e.target.value, title: plannerForm.weekNo && e.target.value ? `WEEK ${plannerForm.weekNo} - ${e.target.value}`.toUpperCase() : e.target.value.toUpperCase()})} 
                               readOnly={!!plannerModal.data} />
@@ -2955,27 +2941,26 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         </div>
                         <div>
                           <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Session Title (Auto-Generated)</label>
-                          <input type="text" className="w-full p-4 bg-[#E2E8F0] border-none rounded-xl font-bold outline-none text-[#1B2559] opacity-70 cursor-not-allowed" 
+                          <input type="text" className="w-full p-3 sm:p-4 bg-[#E2E8F0] border-none rounded-xl font-bold outline-none text-[#1B2559] opacity-70 cursor-not-allowed" 
                             value={plannerForm.title || plannerForm.topic} readOnly placeholder="WEEK X - TOPIC" />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
                           <div>
                             <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Start Time</label>
-                            <input type="time" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
+                            <input type="time" required className="w-full p-3 sm:p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
                               value={plannerForm.startTime} onChange={e => setPlannerForm({...plannerForm, startTime: e.target.value})}
                               readOnly={!!plannerModal.data} />
                           </div>
                           <div>
                             <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">End Time</label>
-                            <input type="time" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
+                            <input type="time" required className="w-full p-3 sm:p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
                               value={plannerForm.endTime} onChange={e => setPlannerForm({...plannerForm, endTime: e.target.value})}
                               readOnly={!!plannerModal.data} />
                           </div>
                         </div>
 
-                        {/* --- NEW DURATION CALCULATOR --- */}
                         {plannerForm.startTime && plannerForm.endTime && (
-                          <div className="text-sm font-black text-indigo-600 bg-indigo-50 px-4 py-3 rounded-xl border border-indigo-100 flex justify-center items-center mt-4 shadow-sm">
+                          <div className="text-sm font-black text-indigo-600 bg-indigo-50 px-4 py-2 sm:py-3 rounded-xl border border-indigo-100 flex justify-center items-center mt-3 sm:mt-4 shadow-sm">
                             ⏱️ Total Duration: {(() => {
                               const [sh, sm] = plannerForm.startTime.split(':').map(Number);
                               const [eh, em] = plannerForm.endTime.split(':').map(Number);
@@ -2989,53 +2974,51 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         )}
                         
                         {!plannerModal.data && (
-  <>
-    {/* 1. Year Group Filter Dropdown */}
-    <div className="space-y-2 mt-4">
-        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
-        <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl outline-none font-bold text-[#1B2559]"
-          value={plannerForm.yearGroupFilter}
-          onChange={e => {
-              const selectedYear = e.target.value;
-              const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
-              setPlannerForm({
-                  ...plannerForm,
-                  yearGroupFilter: selectedYear,
-                  // Auto-select the first student in the filtered list, or default back to 'all'
-                  studentId: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
-              });
-          }}>
-          <option value="all">All Years</option>
-          {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
-              <option key={yg} value={yg}>{yg}</option>
-          ))}
-        </select>
-    </div>
+                          <>
+                            {/* 1. Year Group Filter Dropdown */}
+                            <div className="space-y-1 sm:space-y-2 mt-3 sm:mt-4">
+                                <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
+                                <select className="w-full p-3 sm:p-4 bg-[#F4F7FE] border-none rounded-xl outline-none font-bold text-[#1B2559]"
+                                  value={plannerForm.yearGroupFilter}
+                                  onChange={e => {
+                                      const selectedYear = e.target.value;
+                                      const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
+                                      setPlannerForm({
+                                          ...plannerForm,
+                                          yearGroupFilter: selectedYear,
+                                          studentId: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
+                                      });
+                                  }}>
+                                  <option value="all">All Years</option>
+                                  {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                                      <option key={yg} value={yg}>{yg}</option>
+                                  ))}
+                                </select>
+                            </div>
 
-    {/* 2. Specific Student Dropdown */}
-    <div className="space-y-2 mt-4">
-        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Student</label>
-        <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl outline-none font-bold text-[#1B2559]"
-          value={plannerForm.studentId}
-          onChange={e => setPlannerForm({...plannerForm, studentId: e.target.value})}>
-          
-          {/* Only show "All Students" if the Year Filter is set to All */}
-          {plannerForm.yearGroupFilter === 'all' && <option value="all">📢 All Students</option>}
-          
-          {students.filter(s => plannerForm.yearGroupFilter === 'all' || s.yearGroup === plannerForm.yearGroupFilter).map(s => (
-              <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
-          ))}
-        </select>
-    </div>
+                            {/* 2. Specific Student Dropdown */}
+                            <div className="space-y-1 sm:space-y-2 mt-3 sm:mt-4">
+                                <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Student</label>
+                                <select className="w-full p-3 sm:p-4 bg-[#F4F7FE] border-none rounded-xl outline-none font-bold text-[#1B2559]"
+                                  value={plannerForm.studentId}
+                                  onChange={e => setPlannerForm({...plannerForm, studentId: e.target.value})}>
+                                  
+                                  {plannerForm.yearGroupFilter === 'all' && <option value="all">📢 All Students</option>}
+                                  
+                                  {students.filter(s => plannerForm.yearGroupFilter === 'all' || s.yearGroup === plannerForm.yearGroupFilter).map(s => (
+                                      <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                                  ))}
+                                </select>
+                            </div>
 
-    {/* 3. Original Recurring Checkbox */}
-    <label className="flex items-center gap-3 cursor-pointer p-4 bg-indigo-50 rounded-xl mt-4">
-      <input type="checkbox" className="w-5 h-5 text-indigo-600 rounded" 
-        checked={plannerForm.isRecurring} onChange={e => setPlannerForm({...plannerForm, isRecurring: e.target.checked})} />
-      <span className="font-bold text-indigo-900 text-sm">Make recurring (Weekly for 2 months)</span>
-    </label>
-  </>
-)}
+                            {/* 3. Original Recurring Checkbox */}
+                            <label className="flex items-center gap-3 cursor-pointer p-3 sm:p-4 bg-indigo-50 rounded-xl mt-3 sm:mt-4">
+                              <input type="checkbox" className="w-5 h-5 text-indigo-600 rounded" 
+                                checked={plannerForm.isRecurring} onChange={e => setPlannerForm({...plannerForm, isRecurring: e.target.checked})} />
+                              <span className="font-bold text-indigo-900 text-sm">Make recurring (Weekly for 2 months)</span>
+                            </label>
+                          </>
+                        )}
 
                         {/* THE NEW BUTTON TO LOG DIRECTLY TO LESSON SCHEDULE */}
                         {plannerModal.data && (
@@ -3054,20 +3037,20 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                             });
                             setPlannerModal({ show: false, selectedDate: null, data: null });
                             setActiveTab('scheme');
-                          }} className="w-full py-4 mt-6 mb-2 bg-emerald-500 text-white font-black rounded-xl hover:bg-emerald-600 shadow-md flex justify-center items-center gap-2">
+                          }} className="w-full py-3 sm:py-4 mt-4 sm:mt-6 mb-2 bg-emerald-500 text-white font-black rounded-xl hover:bg-emerald-600 shadow-md flex justify-center items-center gap-2 text-sm sm:text-base">
                             📝 Log Daily Report in Lesson Schedule
                           </button>
                         )}
 
-                        <div className={`flex gap-4 ${!plannerModal.data ? 'mt-6' : ''}`}>
-                          <button type="button" onClick={() => setPlannerModal({show: false})} className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancel</button>
+                        <div className={`flex gap-3 sm:gap-4 ${!plannerModal.data ? 'mt-4 sm:mt-6' : ''}`}>
+                          <button type="button" onClick={() => setPlannerModal({show: false})} className="flex-1 py-3 sm:py-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 text-sm sm:text-base">Cancel</button>
                           {!plannerModal.data ? (
-                            <button type="submit" className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700">Save Class</button>
+                            <button type="submit" className="flex-1 py-3 sm:py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 text-sm sm:text-base">Save Class</button>
                           ) : (
                             <>
-                              <button type="button" onClick={() => handlePlannerDelete(plannerModal.data._id, false)} className="flex-1 py-4 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600">Delete One</button>
+                              <button type="button" onClick={() => handlePlannerDelete(plannerModal.data._id, false)} className="flex-1 py-3 sm:py-4 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 text-sm sm:text-base">Delete One</button>
                               {plannerModal.data.isRecurring && (
-                                <button type="button" onClick={() => handlePlannerDelete(plannerModal.data._id, true)} className="flex-1 py-4 bg-red-700 text-white font-bold rounded-xl hover:bg-red-800 text-xs">Delete Series</button>
+                                <button type="button" onClick={() => handlePlannerDelete(plannerModal.data._id, true)} className="flex-1 py-3 sm:py-4 bg-red-700 text-white font-bold rounded-xl hover:bg-red-800 text-xs sm:text-sm">Delete Series</button>
                               )}
                             </>
                           )}

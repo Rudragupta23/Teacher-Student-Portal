@@ -25,7 +25,6 @@ export default function ParentDashboard() {
   // 1. Move fetchSchemes outside useEffect
   const fetchSchemes = async (childId = null) => {
     try {
-      // Pass the child's ID to the backend so it knows exactly whose reports to fetch
       const url = childId ? `/scheme?studentId=${childId}` : '/scheme';
       const res = await api.get(url);
       setSchemes(res.data);
@@ -156,7 +155,6 @@ export default function ParentDashboard() {
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-      // Find this inside handleExportPDF:
       const tableColumn = ["Homework Title", "Format/Type", "Due Date", "Status", "Score"];
       const tableRows = [];
 
@@ -179,7 +177,7 @@ export default function ParentDashboard() {
         body: tableRows,
         startY: 40,
         theme: 'grid',
-        headStyles: { fillColor: [139, 92, 246] }, // Violet color to match parent dashboard
+        headStyles: { fillColor: [139, 92, 246] },
       });
 
       doc.save(`${studentName}_Grades_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -207,14 +205,13 @@ export default function ParentDashboard() {
       setChildData(res.data.childProfile);
       setAssignments(res.data.assignments);
       
-      // NEW: Fetch the schemes directly using the child's ID we just loaded
       if (res.data.childProfile && res.data.childProfile._id) {
         fetchSchemes(res.data.childProfile._id);
       } else {
         fetchSchemes();
       }
     } catch (error) {
-      fetchSchemes(); // Fallback just in case
+      fetchSchemes(); 
       const errorMsg = error.response?.data?.message || "Server Error fetching data";
       console.error("Child Data Error:", errorMsg);
       showToast(errorMsg, "error");
@@ -380,7 +377,6 @@ export default function ParentDashboard() {
       {/* MAIN CONTENT */}
 <div className="flex-1 overflow-y-auto scroll-smooth p-3 sm:p-6 lg:p-10 w-full overflow-x-hidden">
         <div className="max-w-[1600px] mx-auto">
-          {/* MOBILE HAMBURGER HEADER */}
           <div className="lg:hidden flex items-center justify-between mb-8 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
             <div className="flex items-center gap-3">
               <div className="bg-violet-500 w-10 h-10 flex items-center justify-center rounded-xl text-white font-bold text-xl">P</div>
@@ -498,7 +494,7 @@ export default function ParentDashboard() {
         else if (diffHours > 0) displayStatus = `Completed (${diffHours} hour${diffHours > 1 ? 's' : ''} late)`;
         else displayStatus = `Completed (${diffMins} min${diffMins > 1 ? 's' : ''} late)`;
         
-        statusColor = 'bg-rose-100 text-rose-700'; // Make it red to indicate late
+        statusColor = 'bg-rose-100 text-rose-700';
       }
     } else {
   if (now > dueDate) {
@@ -743,7 +739,6 @@ export default function ParentDashboard() {
 
             const getSessionsForDay = (day) => {
               return plannerSessions.filter(session => {
-                // Determine Visibility
                 let isVisible = false;
                 if (!session.studentId || session.studentId === 'all') {
                     if (session.yearGroupFilter && session.yearGroupFilter !== 'all') {
@@ -757,7 +752,6 @@ export default function ParentDashboard() {
 
                 if (!isVisible) return false;
 
-                // Match Date
                 const d = new Date(session.startDate);
                 return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
               });

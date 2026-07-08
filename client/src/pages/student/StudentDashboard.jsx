@@ -126,7 +126,6 @@ export default function StudentDashboard() {
     }
   };
 
-  // UPDATED: Now fetches based on which room is active
   const fetchMessages = async (room = chatRoom) => {
     try {
       const url = room === 'all' ? '/messages/all' : '/messages';
@@ -135,14 +134,12 @@ export default function StudentDashboard() {
     } catch (e) { console.error("Error fetching messages"); }
   };
 
-  // UPDATED: Re-fetches when switching chat rooms
   useEffect(() => {
     if (activeTab === 'messages') {
       fetchMessages(chatRoom);
     }
   }, [activeTab, chatRoom]);
 
-  // UPDATED: Tells the backend if this is a global message
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -481,7 +478,6 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-[#0B1437]/60 z-40 lg:hidden backdrop-blur-sm" 
@@ -508,10 +504,8 @@ export default function StudentDashboard() {
         
         {/* 2. Navigation Links */}
         <div className="relative flex-1 flex flex-col overflow-hidden">
-          {/* Top smooth fade */}
           <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#0B1437] to-transparent pointer-events-none z-10"></div>
           
-          {/* Scrollable Area - HIDDEN SCROLLBAR */}
           <div className="p-6 space-y-3 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <button onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
@@ -578,7 +572,6 @@ export default function StudentDashboard() {
       {/* MAIN CONTENT */}
 <div className="flex-1 overflow-y-auto scroll-smooth p-3 sm:p-6 lg:p-10 w-full overflow-x-hidden">
         <div className="max-w-[1600px] mx-auto">
-          {/* MOBILE HAMBURGER HEADER */}
           <div className="lg:hidden flex items-center justify-between mb-8 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
             <div className="flex items-center gap-3">
               <div className="bg-emerald-500 w-10 h-10 flex items-center justify-center rounded-xl text-white font-bold text-xl">S</div>
@@ -874,7 +867,6 @@ export default function StudentDashboard() {
             };
             const getSessionsForDay = (day) => {
               return plannerSessions.filter(session => {
-                // Determine Visibility
                 let isVisible = false;
                 if (!session.studentId || session.studentId === 'all') {
                     if (session.yearGroupFilter && session.yearGroupFilter !== 'all') {
@@ -1030,7 +1022,6 @@ export default function StudentDashboard() {
                     <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[75%] p-4 rounded-2xl shadow-sm ${isMe ? (chatRoom === 'admin' ? 'bg-emerald-500 text-white rounded-br-none' : 'bg-indigo-500 text-white rounded-br-none') : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none'}`}>
                         
-                        {/* Show sender name if it's Global Chat and not the current user */}
                         {chatRoom === 'all' && !isMe && msg.sender?.name && (
                           <span className={`text-[10px] font-black mb-1 block uppercase ${chatRoom === 'admin' ? 'text-emerald-500' : 'text-indigo-500'}`}>
                             {msg.sender.registrationName || msg.sender.name}
