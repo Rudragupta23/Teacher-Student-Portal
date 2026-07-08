@@ -27,48 +27,6 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-const Preloader = ({ onComplete }) => {
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    const timer1 = setTimeout(() => setStep(1), 300); 
-    const timer2 = setTimeout(() => onComplete(), 1000); 
-    return () => { clearTimeout(timer1); clearTimeout(timer2); };
-  }, [onComplete]);
-
-  return (
-    <motion.div 
-      className="fixed inset-0 z-[99999] flex items-center justify-center bg-[#070B14]"
-      exit={{ opacity: 0, y: -50, filter: "blur(10px)" }}
-      transition={{ duration: 0.8, ease: "easeInOut" }}
-    >
-      <AnimatePresence mode="wait">
-        {step === 0 ? (
-          <motion.div
-            key="math"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1, filter: "blur(5px)" }}
-            className="text-5xl md:text-7xl text-white font-mono font-bold tracking-widest"
-          >
-            e<sup className="text-3xl md:text-5xl">iπ</sup> + 1 = 0
-          </motion.div>
-        ) : (
-          <motion.div
-            key="welcome"
-            initial={{ opacity: 0, scale: 0.9, filter: "blur(5px)" }}
-            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0 }}
-            className="text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-400 to-cyan-400"
-          >
-            Welcome
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-};
-
 const MagneticElement = ({ children, className }) => {
   const ref = useRef(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -212,7 +170,6 @@ const FlipCard = ({ subject, isDark }) => {
         animate={{ rotateY: isFlipped ? 180 : 0 }}
         transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
       >
-        {/* Front of Card */}
         <div 
           className={`absolute w-full h-full backdrop-blur-sm p-8 rounded-3xl border transition-all ${isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-sm'} ${subject.border}`} 
           style={{ backfaceVisibility: "hidden" }}
@@ -227,7 +184,6 @@ const FlipCard = ({ subject, isDark }) => {
           </div>
         </div>
 
-        {/* Back of Card */}
         <div 
           className={`absolute w-full h-full backdrop-blur-sm p-8 rounded-3xl border transition-all flex flex-col justify-center ${isDark ? 'bg-slate-800/90 border-slate-700 shadow-[0_0_20px_rgba(79,70,229,0.1)]' : 'bg-white border-indigo-100 shadow-xl'}`} 
           style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
@@ -249,9 +205,9 @@ const FlipCard = ({ subject, isDark }) => {
 
 // MAIN PAGE COMPONENT
 const HomePage = () => {
-  const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showTopBtn, setShowTopBtn] = useState(false);
+  const [showAllFaqs, setShowAllFaqs] = useState(false);
   
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 }); 
   const [themeRipple, setThemeRipple] = useState(false); 
@@ -359,21 +315,44 @@ const HomePage = () => {
   ];
 
   const faqs = [
-    { q: "Is this platform completely free?", a: "Yes! Dr. Vikas Goyal believes in accessible education. All core lectures, announcements, and study materials are 100% free." },
-    { q: "How do I access the study notes and assignments?", a: "Simply click on 'Portal Login' at the top, sign in with your student credentials, and access the 'Study Materials Hub' and 'Submissions Board'." },
-    { q: "Are the classes live or pre-recorded?", a: "We offer a hybrid approach! Core concept videos are pre-recorded for high quality and playback, while doubt sessions and specific topics are covered live." },
-    { q: "Who is this curriculum designed for?", a: "Our platform is primarily tailored for B.Tech CSE and IT students, but anyone looking to master Engineering Math, Discrete Math, or Data Structures will benefit greatly." }
+    { 
+      q: "Is this platform completely free?", 
+      a: "Yes! All core lectures, announcements, and study materials are 100% free. Dr. Vikas Goyal established this portal especially for students who cannot afford expensive coaching classes." 
+    },
+    { 
+      q: "Are the classes live or pre-recorded?", 
+      a: "The platform utilizes a hybrid educational approach. Core concept videos are pre-recorded for high-quality playback, while specific topics and doubt sessions are hosted live." 
+    },
+    { 
+      q: "How do students access study notes and assignments?", 
+      a: "Simply click on the 'Portal Login' button at the top of the homepage and sign in with your student credentials. Once logged in, you can access the 'Study Materials Hub' and the 'Submissions Board'." 
+    },
+    { 
+      q: "How will I know if my homework submission is late?", 
+      a: "The Submissions Board actively tracks deadlines. If you submit past the due date, the system will flag your assignment with an 'Overdue' or 'LATE SUBMISSION' warning." 
+    },
+    { 
+      q: "How do teachers track overall class performance?", 
+      a: "The 'Analytics' tab provides visual performance metrics like bar charts for average scores and pie charts for task statuses. Admins can also export these grades and charts as a CSV or PDF report." 
+    },
+    { 
+      q: "How do admins communicate with students and parents?", 
+      a: "Admins can broadcast announcements to specific audiences. In the Direct Messages tab, Admins can participate in a Global Class Chat, message individual students, or chat directly with a linked parent account." 
+    },
+    { 
+      q: "What sections of the portal do graders have access to?", 
+      a: "Grader accounts are granted access to the Create Homework, Submitted Work, Google Drive, Schedule Tests, Lesson Schedule, and Direct Messages tabs." 
+    },
+    { 
+      q: "How do graders know which students to evaluate?", 
+      a: "Admins have the ability to allocate specific students to a grader's profile. The views, such as the lesson schedule, will be automatically filtered to show reports corresponding only to the assigned students." 
+    }
   ];
-
+  const visibleFaqs = showAllFaqs ? faqs : faqs.slice(0, 4);
   return (
     <>
-      <AnimatePresence>
-        {isLoading && <Preloader onComplete={() => setIsLoading(false)} />}
-      </AnimatePresence>
-
-      <div className={`min-h-screen font-sans overflow-x-hidden selection:bg-indigo-500/30 transition-colors duration-500 ${isDark ? 'bg-[#070B14] text-slate-300' : 'bg-slate-50 text-slate-700'} ${isLoading ? 'hidden' : 'block'}`}>
+      <div className={`min-h-screen font-sans overflow-x-hidden selection:bg-indigo-500/30 transition-colors duration-500 ${isDark ? 'bg-[#070B14] text-slate-300' : 'bg-slate-50 text-slate-700'}`}>
         
-        {/* Theme Transition Ripple Overlay */}
         <AnimatePresence>
           {themeRipple && (
             <motion.div 
@@ -383,13 +362,11 @@ const HomePage = () => {
           )}
         </AnimatePresence>
 
-        {/* Scroll Indicator */}
         <motion.div 
           style={{ scaleX }} 
           className="fixed top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-500 origin-left z-[100]" 
         />
 
-        {/* Floating Back to Top Button */}
         <AnimatePresence>
           {showTopBtn && (
             <motion.button 
@@ -413,7 +390,7 @@ const HomePage = () => {
               <motion.a href="/" whileHover={{ scale: 1.02 }} className="flex items-center gap-3">
                 <img src="/mathcom-logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-xl shadow-lg" />
                 <span className={`font-extrabold text-2xl tracking-tight transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  MathCom <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Mentors</span>
+                  Dr. Goyal <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Maths</span>
                 </span>
               </motion.a>
               
@@ -424,7 +401,6 @@ const HomePage = () => {
                 <a href="#subjects" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Curriculum</a>
                 <a href="#contact" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Contact Us</a>
                 
-                {/* Theme Toggle Button */}
                 <button onClick={handleThemeToggle} className={`p-2 rounded-full transition-colors ${isDark ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}>
                   {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
@@ -434,7 +410,6 @@ const HomePage = () => {
                 </MagneticElement>
               </div>
 
-              {/* Mobile Actions */}
               <div className="md:hidden flex items-center gap-4">
                 <button onClick={handleThemeToggle} className={`p-2 rounded-full transition-colors ${isDark ? 'bg-slate-800 text-amber-400' : 'bg-indigo-50 text-indigo-600'}`}>
                   {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -497,7 +472,7 @@ const HomePage = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
               </span>
-              Dr. Vikas Goyal's Official Learning Portal
+              Dr. Goyal Maths Official Learning Portal
             </motion.div>
 
             <motion.h1 variants={fadeUp} className={`text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight mb-8 leading-tight transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -625,7 +600,7 @@ const HomePage = () => {
         <div id="features" className={`py-24 relative transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-white'}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <TextReveal text="The MathCom Advantage" className="text-3xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
+              <TextReveal text="The Dr. Goyal Maths Advantage" className="text-3xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
               <p className={`text-lg max-w-2xl mx-auto transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>We don't just teach formulas; we build the logical foundation required for top-tier software engineering.</p>
             </div>
 
@@ -793,12 +768,42 @@ const HomePage = () => {
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <TextReveal text="Frequently Asked Questions" className="text-3xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
-              <p className={`text-lg transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Everything you need to know about the MathCom Mentors portal.</p>
+              <p className={`text-lg transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Everything you need to know about the Dr. Goyal Maths portal.</p>
             </div>
             <div className={`rounded-3xl p-6 md:p-10 border shadow-lg transition-colors ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50 border-slate-200'} `}>
-              {faqs.map((faq, index) => (
-                <FAQItem key={index} q={faq.q} a={faq.a} isDark={isDark} />
-              ))}
+              
+              {/* Map only the visible FAQs with a smooth animation */}
+              <AnimatePresence>
+                {visibleFaqs.map((faq, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <FAQItem q={faq.q} a={faq.a} isDark={isDark} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {/* Show More / Show Less Button */}
+              {faqs.length > 4 && (
+                <div className="mt-8 flex justify-center">
+                  <button
+                    onClick={() => setShowAllFaqs(!showAllFaqs)}
+                    className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-all border ${
+                      isDark 
+                        ? 'bg-slate-800 border-slate-700 text-indigo-400 hover:bg-slate-700 hover:text-indigo-300' 
+                        : 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700'
+                    }`}
+                  >
+                    {showAllFaqs ? 'Show Less' : 'Read More'}
+                    <ChevronUp className={`w-4 h-4 transition-transform duration-300 ${showAllFaqs ? '' : 'rotate-180'}`} />
+                  </button>
+                </div>
+              )}
+              
             </div>
           </div>
         </div>
@@ -943,7 +948,7 @@ const HomePage = () => {
               <div className="md:col-span-5 lg:col-span-4">
                 <div className="flex items-center gap-3 mb-6">
                   <img src="/mathcom-logo.png" alt="MathCom Mentors Logo" className="w-10 h-10 object-contain rounded-lg shadow-sm bg-white p-1" />
-                  <span className="font-extrabold text-2xl text-white">MathCom Mentors</span>
+                  <span className="font-extrabold text-2xl text-white">Dr. Goyal Maths</span>
                 </div>
                 <p className="text-slate-400 leading-relaxed mb-6">
                   Empowering B.Tech CSE students with high-quality, accessible education in Mathematics and Computer Science.
@@ -984,7 +989,7 @@ const HomePage = () => {
 
             <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
               <p className="text-slate-500 text-sm font-medium">
-                © {new Date().getFullYear()} MathCom Mentors by Dr. Vikas Goyal. All rights reserved.
+                © {new Date().getFullYear()} Dr. Goyal Maths by Dr. Vikas Goyal. All rights reserved.
               </p>
               <div className="flex gap-6 text-sm text-slate-500 font-medium">
                 <motion.a whileHover={{ color: '#ffffff' }} href="/login" className="transition-colors hover:text-indigo-400">Portal Login</motion.a>
