@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 
 const classPlannerSchema = new mongoose.Schema({
   topic: { type: String, required: true },
+  weekNo: { type: String },
+  title: { type: String },
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   isRecurring: { type: Boolean, default: false },

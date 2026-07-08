@@ -91,10 +91,8 @@ exports.getReports = async (req, res) => {
   try {
     let query = {};
 
-    // Check who is requesting the data and filter accordingly
     if (req.user) {
       if (req.user.role === 'student') {
-        // Students only see reports meant for 'all' or their specific ID
         query = {
           $or: [
             { studentId: 'all' },
@@ -102,10 +100,8 @@ exports.getReports = async (req, res) => {
           ]
         };
       } else if (req.user.role === 'parent') {
-        // Parents link to their child via linkedStudentId (or allocatedStudents)
         let childIds = [];
 
-        // NEW: Capture the explicit student ID sent from the Parent Dashboard
         if (req.query.studentId) {
           childIds.push(req.query.studentId);
         }
@@ -116,17 +112,14 @@ exports.getReports = async (req, res) => {
         
         if (req.user.linkedStudentId) {
           try {
-            // Find child by custom ID (e.g. MATH_123)
             const child = await User.findOne({ studentId: req.user.linkedStudentId });
             if (child) {
               childIds.push(child._id.toString());
             } else {
-              // Fallback if linkedStudentId is the MongoDB _id
               const childById = await User.findById(req.user.linkedStudentId);
               if (childById) childIds.push(childById._id.toString());
             }
           } catch (e) {
-            // Silently ignore CastErrors if the ID format doesn't match
           }
         }
 
@@ -137,7 +130,6 @@ exports.getReports = async (req, res) => {
           ]
         };
       } else if (req.user.role === 'grader') {
-        // Graders see reports for students allocated to them
         const allocatedStudentIds = req.user.allocatedStudents 
           ? req.user.allocatedStudents.map(id => id.toString()) 
           : [];
@@ -150,10 +142,25 @@ exports.getReports = async (req, res) => {
         };
       }
     }
-
-    // Fetch the safely filtered reports from the database
     const reports = await Scheme.find(query).sort({ date: -1 });
     res.status(200).json(reports);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+exports.deleteReport = async (req, res) => {
+  try {
+    await Scheme.findByIdAndDelete(req.params.id);
+    res.status(200).json({ success: true, message: 'Report deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.deleteAllReports = async (req, res) => {
+  try {
+    await Scheme.deleteMany({});
+    res.status(200).json({ success: true, message: 'All reports deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

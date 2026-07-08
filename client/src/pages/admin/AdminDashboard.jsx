@@ -108,7 +108,7 @@ export default function AdminDashboard() {
   const [plannerFilter, setPlannerFilter] = useState('calendar'); 
   const [plannerCurrentDate, setPlannerCurrentDate] = useState(new Date());
   const [plannerModal, setPlannerModal] = useState({ show: false, selectedDate: null, data: null });
-  const [plannerForm, setPlannerForm] = useState({ topic: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: 'all' });
+  const [plannerForm, setPlannerForm] = useState({ topic: '', weekNo: '', title: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: 'all' });
 
   const fetchPendingStudents = async () => {
     if (user?.role === 'admin') {
@@ -222,6 +222,8 @@ export default function AdminDashboard() {
     try {
       await api.post('/planner', {
         topic: plannerForm.topic,
+        weekNo: plannerForm.weekNo,
+        title: plannerForm.title || plannerForm.topic,
         startDate: startDateTime,
         endDate: endDateTime,
         isRecurring: plannerForm.isRecurring,
@@ -230,7 +232,7 @@ export default function AdminDashboard() {
       });
       showToast('Class scheduled successfully!');
       setPlannerModal({ show: false, selectedDate: null, data: null });
-      setPlannerForm({ topic: '', startTime: '', endTime: '', isRecurring: false });
+      setPlannerForm({ topic: '', weekNo: '', title: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: 'all' });
       fetchData();
     } catch (err) {
       showToast('Error scheduling class.', "error");
@@ -523,6 +525,14 @@ export default function AdminDashboard() {
         showToast("Daily Report Submitted!");
         setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' });
         setGraderInstruction('');
+      }
+      else if (modal.type === 'deleteScheme') {
+        await api.delete(`/scheme/${modal.hwId}`);
+        showToast("Report deleted successfully!", "error");
+      }
+      else if (modal.type === 'deleteAllSchemes') {
+        await api.delete(`/scheme`);
+        showToast("All reports have been deleted!", "error");
       }
       
       setModal({ type: null, hwId: null, studentId: null, data: '' });
@@ -819,17 +829,20 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
               </>
             )}
 
-            {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader') && (
+            {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes') && (
   <>
     <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mb-4 text-3xl mx-auto">🗑️</div>
     <h3 className="text-2xl font-black text-slate-800 mb-2 text-center">
       {modal.type === 'deleteStudent' ? 'Remove Student?' : 
        modal.type === 'deleteAnsSheet' ? 'Delete Marked/Checked work?' : 
-       modal.type === 'deleteGrader' ? 'Delete Grader?' : 'Delete Homework?'}
+       modal.type === 'deleteGrader' ? 'Delete Grader?' : 
+       modal.type === 'deleteAllSchemes' ? 'Delete ALL Reports?' : 
+       modal.type === 'deleteScheme' ? 'Delete Report?' : 'Delete Homework?'}
     </h3>
     <p className="text-slate-500 text-sm mb-6 text-center">
       {modal.type === 'deleteAnsSheet' ? 'This will remove your uploaded marked/checked work from this graded homework.' : 
        modal.type === 'deleteGrader' ? `Are you sure you want to permanently delete "${modal.data}"?` :
+       modal.type === 'deleteAllSchemes' ? 'Are you sure you want to wipe the ENTIRE lesson schedule? This cannot be undone.' :
        'This action is permanent and cannot be undone.'}
     </p>
   </>
@@ -920,7 +933,7 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
   Cancel
 </button> 
                   <button onClick={executeModalAction} className={`flex-1 py-4 font-bold rounded-2xl text-white transition-transform hover:-translate-y-1 shadow-lg
-  ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' :
+  ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' :
     modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
     'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}>
   {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader') ? 'Yes, Delete' : 'Confirm'}
@@ -2072,9 +2085,16 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
               {/* View Reports (Admins & Graders) */}
               <div className={user?.role === 'admin' ? "xl:col-span-8" : "xl:col-span-12"}>
                 <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
-                  <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
-                    <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
-                    <h2 className="text-2xl font-black text-[#1B2559]">Lesson Schedule</h2>
+                  <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
+                      <h2 className="text-2xl font-black text-[#1B2559]">Lesson Schedule</h2>
+                    </div>
+                    {user?.role === 'admin' && schemes.length > 0 && (
+                      <button onClick={() => setModal({ type: 'deleteAllSchemes', data: '' })} className="px-4 py-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl font-bold transition-all shadow-sm flex items-center gap-2">
+                        🗑️ Delete All
+                      </button>
+                    )}
                   </div>
 
                   {/* LIST FILTERS */}
@@ -2193,21 +2213,33 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                               )}
                             </td>
                             <td className="p-5 w-[350px] whitespace-normal">
-                              {report.description ? (
-                                <p className="text-sm text-slate-600 font-medium line-clamp-2 mb-2" title={report.description}>
-                                  {report.description}
-                                </p>
-                              ) : (
-                                <p className="text-sm text-slate-400 font-medium mb-2">-</p>
-                              )}
-                              
-                              {/* Admin/Grader ONLY: Grader Instructions */}
-                              {(user?.role === 'admin' || user?.role === 'grader') && report.graderInstruction && (
-                                <div className="bg-indigo-50 border-l-4 border-indigo-500 p-2 rounded-r-lg">
-                                  <p className="text-[10px] font-black text-indigo-800 uppercase mb-0.5">Grader Instructions:</p>
-                                  <p className="text-indigo-900 font-medium text-xs line-clamp-2" title={report.graderInstruction}>{report.graderInstruction}</p>
+                              <div className="flex justify-between items-center gap-4 group p-2 -m-2 rounded-xl hover:bg-slate-50 transition-colors">
+                                <div className="flex-1 min-w-0">
+                                  {report.description ? (
+                                    <p className="text-sm text-slate-600 font-medium line-clamp-2 mb-2" title={report.description}>
+                                      {report.description}
+                                    </p>
+                                  ) : (
+                                    <p className="text-sm text-slate-400 font-medium mb-2">-</p>
+                                  )}
+                                  
+                                  {/* Admin/Grader ONLY: Grader Instructions */}
+                                  {(user?.role === 'admin' || user?.role === 'grader') && report.graderInstruction && (
+                                    <div className="bg-indigo-50 border-l-4 border-indigo-500 p-2 rounded-r-lg">
+                                      <p className="text-[10px] font-black text-indigo-800 uppercase mb-0.5">Grader Instructions:</p>
+                                      <p className="text-indigo-900 font-medium text-xs line-clamp-2" title={report.graderInstruction}>{report.graderInstruction}</p>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+
+                                {/* Single Delete Button - Now using Flex instead of Absolute */}
+                                {user?.role === 'admin' && (
+                                  <button onClick={() => setModal({ type: 'deleteScheme', hwId: report._id, data: '' })} 
+                                    className="shrink-0 mt-1 p-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg shadow-sm transition-all" title="Delete Report">
+                                    🗑️
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -2905,11 +2937,26 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       </h3>
                       
                       <form onSubmit={handlePlannerSubmit} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Week No</label>
+                            <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
+                              placeholder="e.g. 1" value={plannerForm.weekNo} 
+                              onChange={e => setPlannerForm({...plannerForm, weekNo: e.target.value, title: e.target.value && plannerForm.topic ? `WEEK ${e.target.value} - ${plannerForm.topic}`.toUpperCase() : plannerForm.topic.toUpperCase()})} 
+                              readOnly={!!plannerModal.data} />
+                          </div>
+                          <div>
+                            <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Topic</label>
+                            <input type="text" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
+                              placeholder="e.g. Algebra" value={plannerForm.topic} 
+                              onChange={e => setPlannerForm({...plannerForm, topic: e.target.value, title: plannerForm.weekNo && e.target.value ? `WEEK ${plannerForm.weekNo} - ${e.target.value}`.toUpperCase() : e.target.value.toUpperCase()})} 
+                              readOnly={!!plannerModal.data} />
+                          </div>
+                        </div>
                         <div>
-                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Topic</label>
-                          <input type="text" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
-                            value={plannerForm.topic} onChange={e => setPlannerForm({...plannerForm, topic: e.target.value})} 
-                            readOnly={!!plannerModal.data} />
+                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Session Title (Auto-Generated)</label>
+                          <input type="text" className="w-full p-4 bg-[#E2E8F0] border-none rounded-xl font-bold outline-none text-[#1B2559] opacity-70 cursor-not-allowed" 
+                            value={plannerForm.title || plannerForm.topic} readOnly placeholder="WEEK X - TOPIC" />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
@@ -2990,7 +3037,29 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
   </>
 )}
 
-                        <div className="flex gap-4 mt-6">
+                        {/* THE NEW BUTTON TO LOG DIRECTLY TO LESSON SCHEDULE */}
+                        {plannerModal.data && (
+                          <button type="button" onClick={() => {
+                            setSchemeForm({
+                              date: new Date(plannerModal.data.startDate).toISOString().split('T')[0],
+                              startTime: new Date(plannerModal.data.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}),
+                              endTime: new Date(plannerModal.data.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}),
+                              title: plannerModal.data.title || plannerModal.data.topic || '',
+                              weekNo: plannerModal.data.weekNo || '',
+                              topic: plannerModal.data.topic || '',
+                              description: '',
+                              classStatus: 'Class Taken',
+                              yearGroupFilter: plannerModal.data.yearGroupFilter || 'all',
+                              studentId: plannerModal.data.studentId || 'all'
+                            });
+                            setPlannerModal({ show: false, selectedDate: null, data: null });
+                            setActiveTab('scheme');
+                          }} className="w-full py-4 mt-6 mb-2 bg-emerald-500 text-white font-black rounded-xl hover:bg-emerald-600 shadow-md flex justify-center items-center gap-2">
+                            📝 Log Daily Report in Lesson Schedule
+                          </button>
+                        )}
+
+                        <div className={`flex gap-4 ${!plannerModal.data ? 'mt-6' : ''}`}>
                           <button type="button" onClick={() => setPlannerModal({show: false})} className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancel</button>
                           {!plannerModal.data ? (
                             <button type="submit" className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700">Save Class</button>
@@ -3053,8 +3122,8 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                             <div className="text-xs md:text-sm font-black w-7 h-7 flex items-center justify-center rounded-full mb-2 text-[#1B2559]">{day}</div>
                             <div className="space-y-1.5 overflow-y-auto max-h-[70px] custom-scrollbar">
                               {daySessions.map(session => (
-                                <div key={session._id} onClick={(e) => { e.stopPropagation(); setPlannerForm({ topic: session.topic, startTime: new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), endTime: new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), isRecurring: session.isRecurring }); setPlannerModal({show: true, selectedDate: dateStr, data: session}); }}
-                                  className="text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg bg-indigo-100 text-indigo-700 shadow-sm flex items-center gap-1 overflow-hidden" title={session.topic}>
+                                <div key={session._id} onClick={(e) => { e.stopPropagation(); setPlannerForm({ topic: session.topic, weekNo: session.weekNo || '', title: session.title || session.topic, startTime: new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), endTime: new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), isRecurring: session.isRecurring, yearGroupFilter: session.yearGroupFilter || 'all', studentId: session.studentId || 'all' }); setPlannerModal({show: true, selectedDate: dateStr, data: session}); }}
+                                  className="text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg bg-indigo-100 text-indigo-700 shadow-sm flex items-center gap-1 overflow-hidden" title={session.title || session.topic}>
                                   <span className="shrink-0">{new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
                                   {session.studentId && session.studentId !== 'all' && <span className="shrink-0 text-[10px] md:text-xs">👤</span>}
                                   <span className="truncate">{session.topic}</span>

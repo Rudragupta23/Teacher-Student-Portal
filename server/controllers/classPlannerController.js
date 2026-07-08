@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 
 exports.createClassSession = async (req, res) => {
   try {
-    const { topic, startDate, endDate, isRecurring, yearGroupFilter, studentId } = req.body;
+    const { topic, weekNo, title, startDate, endDate, isRecurring, yearGroupFilter, studentId } = req.body;
     const start = new Date(startDate);
     const end = new Date(endDate);
     const sessions = [];
@@ -19,6 +19,8 @@ exports.createClassSession = async (req, res) => {
       while (currentStart <= limitDate) {
         sessions.push({
           topic,
+          weekNo,
+          title,
           startDate: new Date(currentStart),
           endDate: new Date(currentEnd),
           isRecurring: true,
@@ -31,8 +33,10 @@ exports.createClassSession = async (req, res) => {
       }
     } else {
       sessions.push({ 
-        topic, 
-        startDate: start, 
+        topic,
+        weekNo,
+        title,
+        startDate: start,
         endDate: end, 
         isRecurring: false, 
         groupId,
@@ -60,7 +64,7 @@ exports.getClassSessions = async (req, res) => {
 exports.deleteClassSession = async (req, res) => {
   try {
     const { id } = req.params;
-    const { deleteAllRecurring } = req.query; // If true, deletes the whole series
+    const { deleteAllRecurring } = req.query; 
     
     const session = await ClassPlanner.findById(id);
     if (!session) return res.status(404).json({ message: 'Session not found' });
