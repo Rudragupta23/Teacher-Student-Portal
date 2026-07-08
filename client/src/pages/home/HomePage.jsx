@@ -311,7 +311,7 @@ const HomePage = () => {
     name: "Rahul S.",
     role: "B.Tech CSE Student",
     rating: 5,
-    text: "Dr. Vikas Goyal's teaching style is unparalleled. He breaks down complex math into simple logical steps. I aced my Engineering Math exam because of him!"
+    text: "Dr. Goyal's teaching style is unparalleled. He breaks down complex math into simple logical steps. I aced my Engineering Math exam because of him!"
   },
   {
     name: "Priya M.",
@@ -342,7 +342,7 @@ const HomePage = () => {
   const faqs = [
     { 
       q: "Is this platform completely free?", 
-      a: "Yes! All core lectures, announcements, and study materials are 100% free. Dr. Vikas Goyal established this portal especially for students who cannot afford expensive coaching classes." 
+      a: "Yes! All core lectures, announcements, and study materials are 100% free. Dr. Goyal established this portal especially for students who cannot afford expensive coaching classes." 
     },
     { 
       q: "Are the classes live or pre-recorded?", 
@@ -415,7 +415,7 @@ const HomePage = () => {
               <motion.a href="/" whileHover={{ scale: 1.02 }} className="flex items-center gap-3">
                 <img src="/mathcom-logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-xl shadow-lg" />
                 <span className={`font-extrabold text-2xl tracking-tight transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  Dr. Goyal <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Maths</span>
+                  MathCom <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Mentors</span>
                 </span>
               </motion.a>
               
@@ -589,20 +589,12 @@ const HomePage = () => {
         {/* Meet the Mentor Section */}
         <div id="mentor" className={`py-24 relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#070B14]' : 'bg-slate-50'}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className={`flex flex-col md:flex-row items-center gap-12 p-8 md:p-12 rounded-3xl border shadow-xl transition-colors ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className="w-full md:w-1/3 relative group">
-                <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-cyan-500 rounded-3xl blur-lg opacity-40 group-hover:opacity-60 transition-opacity"></div>
-                <img 
-                  src="/pic.jpg"
-                  alt="Dr. Vikas Goyal" 
-                  className="relative z-10 w-full h-auto object-cover rounded-3xl shadow-lg border-2 border-slate-700/50"
-                />
-              </div>
-              <div className="w-full md:w-2/3">
+            <div className={`max-w-5xl mx-auto p-8 md:p-12 rounded-3xl border shadow-xl transition-colors ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className="w-full">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 text-indigo-500 text-sm font-bold mb-4">
                   <GraduationCap className="w-4 h-4" /> Chief Mentor & Founder
                 </div>
-                <TextReveal text="Meet Dr. Vikas Goyal" className="text-4xl font-extrabold mb-4 !justify-start" isDark={isDark} />
+                <TextReveal text="Meet Dr. Goyal" className="text-4xl font-extrabold mb-4 !justify-start" isDark={isDark} />
                 <p className={`text-lg mb-6 leading-relaxed transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                   With over a decade of teaching experience in advanced mathematics and computer science, Dr. Goyal has dedicated his career to simplifying complex engineering concepts. His unique approach bridges the gap between theoretical math and practical software engineering.
                 </p>
@@ -625,7 +617,7 @@ const HomePage = () => {
         <div id="features" className={`py-24 relative transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-white'}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <TextReveal text="The Dr. Goyal Maths Advantage" className="text-3xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
+              <TextReveal text="The MathCom Mentors Advantage" className="text-3xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
               <p className={`text-lg max-w-2xl mx-auto transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>We don't just teach formulas; we build the logical foundation required for top-tier software engineering.</p>
             </div>
 
@@ -677,7 +669,7 @@ const HomePage = () => {
               </p>
               <div className="mt-10 inline-flex items-center gap-4">
                 <div className="h-[1px] w-12 bg-indigo-500/50"></div>
-                <p className="text-indigo-500 font-bold text-lg tracking-wide uppercase">Dr. Vikas Goyal</p>
+                <p className="text-indigo-500 font-bold text-lg tracking-wide uppercase">Dr. Goyal</p>
                 <div className="h-[1px] w-12 bg-indigo-500/50"></div>
               </div>
             </motion.div>
@@ -798,7 +790,7 @@ const HomePage = () => {
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <TextReveal text="Frequently Asked Questions" className="text-3xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
-              <p className={`text-lg transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Everything you need to know about the Dr. Goyal Maths portal.</p>
+              <p className={`text-lg transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Everything you need to know about the MathCom Mentors portal.</p>
             </div>
             <div className={`rounded-3xl p-6 md:p-10 border shadow-lg transition-colors ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50 border-slate-200'} `}>
               
@@ -978,7 +970,7 @@ const HomePage = () => {
               <div className="md:col-span-5 lg:col-span-4">
                 <div className="flex items-center gap-3 mb-6">
                   <img src="/mathcom-logo.png" alt="MathCom Mentors Logo" className="w-10 h-10 object-contain rounded-lg shadow-sm bg-white p-1" />
-                  <span className="font-extrabold text-2xl text-white">Dr. Goyal Maths</span>
+                  <span className="font-extrabold text-2xl text-white">MathCom Mentors</span>
                 </div>
                 <p className="text-slate-400 leading-relaxed mb-6">
                   Empowering B.Tech CSE students with high-quality, accessible education in Mathematics and Computer Science.
@@ -1019,7 +1011,7 @@ const HomePage = () => {
 
             <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
               <p className="text-slate-500 text-sm font-medium">
-                © {new Date().getFullYear()} Dr. Goyal Maths by Dr. Vikas Goyal. All rights reserved.
+                © {new Date().getFullYear()} MathCom Mentors by Dr. Goyal. All rights reserved.
               </p>
               <div className="flex gap-6 text-sm text-slate-500 font-medium">
                 <motion.a whileHover={{ color: '#ffffff' }} href="/login" className="transition-colors hover:text-indigo-400">Portal Login</motion.a>
