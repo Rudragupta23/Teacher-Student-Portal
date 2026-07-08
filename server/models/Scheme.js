@@ -18,6 +18,8 @@ const schemeSchema = new mongoose.Schema({
     default: 'Class Taken' 
   },
   graderInstruction: { type: String },
+  yearGroupFilter: { type: String, default: 'all' },
+  studentId: { type: String, default: 'all' },
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now }
 });

@@ -1131,7 +1131,7 @@ export default function StudentDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {schemes.map(report => (
+                    {schemes.filter(report => !report.studentId || report.studentId === 'all' || report.studentId === userId).map(report => (
                       <tr key={report._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                         <td className="p-5">
                           <p className="font-bold text-[#1B2559]">

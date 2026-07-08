@@ -23,9 +23,11 @@ export default function ParentDashboard() {
   const [plannerCurrentDate, setPlannerCurrentDate] = useState(new Date());
 
   // 1. Move fetchSchemes outside useEffect
-  const fetchSchemes = async () => {
+  const fetchSchemes = async (childId = null) => {
     try {
-      const res = await api.get('/scheme');
+      // Pass the child's ID to the backend so it knows exactly whose reports to fetch
+      const url = childId ? `/scheme?studentId=${childId}` : '/scheme';
+      const res = await api.get(url);
       setSchemes(res.data);
     } catch (e) { console.error("Error fetching schemes"); }
   };
@@ -45,7 +47,7 @@ export default function ParentDashboard() {
   useEffect(() => {
     fetchChildData();
     fetchProfile();
-    fetchSchemes();
+    // fetchSchemes();
     fetchDriveLinks(); 
     fetchPlanner();
     
@@ -204,7 +206,15 @@ export default function ParentDashboard() {
       const res = await api.get('/parent/child-data');
       setChildData(res.data.childProfile);
       setAssignments(res.data.assignments);
+      
+      // NEW: Fetch the schemes directly using the child's ID we just loaded
+      if (res.data.childProfile && res.data.childProfile._id) {
+        fetchSchemes(res.data.childProfile._id);
+      } else {
+        fetchSchemes();
+      }
     } catch (error) {
+      fetchSchemes(); // Fallback just in case
       const errorMsg = error.response?.data?.message || "Server Error fetching data";
       console.error("Child Data Error:", errorMsg);
       showToast(errorMsg, "error");

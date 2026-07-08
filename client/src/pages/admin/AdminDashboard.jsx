@@ -85,7 +85,10 @@ export default function AdminDashboard() {
 
   // Scheme of Work States
   const [schemes, setSchemes] = useState([]);
-  const [schemeForm, setSchemeForm] = useState({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classTaken: true });  const [graderInstruction, setGraderInstruction] = useState('');
+  const [schemeForm, setSchemeForm] = useState({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' });
+  const [graderInstruction, setGraderInstruction] = useState('');
+  const [schemeListYear, setSchemeListYear] = useState('all');
+  const [schemeListStudent, setSchemeListStudent] = useState('all');
 
   const [chatTarget, setChatTarget] = useState('student'); 
   const [selectedParent, setSelectedParent] = useState(null); 
@@ -518,7 +521,7 @@ export default function AdminDashboard() {
       else if (modal.type === 'graderInstruction') {
         await api.post('/scheme', { ...schemeForm, graderInstruction });
         showToast("Daily Report Submitted!");
-        setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken' });
+        setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' });
         setGraderInstruction('');
       }
       
@@ -548,7 +551,7 @@ export default function AdminDashboard() {
         graderInstruction: graderInstruction || '' 
       });
       showToast("Daily Report Submitted!");
-      setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken' });
+      setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' });
       setModal({ type: null });
       fetchData(); 
     } catch(err) { 
@@ -912,10 +915,10 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
   setModal({ type: null, hwId: null, studentId: null, data: '' }); 
   setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); 
   setGraderInstruction(''); 
-  setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken' }); 
+  setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' }); 
 }} className="flex-1 py-4 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-2xl transition-colors">
   Cancel
-</button>
+</button> 
                   <button onClick={executeModalAction} className={`flex-1 py-4 font-bold rounded-2xl text-white transition-transform hover:-translate-y-1 shadow-lg
   ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' :
     modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
@@ -1967,9 +1970,44 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       </label>
                     </div>
 
+                    {/* --- YEAR AND STUDENT FILTERS (ALWAYS VISIBLE - SEPARATE ROWS) --- */}
+                    <div className="flex flex-col gap-4 mb-6 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                      <div>
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
+                        <select className="w-full p-3 mt-1 bg-white border border-indigo-100 rounded-xl outline-none font-bold text-[#1B2559]"
+                          value={schemeForm.yearGroupFilter}
+                          onChange={e => {
+                            const selectedYear = e.target.value;
+                            const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
+                            setSchemeForm({
+                              ...schemeForm,
+                              yearGroupFilter: selectedYear,
+                              studentId: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
+                            });
+                          }}>
+                          <option value="all">All Years</option>
+                          {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                            <option key={yg} value={yg}>{yg}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Student</label>
+                        <select className="w-full p-3 mt-1 bg-white border border-indigo-100 rounded-xl outline-none font-bold text-[#1B2559]"
+                          value={schemeForm.studentId}
+                          onChange={e => setSchemeForm({...schemeForm, studentId: e.target.value})}>
+                          {schemeForm.yearGroupFilter === 'all' && <option value="all">📢 All Students</option>}
+                          {students.filter(s => schemeForm.yearGroupFilter === 'all' || s.yearGroup === schemeForm.yearGroupFilter).map(s => (
+                            <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
                     {/* CONDITIONALLY RENDER REST OF FIELDS */}
                     {schemeForm.classStatus === 'Class Taken' && (
                       <div className="animate-fade-in space-y-4">
+                        
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="text-xs font-black text-[#A3AED0] uppercase">Start Time</label>
@@ -2038,6 +2076,34 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                     <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
                     <h2 className="text-2xl font-black text-[#1B2559]">Lesson Schedule</h2>
                   </div>
+
+                  {/* LIST FILTERS */}
+                  <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div className="flex-1">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
+                      <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
+                        value={schemeListYear}
+                        onChange={e => {
+                          setSchemeListYear(e.target.value);
+                          setSchemeListStudent('all');
+                        }}>
+                        <option value="all">All Years</option>
+                        {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                          <option key={yg} value={yg}>{yg}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Student</label>
+                      <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
+                        value={schemeListStudent} onChange={e => setSchemeListStudent(e.target.value)}>
+                        <option value="all">All Filtered Students</option>
+                        {students.filter(s => schemeListYear === 'all' || s.yearGroup === schemeListYear).map(s => (
+                          <option key={s._id} value={s._id}>{s.registrationName || s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                   
                   <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
                     <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
@@ -2051,7 +2117,30 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         </tr>
                       </thead>
                       <tbody>
-                        {schemes.map(report => (
+                        {schemes.filter(report => {
+                          if (user?.role === 'grader') {
+                            const isAllocated = report.studentId === 'all' || students.some(s => s._id === report.studentId);
+                            if (!isAllocated) return false;
+                          }
+                          
+                          if (schemeListYear !== 'all') {
+                            // If the report was sent to a specific student, check THAT student's year group!
+                            if (report.studentId && report.studentId !== 'all') {
+                              const studentForReport = students.find(s => s._id === report.studentId);
+                              if (!studentForReport || studentForReport.yearGroup !== schemeListYear) {
+                                return false;
+                              }
+                            } else {
+                              if (report.yearGroupFilter !== 'all' && report.yearGroupFilter !== schemeListYear) {
+                                return false;
+                              }
+                            }
+                          }
+                          
+                          if (schemeListStudent !== 'all' && report.studentId !== 'all' && report.studentId !== schemeListStudent) return false;
+                          
+                          return true;
+                        }).map(report => (
                           <tr key={report._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                             <td className="p-5">
                               <p className="font-bold text-[#1B2559]">
@@ -2060,9 +2149,20 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                               <p className="text-xs font-bold text-[#A3AED0] mt-1">Week {report.weekNo || 'N/A'}</p>
                             </td>
                             <td className="p-5">
-                              <p className="font-bold text-[#1B2559]">{report.title}</p>
-                              {report.topic && <p className="text-xs font-bold text-slate-500 mt-1">Topic: {report.topic}</p>}
-                            </td>
+                          <p className="font-bold text-[#1B2559]">{report.title}</p>
+                          {report.topic && <p className="text-xs font-bold text-slate-500 mt-1 mb-1">Topic: {report.topic}</p>}
+                          
+                          {/* NEW: Show which student this report belongs to */}
+                          {report.studentId && report.studentId !== 'all' ? (
+                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                              👤 {students.find(s => s._id === report.studentId)?.name || 'Specific Student'}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                              📢 Entire Class
+                            </span>
+                          )}
+                        </td>
                             <td className="p-5">
                               <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                                 {report.classStatus === 'Class Taken' ? '✅ Class Taken' : `❌ ${report.classStatus}`}

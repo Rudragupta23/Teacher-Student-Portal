@@ -4,14 +4,20 @@ const sendEmail = require('../utils/sendEmail');
 
 exports.createReport = async (req, res) => {
   try {
-    const { date, startTime, endTime, title, weekNo, topic, description, classStatus, graderInstruction } = req.body;
+    const { date, startTime, endTime, title, weekNo, topic, description, classStatus, graderInstruction, yearGroupFilter, studentId } = req.body;
     
     const report = await Scheme.create({
-      date, startTime, endTime, title, weekNo, topic, description, classStatus, graderInstruction, adminId: req.user._id
+      date, startTime, endTime, title, weekNo, topic, description, classStatus, graderInstruction, yearGroupFilter, studentId, adminId: req.user._id
     });
 
-    // Send Emails to Graders
-    const graders = await User.find({ role: 'grader' });
+    let graders = [];
+    
+    if (studentId && studentId !== 'all') {
+      graders = await User.find({ role: 'grader', allocatedStudents: studentId });
+    } else {
+      graders = await User.find({ role: 'grader' });
+    }
+    
     const graderEmails = graders.map(g => g.email).filter(email => email);
 
     if (graderEmails.length > 0) {
@@ -83,7 +89,70 @@ exports.createReport = async (req, res) => {
 
 exports.getReports = async (req, res) => {
   try {
-    const reports = await Scheme.find().sort({ date: -1 });
+    let query = {};
+
+    // Check who is requesting the data and filter accordingly
+    if (req.user) {
+      if (req.user.role === 'student') {
+        // Students only see reports meant for 'all' or their specific ID
+        query = {
+          $or: [
+            { studentId: 'all' },
+            { studentId: req.user._id.toString() }
+          ]
+        };
+      } else if (req.user.role === 'parent') {
+        // Parents link to their child via linkedStudentId (or allocatedStudents)
+        let childIds = [];
+
+        // NEW: Capture the explicit student ID sent from the Parent Dashboard
+        if (req.query.studentId) {
+          childIds.push(req.query.studentId);
+        }
+        
+        if (req.user.allocatedStudents && req.user.allocatedStudents.length > 0) {
+          childIds = req.user.allocatedStudents.map(id => id.toString());
+        }
+        
+        if (req.user.linkedStudentId) {
+          try {
+            // Find child by custom ID (e.g. MATH_123)
+            const child = await User.findOne({ studentId: req.user.linkedStudentId });
+            if (child) {
+              childIds.push(child._id.toString());
+            } else {
+              // Fallback if linkedStudentId is the MongoDB _id
+              const childById = await User.findById(req.user.linkedStudentId);
+              if (childById) childIds.push(childById._id.toString());
+            }
+          } catch (e) {
+            // Silently ignore CastErrors if the ID format doesn't match
+          }
+        }
+
+        query = {
+          $or: [
+            { studentId: 'all' },
+            { studentId: { $in: childIds } }
+          ]
+        };
+      } else if (req.user.role === 'grader') {
+        // Graders see reports for students allocated to them
+        const allocatedStudentIds = req.user.allocatedStudents 
+          ? req.user.allocatedStudents.map(id => id.toString()) 
+          : [];
+          
+        query = {
+          $or: [
+            { studentId: 'all' },
+            { studentId: { $in: allocatedStudentIds } }
+          ]
+        };
+      }
+    }
+
+    // Fetch the safely filtered reports from the database
+    const reports = await Scheme.find(query).sort({ date: -1 });
     res.status(200).json(reports);
   } catch (error) {
     res.status(500).json({ message: error.message });
