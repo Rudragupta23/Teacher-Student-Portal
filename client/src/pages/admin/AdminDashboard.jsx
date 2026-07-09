@@ -211,8 +211,8 @@ export default function AdminDashboard() {
   };
   const handlePlannerSubmit = async (e) => {
     e.preventDefault();
-    if (!plannerForm.startTime || !plannerForm.endTime || !plannerForm.topic) {
-      return showToast("Please fill all fields", "error");
+    if (!plannerForm.startTime || !plannerForm.endTime) {
+      return showToast("Please fill both Start and End time", "error");
     }
 
     const startDateTime = new Date(`${plannerModal.selectedDate}T${plannerForm.startTime}`);
@@ -220,9 +220,9 @@ export default function AdminDashboard() {
 
     try {
       await api.post('/planner', {
-        topic: plannerForm.topic,
-        weekNo: plannerForm.weekNo,
-        title: plannerForm.title || plannerForm.topic,
+        topic: 'Class Session', 
+        weekNo: '',
+        title: 'Class Session',
         startDate: startDateTime,
         endDate: endDateTime,
         isRecurring: plannerForm.isRecurring,
@@ -2040,24 +2040,26 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="text-xs font-black text-[#A3AED0] uppercase">Week No</label>
+                            <label className="text-xs font-black text-[#A3AED0] uppercase">Week No (Optional)</label>
                             <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" placeholder="e.g. 1" value={schemeForm.weekNo} onChange={e => {
                                 const newWeek = e.target.value;
-                                setSchemeForm({...schemeForm, weekNo: newWeek, title: `WEEK ${newWeek} - ${schemeForm.topic}`.toUpperCase()});
+                                const newTitle = newWeek && schemeForm.topic ? `WEEK ${newWeek} - ${schemeForm.topic}`.toUpperCase() : (schemeForm.topic ? schemeForm.topic.toUpperCase() : 'Class Taken');
+                                setSchemeForm({...schemeForm, weekNo: newWeek, title: newTitle});
                               }} />
                           </div>
                           <div>
-                            <label className="text-xs font-black text-[#A3AED0] uppercase">Topic</label>
+                            <label className="text-xs font-black text-[#A3AED0] uppercase">Topic (Optional)</label>
                             <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" placeholder="e.g. Algebra" value={schemeForm.topic} onChange={e => {
                                 const newTopic = e.target.value;
-                                setSchemeForm({...schemeForm, topic: newTopic, title: `WEEK ${schemeForm.weekNo} - ${newTopic}`.toUpperCase()});
+                                const newTitle = schemeForm.weekNo && newTopic ? `WEEK ${schemeForm.weekNo} - ${newTopic}`.toUpperCase() : (newTopic ? newTopic.toUpperCase() : 'Class Taken');
+                                setSchemeForm({...schemeForm, topic: newTopic, title: newTitle});
                               }} />
                           </div>
                         </div>
 
                         <div>
                           <label className="text-xs font-black text-[#A3AED0] uppercase">Lesson Title (Auto-Generated)</label>
-                          <input type="text" required placeholder="WEEK X - TOPIC" className="w-full p-4 mt-1 bg-[#E2E8F0] border-none rounded-xl font-bold opacity-70 cursor-not-allowed" value={schemeForm.title} readOnly />
+                          <input type="text" placeholder="Lesson Session" className="w-full p-4 mt-1 bg-[#E2E8F0] border-none rounded-xl font-bold opacity-70 cursor-not-allowed" value={schemeForm.title} readOnly />
                         </div>
 
                         <div>
@@ -2925,27 +2927,6 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                       <form onSubmit={handlePlannerSubmit} className="space-y-3 sm:space-y-4 shrink-0">
                         <div className="grid grid-cols-2 gap-3 sm:gap-4">
                           <div>
-                            <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Week No</label>
-                            <input type="text" className="w-full p-3 sm:p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
-                              placeholder="e.g. 1" value={plannerForm.weekNo} 
-                              onChange={e => setPlannerForm({...plannerForm, weekNo: e.target.value, title: e.target.value && plannerForm.topic ? `WEEK ${e.target.value} - ${plannerForm.topic}`.toUpperCase() : plannerForm.topic.toUpperCase()})} 
-                              readOnly={!!plannerModal.data} />
-                          </div>
-                          <div>
-                            <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Topic</label>
-                            <input type="text" required className="w-full p-3 sm:p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
-                              placeholder="e.g. Algebra" value={plannerForm.topic} 
-                              onChange={e => setPlannerForm({...plannerForm, topic: e.target.value, title: plannerForm.weekNo && e.target.value ? `WEEK ${plannerForm.weekNo} - ${e.target.value}`.toUpperCase() : e.target.value.toUpperCase()})} 
-                              readOnly={!!plannerModal.data} />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Session Title (Auto-Generated)</label>
-                          <input type="text" className="w-full p-3 sm:p-4 bg-[#E2E8F0] border-none rounded-xl font-bold outline-none text-[#1B2559] opacity-70 cursor-not-allowed" 
-                            value={plannerForm.title || plannerForm.topic} readOnly placeholder="WEEK X - TOPIC" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                          <div>
                             <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Start Time</label>
                             <input type="time" required className="w-full p-3 sm:p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
                               value={plannerForm.startTime} onChange={e => setPlannerForm({...plannerForm, startTime: e.target.value})}
@@ -3027,9 +3008,9 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                               date: new Date(plannerModal.data.startDate).toISOString().split('T')[0],
                               startTime: new Date(plannerModal.data.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}),
                               endTime: new Date(plannerModal.data.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}),
-                              title: plannerModal.data.title || plannerModal.data.topic || '',
-                              weekNo: plannerModal.data.weekNo || '',
-                              topic: plannerModal.data.topic || '',
+                              title: 'Class Taken',
+                              weekNo: '',
+                              topic: '',
                               description: '',
                               classStatus: 'Class Taken',
                               yearGroupFilter: plannerModal.data.yearGroupFilter || 'all',

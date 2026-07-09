@@ -8,7 +8,7 @@ const schemeSchema = new mongoose.Schema({
     endTime: {
         type: String
     },
-  title: { type: String, required: true },
+  title: { type: String, default: 'Class Taken' },
   weekNo: { type: String },
   topic: { type: String },
   description: { type: String },

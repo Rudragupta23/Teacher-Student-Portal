@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const classPlannerSchema = new mongoose.Schema({
-  topic: { type: String, required: true },
+  topic: { type: String, default: 'Class Session' },
   weekNo: { type: String },
   title: { type: String },
   startDate: { type: Date, required: true },
