@@ -1,44 +1,65 @@
-# Classroom Portal
+# 🎓 MathCom Mentors | Classroom Portal
 
-A full-stack MERN (MongoDB, Express, React, Node.js) educational platform designed to streamline communication, resource sharing, and academic tracking between teachers, students, graders and parents.
-
+MathCom Mentors is a full-stack MERN educational platform built to centralize the digital classroom. It provides secure, role-based dashboards for teachers, students, graders, and parents to manage assignments, track academic progress, and streamline communication in one place.
 ---
+
+[![Website](https://img.shields.io/badge/Website-mathcommentors.com-blue?style=for-the-badge&logo=google-chrome)](https://mathcommentors.com/)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)](https://expressjs.com/)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
 ## 🌟 Comprehensive Feature Breakdown
 
-| Feature Category | Specific Capabilities |
+| Category | Feature | Description | Accessible Roles |
+| :--- | :--- | :--- | :--- |
+| **Security & Auth** | **Role-Based Access (RBAC)** | Strict access control ensuring users only see dashboards and data relevant to their specific role. | All Users |
+| | **JWT Authentication** | Secure, stateless session management and protected API endpoints using JSON Web Tokens. | All Users |
+| | **Secure Password Recovery** | Automated email system using Nodemailer to send encrypted password reset links. | All Users |
+| **Dashboards** | **Admin Control Center** | Complete system oversight, user account creation/management, and platform-wide configuration. | Admin |
+| | **Teacher Workspace** | Hub for creating classes, tracking syllabus progress, and monitoring overall class performance. | Teacher |
+| | **Student Portal** | Personalized view of pending tasks, submitted work, grades, and upcoming deadlines. | Student |
+| | **Parent Hub** | Real-time tracking of their child's attendance, grades, and teacher feedback. | Parent |
+| | **Grader Interface** | Dedicated pipeline for reviewing submissions, assigning marks, and writing feedback. | Grader |
+| **Academic Tools** | **Homework Management** | End-to-end system to create, distribute, submit, and evaluate digital assignments. | Teacher, Student, Grader |
+| | **Resource Library** | Centralized repository for uploading study materials, PDFs, and Google Drive links. | Teacher, Student |
+| | **Class Planner / Scheme** | Tools to map out the curriculum, schedule upcoming lessons, and track syllabus completion. | Admin, Teacher |
+| | **Question Bank Integration** | Upload and manage standardized questions for assignments and evaluations. | Admin, Teacher |
+| **Communication** | **Targeted Announcements** | Broadcast important updates system-wide or to specific classes/roles. | Admin, Teacher, Student |
+| | **Internal Messaging** | Secure direct communication channel connecting educators with parents. | Teacher, Parent |
+| | **Contextual Feedback** | Attach specific, constructive comments directly to a student's graded submission. | Teacher, Grader, Student |
+| **Automation** | **CRON Job Reminders** | Background server tasks that automatically detect approaching deadlines and send warning emails. | Student, Parent |
+| | **Automated Alerts** | Instant email notifications triggered by new assignments or newly published grades. | Student, Parent |
+
+## 🎭 User Roles & Dashboards
+
+| Role | Capabilities & Access |
 | :--- | :--- |
-| **Authentication & Account Security** | Secure user registration, JWT-based authentication, encrypted passwords, secure session handling, role-based login, password reset, email verification, and protected routes. |
-| **Role-Based Access Control** | Dedicated permission levels for Admin, Teacher, Student, Parent, and Grader ensuring each user accesses only authorized features and data. |
-| **Admin Dashboard** | Complete system management including user administration, class management, announcements, resources, reports, academic monitoring, and platform configuration. |
-| **Teacher Dashboard** | Manage classes, create assignments, upload study materials, publish announcements, monitor student performance, communicate with parents, and evaluate submissions. |
-| **Student Dashboard** | View assignments, submit homework, access learning resources, check grades, receive notifications, track academic progress, and communicate with teachers. |
-| **Parent Dashboard** | Monitor child’s attendance, grades, assignments, homework status, announcements, teacher feedback, notifications, and overall academic performance. |
-| **Grader Dashboard** | Review student submissions, evaluate assignments, assign marks, provide detailed feedback, maintain grading history, and assist teachers in assessments. |
-| **User Profile Management** | Personalized profiles with profile picture, contact information, password management, and editable personal details for every user role. |
-| **Class & Subject Management** | Create and organize classes, subjects, academic sections, semesters, and allocate teachers and students accordingly. |
-| **Homework & Assignment Management** | Teachers can create assignments with due dates, instructions, attachments, grading criteria, and assign them to specific students or entire classes. |
-| **Assignment Submission System** | Students can upload assignments, resubmit before deadlines, view submission history, and receive grading feedback after evaluation. |
-| **Question Bank Management** | Create, categorize, edit, import, and reuse questions for quizzes, tests, assignments, and examinations. |
-| **Quiz & Assessment Support** | Conduct quizzes, objective tests, descriptive assessments, and evaluate student performance with automated or manual grading. |
-| **Grading & Evaluation System** | Grade assignments, provide comments, calculate total marks, maintain grade history, and generate performance reports. |
-| **Academic Performance Tracking** | Monitor student progress using grades, assignment completion rates, quiz performance, and overall academic statistics. |
-| **Learning Progress Analytics** | Interactive dashboards displaying assignment completion, academic growth, grades, attendance, and learning trends through visual statistics. |
-| **Study Resource Management** | Upload, organize, categorize, download, and share notes, PDFs, presentations, videos, worksheets, and reference materials. |
-| **Google Drive Integration** | Store and share large educational resources securely through Google Drive integration and external cloud links. |
-| **Curriculum & Scheme Management** | Manage syllabus, lesson plans, schemes of work, curriculum progress, and teaching schedules for different classes. |
-| **Announcements System** | Publish school-wide, class-specific, subject-specific, or role-specific announcements with instant visibility. |
-| **Internal Messaging System** | Secure messaging platform supporting communication between Teachers, Students, Parents, Graders, and Administrators. |
-| **Notification Center** | Real-time notifications for assignments, deadlines, grades, announcements, messages, and important academic updates. |
-| **Email Notification System** | Automated emails for assignment reminders, grade updates, announcements, account verification, password reset, and important alerts. |
-| **Automated Reminder System** | Background scheduled jobs automatically notify users about upcoming deadlines, overdue assignments, unread messages, and academic events. |
-| **Document & File Management** | Upload, organize, preview, download, and manage academic documents and educational files securely. |
-| **Search & Filtering** | Powerful search functionality with advanced filtering for assignments, students, teachers, resources, announcements, and messages. |
-| **Calendar & Academic Schedule** | Display assignment deadlines, examinations, holidays, academic events, and important schedules using an integrated calendar. |
-| **Feedback & Remarks System** | Teachers and graders can provide personalized remarks, suggestions, improvement notes, and performance feedback for students. |
-| **Parent-Teacher Communication** | Dedicated communication channel allowing parents and teachers to discuss student progress and academic concerns. |
-| **Student Progress Reports** | Generate comprehensive academic reports including grades, attendance, assignments, feedback, and performance summaries. |
-| **Performance Dashboard** | Visual charts and statistics displaying assignment completion, attendance percentage, academic scores, and grading trends. |
+| **👨‍🏫 Teacher/Admin** | Creates classes, assigns homework, uploads study materials, publishes announcements, monitors student performance, and communicates with parents. |
+| **📝 Grader** | Reviews and grades student submissions, provides constructive feedback, and tracks overall assignment completion rates. |
+| **🎓 Student** | Views upcoming assignments, submits homework, accesses study resources, checks grades, tracks personal academic progress, and receives automated reminders. |
+| **👪 Parent** | Monitors their child’s attendance, grades, homework status, teacher feedback, and overall academic performance in real-time. |
+
+---
+
+## 🛠️ Technology Stack
+
+### **Frontend**
+- **React.js** (UI Development)
+- **Vite** (Next-generation frontend tooling)
+- **Tailwind CSS** (Utility-first styling)
+- **React Router DOM** (Application routing)
+- **Axios** (API communication)
+- **Framer Motion** (Smooth UI animations)
+
+### **Backend**
+- **Node.js & Express.js** (Server & API architecture)
+- **MongoDB & Mongoose** (Database & Object Data Modeling)
+- **JSON Web Tokens (JWT)** (Authentication)
+- **Bcrypt.js** (Password hashing)
+- **Nodemailer** (Email integration)
+- **Node-Cron** (Automated background tasks)
 
 ---
 
@@ -50,40 +71,40 @@ The `client/` directory contains the Vite-powered React application with Tailwin
 
 ```text
 client/
-├── package.json               # Frontend dependencies and scripts
-├── vite.config.js             # Vite bundler configuration
-├── tailwind.config.js         # Tailwind CSS styling parameters
-├── postcss.config.js          # PostCSS configuration
-├── eslint.config.js           # Linting rules
-├── index.html                 # Main HTML template
+├── package.json
+├── vite.config.js
+├── tailwind.config.js
+├── postcss.config.js
+├── eslint.config.js
+├── index.html
 ├── public/
-│   └── mathcom-logo.png       # Application logo assets
+│   └── mathcom-logo.png
 └── src/
-    ├── main.jsx               # React application entry point
-    ├── App.jsx                # Root component and routing setup
-    ├── index.css              # Global CSS and Tailwind directives
-    ├── App.css                # App-level styling
+    ├── main.jsx
+    ├── App.jsx
+    ├── index.css
+    ├── App.css
     ├── services/
-    │   └── api.js             # Axios/fetch configuration for API calls
+    │   └── api.js
     ├── context/
-    │   └── AuthContext.jsx    # Global state management for user authentication
+    │   └── AuthContext.jsx
     ├── components/
     │   ├── common/
-    │   │   └── ProtectedRoute.jsx   # Route wrapper for unauthorized access prevention
+    │   │   └── ProtectedRoute.jsx
     │   └── admin/
-    │       ├── AssignHomework.jsx   # UI component for assigning homework
-    │       └── UploadQuestion.jsx   # UI component for uploading test questions
+    │       ├── AssignHomework.jsx
+    │       └── UploadQuestion.jsx
     └── pages/
         ├── auth/
-        │   └── AuthPage.jsx         # Login/Registration screens
+        │   └── AuthPage.jsx
         ├── home/
-        │   └── HomePage.jsx         # Landing page
+        │   └── HomePage.jsx
         ├── admin/
-        │   └── AdminDashboard.jsx   # Teacher/Admin main view
+        │   └── AdminDashboard.jsx
         ├── student/
-        │   └── StudentDashboard.jsx # Student main view
+        │   └── StudentDashboard.jsx
         └── parent/
-            └── ParentDashboard.jsx  # Parent main view
+            └── ParentDashboard.jsx
 ```
 ## Backend: Node/Express Server
 
@@ -91,22 +112,21 @@ The `server/` directory contains the REST API architecture, database models, and
 
 ```text
 server/
-├── server.js                  # Express server initialization and middleware setup
-├── package.json               # Backend dependencies
+├── server.js
+├── package.json
 ├── config/
-│   └── db.js                  # Mongoose MongoDB connection setup
-├── models/                    # Mongoose Database Schemas
-│   ├── Announcement.js        # Schema for platform announcements
-│   ├── Assignment.js          # Schema for student assignments
-│   ├── DriveLink.js           # Schema for external cloud links
-│   ├── Homework.js            # Schema for teacher-assigned homework
-│   ├── Message.js             # Schema for user-to-user messages
-│   ├── Question.js            # Schema for test/assessment questions
-│   ├── Resource.js            # Schema for study materials
-│   ├── Scheme.js              # Schema for academic schemes/syllabi
-│   └── User.js                # Schema for users (Admin, Student, Parent)
-
-├── controllers/               # Request Handlers & Business Logic
+│   └── db.js
+├── models/
+│   ├── Announcement.js
+│   ├── Assignment.js
+│   ├── DriveLink.js
+│   ├── Homework.js
+│   ├── Message.js
+│   ├── Question.js
+│   ├── Resource.js
+│   ├── Scheme.js
+│   └── User.js
+├── controllers/
 │   ├── adminController.js
 │   ├── announcementController.js
 │   ├── authController.js
@@ -117,56 +137,26 @@ server/
 │   ├── resourceController.js
 │   ├── schemeController.js
 │   └── studentController.js
-
-├── routes/                    # API Endpoint Definitions
-│   ├── adminRoutes.js         # Endpoints for /api/admin
-│   ├── announcementRoutes.js  # Endpoints for /api/announcements
-│   ├── authRoutes.js          # Endpoints for /api/auth
-│   ├── driveRoutes.js         # Endpoints for /api/drive
-│   ├── homeworkRoutes.js      # Endpoints for /api/homework
-│   ├── messageRoutes.js       # Endpoints for /api/messages
-│   ├── parentRoutes.js        # Endpoints for /api/parents
-│   ├── resourceRoutes.js      # Endpoints for /api/resources
-│   ├── schemeRoutes.js        # Endpoints for /api/schemes
-│   └── studentRoutes.js       # Endpoints for /api/students
-
+├── routes/
+│   ├── adminRoutes.js
+│   ├── announcementRoutes.js
+│   ├── authRoutes.js
+│   ├── driveRoutes.js
+│   ├── homeworkRoutes.js
+│   ├── messageRoutes.js
+│   ├── parentRoutes.js
+│   ├── resourceRoutes.js
+│   ├── schemeRoutes.js
+│   └── studentRoutes.js
 ├── middlewares/
-│   ├── authMiddleware.js      # Verifies JWT tokens
-│   └── roleMiddleware.js      # Restricts route access based on user role
-
+│   ├── authMiddleware.js
+│   └── roleMiddleware.js
 ├── jobs/
-│   └── reminderJob.js         # Scheduled background tasks (e.g., due date alerts)
-
+│   └── reminderJob.js
 └── utils/
-    ├── adaptiveLogic.js       # Algorithms for personalized content pacing
-    └── sendEmail.js           # Nodemailer integration for external communication
+    └── sendEmail.js
 ```
 
----
-
-# ⚙️ Environment Variables Setup
-
-To run this project locally, create a `.env` file inside the `server/` directory.
-
-```env
-# Server Configuration
-PORT=5000
-NODE_ENV=development
-
-# Database
-MONGO_URI=your_mongodb_connection_string_here
-
-# Authentication
-JWT_SECRET=your_super_secret_jwt_key
-JWT_EXPIRE=30d
-
-# Email Service (Nodemailer)
-EMAIL_HOST=smtp.mailtrap.io
-EMAIL_PORT=2525
-EMAIL_USER=your_email_user
-EMAIL_PASS=your_email_password
-EMAIL_FROM=noreply@teacherportal.com
-```
 # 🚀 Installation & Run Instructions
 
 Follow these steps to get the application running on your local machine.
@@ -223,78 +213,6 @@ The React frontend will typically run on:
 ```
 http://localhost:5173
 ```
-
----
-
-# 🛠️ Tech Stack
-
-## Frontend
-
-- React.js
-- Vite
-- Tailwind CSS
-- React Router DOM
-- Axios
-
-## Backend
-
-- Node.js
-- Express.js
-- MongoDB
-- Mongoose
-- JWT Authentication
-- Nodemailer
-- Cron Jobs
-
----
-
-# 🔐 Authentication & Authorization
-
-- JWT-based Authentication
-- Protected Routes
-- Role-Based Access Control
-- Secure Password Storage
-- Session Management
-
----
-
-# 📧 Email Integration
-
-The platform supports email notifications using **Nodemailer** for:
-
-- Password Reset
-- Important Announcements
-- Homework Notifications
-- Reminder Emails
-
----
-
-# ⏰ Automated Reminder System
-
-A background CRON job continuously checks pending tasks and automatically sends reminder notifications for:
-
-- Homework Deadlines
-- Assignment Due Dates
-- Important Announcements
-
----
-
-# 📚 Main Modules
-
-- Authentication
-- Admin Dashboard
-- Student Dashboard
-- Parent Dashboard
-- Homework Management
-- Assignment Management
-- Question Bank
-- Messaging System
-- Resource Sharing
-- Announcement System
-- Curriculum Management
-- Google Drive Integration
-- Email Notifications
-- Reminder System
 
 ---
 
