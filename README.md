@@ -1,7 +1,6 @@
 # 🎓 MathCom Mentors | Classroom Portal
 
 MathCom Mentors is a full-stack MERN educational platform built to centralize the digital classroom. It provides secure, role-based dashboards for teachers, students, graders, and parents to manage assignments, track academic progress, and streamline communication in one place.
----
 
 [![Website](https://img.shields.io/badge/Website-mathcommentors.com-blue?style=for-the-badge&logo=google-chrome)](https://mathcommentors.com/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
@@ -9,6 +8,8 @@ MathCom Mentors is a full-stack MERN educational platform built to centralize th
 [![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)](https://expressjs.com/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+
+**🚀 Live Platform:** [https://mathcommentors.com/](https://mathcommentors.com/)
 
 ## 🌟 Comprehensive Feature Breakdown
 
