@@ -1,25 +1,25 @@
-const nodemailer = require('nodemailer');
+// const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
   try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587, 
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+  method: 'POST',
+  headers: {
+    'accept': 'application/json',
+    'api-key': process.env.BREVO_API_KEY,
+    'content-type': 'application/json',
+  },
+  body: JSON.stringify({
+    sender: { name: 'MathCom Mentors', email: process.env.EMAIL_USER },
+    to: [{ email: options.email }],
+    subject: options.subject,
+    htmlContent: options.html,
+  }),
+});
 
-    const mailOptions = {
-      from: `Homework Portal <${process.env.EMAIL_USER}>`,
-      to: options.email,
-      subject: options.subject,
-      html: options.html, 
-    };
-
-    await transporter.sendMail(mailOptions);
+if (!response.ok) {
+  throw new Error(`Brevo API error ${response.status}: ${await response.text()}`);
+}
     console.log(`Email sent successfully to ${options.email}`);
   } catch (error) {
     console.error(`Error sending email: ${error.message}`);
