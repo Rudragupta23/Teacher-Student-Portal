@@ -956,8 +956,45 @@ export default function AdminDashboard() {
             {modal.type === 'graderInstruction' && modal.data !== 'skip' && (
               <>
                 <h3 className="text-2xl font-black text-slate-800 mb-2">Instruction for Grader</h3>
-                <p className="text-slate-500 text-sm mb-6">Optional: Do you want to send any specific instructions to the grader for today's homework?</p>
-                <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-medium text-[#1B2559] min-h-[120px] mb-6" 
+                <p className="text-slate-500 text-sm mb-4">Optional: Do you want to send any specific instructions to the grader for today's homework?</p>
+                
+                {/* Grader Selection Dropdown (Admin Only) */}
+                {user?.role === 'admin' && graders.length > 0 && (
+                  <div className="mb-4 text-left">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Select Target Grader</label>
+                    <select 
+                      className="w-full max-w-full truncate p-4 mt-1 bg-indigo-50/50 border border-indigo-100 rounded-2xl outline-none font-bold text-indigo-900 focus:ring-4 focus:ring-indigo-500/20 transition-all"
+                      value={schemeForm.targetGrader || 'all'}
+                      onChange={e => setSchemeForm({...schemeForm, targetGrader: e.target.value})}
+                    >
+                      <option value="all">📢 General / All Graders</option>
+                      {graders.map(grader => {
+                        const studentsList = grader.allocatedStudents?.length > 0 
+                          ? grader.allocatedStudents.map(s => s.registrationName || s.name)
+                          : [];
+                          
+                        let displayNames = 'No students assigned';
+                        let fullNames = 'No students assigned';
+                        
+                        if (studentsList.length > 0) {
+                          fullNames = studentsList.join(', ');
+                          // Truncate to maximum 2 names to prevent the dropdown from overflowing
+                          displayNames = studentsList.length > 2 
+                            ? `${studentsList.slice(0, 2).join(', ')} + ${studentsList.length - 2} more`
+                            : fullNames;
+                        }
+
+                        return (
+                          <option key={grader._id} value={grader._id} title={fullNames}>
+                            👨‍🏫 {grader.name} ({displayNames})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
+
+                <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-medium text-[#1B2559] min-h-[120px] mb-6 transition-all" 
                   placeholder="e.g. Please assign 5 hard questions on algebra..." 
                   value={graderInstruction} onChange={e => setGraderInstruction(e.target.value)} />
               </>
