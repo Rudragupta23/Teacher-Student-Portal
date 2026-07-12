@@ -270,3 +270,19 @@ exports.approveStudent = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
+
+// @desc    Update a student's board name
+// @route   PUT /api/admin/students/:id/board
+exports.updateStudentBoard = async (req, res) => {
+  try {
+    const student = await User.findByIdAndUpdate(
+      req.params.id,
+      { boardName: req.body.boardName },
+      { new: true }
+    );
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+    res.status(200).json({ message: 'Board updated', student });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};

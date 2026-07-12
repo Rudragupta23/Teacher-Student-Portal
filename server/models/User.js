@@ -28,6 +28,7 @@ const userSchema = new mongoose.Schema({
     type: String, 
     enum: ['Y6', 'Y7', 'Y8', 'Y9', 'Y10', 'Y11', 'AS Level', 'A level'] 
   },
+  boardName: { type: String },
   resetPasswordOtp: { type: String },
   resetPasswordExpires: { type: Date },
   

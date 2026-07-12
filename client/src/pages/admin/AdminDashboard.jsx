@@ -96,6 +96,11 @@ export default function AdminDashboard() {
   const [schemeListYear, setSchemeListYear] = useState('all');
   const [schemeListStudent, setSchemeListStudent] = useState('all');
 
+  // NEW STATES FOR EDITING BOARD AND SCHEMES
+  const [editingBoardId, setEditingBoardId] = useState(null);
+  const [editBoardName, setEditBoardName] = useState('');
+  const [editingSchemeId, setEditingSchemeId] = useState(null);
+
   const [chatTarget, setChatTarget] = useState('student'); 
   const [selectedParent, setSelectedParent] = useState(null); 
 
@@ -124,6 +129,17 @@ export default function AdminDashboard() {
       } catch (error) {
         console.error("Error fetching pending students", error);
       }
+    }
+  };
+
+  const handleUpdateBoard = async (studentId) => {
+    try {
+      await api.put(`/admin/students/${studentId}/board`, { boardName: editBoardName });
+      showToast("Board name updated successfully!");
+      setEditingBoardId(null);
+      fetchData();
+    } catch(err) {
+      showToast("Failed to update board", "error");
     }
   };
 
@@ -527,8 +543,14 @@ export default function AdminDashboard() {
         showToast("Students successfully allocated to grader!");
       }
       else if (modal.type === 'graderInstruction') {
-        await api.post('/scheme', { ...schemeForm, graderInstruction });
-        showToast("Daily Report Submitted!");
+        if (editingSchemeId) {
+          await api.put(`/scheme/${editingSchemeId}`, { ...schemeForm, graderInstruction });
+          showToast("Report Updated successfully!");
+          setEditingSchemeId(null);
+        } else {
+          await api.post('/scheme', { ...schemeForm, graderInstruction });
+          showToast("Daily Report Submitted!");
+        }
         setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' });
         setGraderInstruction('');
       }
@@ -561,17 +583,27 @@ export default function AdminDashboard() {
 
   const executeSchemeSubmitDirect = async () => {
     try {
-      setIsLoading(true); 
-      await api.post('/scheme', { 
-        ...schemeForm, 
-        graderInstruction: graderInstruction || '' 
-      });
-      showToast("Daily Report Submitted!");
+      setIsLoading(true);
+      if (editingSchemeId) {
+        await api.put(`/scheme/${editingSchemeId}`, { 
+          ...schemeForm, 
+          graderInstruction: graderInstruction || '' 
+        });
+        showToast("Report Updated successfully!");
+        setEditingSchemeId(null);
+      } else {
+        await api.post('/scheme', { 
+          ...schemeForm, 
+          graderInstruction: graderInstruction || '' 
+        });
+        showToast("Daily Report Submitted!");
+      }
       setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' });
+      setGraderInstruction('');
       setModal({ type: null });
       fetchData(); 
     } catch(err) { 
-      showToast("Error submitting report", "error"); 
+      showToast("Error submitting/updating report", "error"); 
     } finally {
       setIsLoading(false);
     }
@@ -993,8 +1025,91 @@ export default function AdminDashboard() {
           
           <div className="p-6 space-y-3 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             
-            {/* BOTH ADMIN AND GRADER CAN SEE THESE TABS */}
-            {(user?.role === 'admin' || user?.role === 'grader') && (
+            {/* FOR ADMIN ONLY */}
+            {user?.role === 'admin' && (
+              <>
+                {/* 1. Create Homework */}
+                <button onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                  Create Homework 
+                </button>
+
+                {/* 2. Submitted Work */}
+                <button onClick={() => { setActiveTab('submitted'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'submitted' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                  Submitted Work 
+                </button>
+
+                {/* 3. Students Enrolled */}
+                <button onClick={() => { setActiveTab('students'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'students' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                  Students Enrolled
+                </button>
+
+                {/* 4. Class Planner */}
+                <button onClick={() => { setActiveTab('planner'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'planner' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                   Class Planner
+                </button>
+
+                {/* 5. Lesson Schedule */}
+                <button onClick={() => { setActiveTab('scheme'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  Lesson Schedule
+                </button>
+
+                {/* 6. Google Drive */}
+                <button onClick={() => { setActiveTab('drive'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'drive' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+                  Google Drive
+                </button>
+
+                {/* 7. Manage Graders */}
+                <button onClick={() => { setActiveTab('graders'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'graders' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                  Manage Graders
+                </button>
+
+                {/* 8. Direct Messages */}
+                <button onClick={() => { setActiveTab('messages'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                  Direct Messages
+                </button>
+
+                {/* 9. Schedule Tests */}
+                <button onClick={() => { setActiveTab('tests'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'tests' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  Schedule Tests 
+                </button>
+
+                {/* 10. Announcements */}
+                <button onClick={() => { setActiveTab('announcements'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+                  Announcements
+                </button>
+
+                {/* 11. Study Materials */}
+                <button onClick={() => { setActiveTab('library'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'library' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                  Study Materials
+                </button>
+
+                {/* 12. Analytics */}
+                <button onClick={() => { setActiveTab('analytics'); setIsSidebarOpen(false);}} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                  Analytics
+                </button>
+
+                {/* 13. Settings */}
+                <button onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                  Settings
+                </button>
+              </>
+            )}
+
+            {/* GRADER TABS */}
+            {user?.role === 'grader' && (
               <>
                 <button onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
@@ -1007,9 +1122,9 @@ export default function AdminDashboard() {
                 </button>
 
                 <button onClick={() => { setActiveTab('drive'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'drive' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
-  Google Drive
-</button>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+                  Google Drive
+                </button>
 
                 <button onClick={() => { setActiveTab('tests'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'tests' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -1021,50 +1136,9 @@ export default function AdminDashboard() {
                   Lesson Schedule
                 </button>
 
-                {/* Direct Messages accessible by both Admin and Grader */}
                 <button onClick={() => { setActiveTab('messages'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'messages' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
                   Direct Messages
-                </button>
-              </>
-            )}
-            
-            {/* ONLY ADMIN CAN SEE THESE TABS */}
-            {user?.role === 'admin' && (
-              <>
-                <button onClick={() => { setActiveTab('students'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'students' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                  Students Enrolled
-                </button>
-                <button onClick={() => { setActiveTab('planner'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'planner' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                   Class Planner
-                </button>
-
-                {/* 👨‍🏫 Manage Graders Tab (Admin Only) - Added matching SVG Icon */}
-                <button onClick={() => { setActiveTab('graders'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'graders' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                  Manage Graders
-                </button>
-
-                <button onClick={() => { setActiveTab('announcements'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
-                  Announcements
-                </button>
-
-                <button onClick={() => { setActiveTab('library'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'library' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                  Study Materials
-                </button>
-
-                <button onClick={() => { setActiveTab('analytics'); setIsSidebarOpen(false);}} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                  Analytics
-                </button>
-
-                <button onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                  Settings
                 </button>
               </>
             )}
@@ -1712,6 +1786,7 @@ export default function AdminDashboard() {
                       const completedCount = studentHw.filter(h => h.status === 'Graded').length;
                       const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
                       const overdueCount = studentHw.filter(h => h.status === 'Pending' && new Date(h.dueDate) < new Date()).length;
+                      const pendingTasksCount = studentHw.filter(h => h.status === 'Pending' && new Date(h.dueDate) >= new Date()).length;
                       const gradedHw = studentHw.filter(h => h.status === 'Graded');
                       
                       let totalEarned = 0; let totalPossible = 0;
@@ -1736,6 +1811,19 @@ export default function AdminDashboard() {
                                 <div className="flex items-center gap-2">
                                   <span className="font-black text-[#1B2559] text-base">{student.registrationName || student.name}</span>
                                   {student.yearGroup && <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded-md">{student.yearGroup}</span>}
+                                  
+                                  {editingBoardId === student._id ? (
+                                    <div className="flex items-center gap-1">
+                                      <input type="text" className="px-2 py-1 text-xs border border-indigo-300 rounded outline-none w-28" value={editBoardName} onChange={e => setEditBoardName(e.target.value)} placeholder="Enter Board Name" autoFocus />
+                                      <button onClick={() => handleUpdateBoard(student._id)} className="text-emerald-500 hover:text-emerald-600 bg-emerald-50 p-1 rounded">✅</button>
+                                      <button onClick={() => setEditingBoardId(null)} className="text-rose-500 hover:text-rose-600 bg-rose-50 p-1 rounded">❌</button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1">
+                                      {student.boardName && <span className="bg-sky-100 text-sky-700 text-[10px] font-black px-2 py-0.5 rounded-md">{student.boardName}</span>}
+                                      <button onClick={() => {setEditingBoardId(student._id); setEditBoardName(student.boardName || '');}} className="text-slate-400 hover:text-indigo-600 transition-colors ml-1" title="Edit Board">✏️</button>
+                                    </div>
+                                  )}
                                 </div>
                                 {(student.schoolName || student.city) && (
                                   <span className="text-xs font-bold text-slate-500 mt-1">
@@ -1754,10 +1842,19 @@ export default function AdminDashboard() {
                             </div>
                           </td>
                           <td className="p-5">
-                            <div className="flex gap-2 flex-wrap">
-                              <span className="bg-emerald-100 text-emerald-700 text-xs font-black px-2 py-1 rounded-lg">{completedCount} Completed</span>
-                              <span className="bg-amber-100 text-amber-700 text-xs font-black px-2 py-1 rounded-lg">{pendingCount} Review</span>
-                              <span className="bg-rose-100 text-rose-700 text-xs font-black px-2 py-1 rounded-lg">{overdueCount} Overdue</span>
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-2 w-[180px]">
+                            <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-2 py-1 rounded-lg text-center">
+                              {completedCount} Completed
+                            </span>
+                            <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-1 rounded-lg text-center">
+                              {pendingTasksCount} Pending
+                            </span>
+                            <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-1 rounded-lg text-center">
+                              {pendingCount} Review
+                            </span>
+                            <span className="bg-rose-100 text-rose-700 text-[10px] font-black px-2 py-1 rounded-lg text-center">
+                              {overdueCount} Overdue
+                            </span>
                             </div>
                           </td>
                           <td className="p-5">
@@ -2108,9 +2205,20 @@ export default function AdminDashboard() {
                       </div>
                     )}
 
-                    <button type="submit" className="w-full bg-[#1B2559] hover:bg-fuchsia-600 text-white font-black py-4 rounded-xl transition-all shadow-lg mt-4">
-                      Submit Daily Report
-                    </button>
+                    <div className="flex gap-3 mt-4">
+                      {editingSchemeId && (
+                        <button type="button" onClick={() => { 
+                          setEditingSchemeId(null); 
+                          setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' }); 
+                          setGraderInstruction(''); 
+                        }} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-4 rounded-xl transition-all shadow-sm">
+                          Cancel Edit
+                        </button>
+                      )}
+                      <button type="submit" className="flex-1 bg-[#1B2559] hover:bg-fuchsia-600 text-white font-black py-4 rounded-xl transition-all shadow-lg">
+                        {editingSchemeId ? 'Update Daily Report' : 'Submit Daily Report'}
+                      </button>
+                    </div>
                   </form>
                 </div>
               )}
@@ -2264,10 +2372,31 @@ export default function AdminDashboard() {
                                 </div>
 
                                 {user?.role === 'admin' && (
-                                  <button onClick={() => setModal({ type: 'deleteScheme', hwId: report._id, data: '' })} 
-                                    className="shrink-0 mt-1 p-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg shadow-sm transition-all" title="Delete Report">
-                                    🗑️
-                                  </button>
+                                  <div className="flex flex-col gap-2 shrink-0 mt-1">
+                                    <button onClick={() => {
+                                      setSchemeForm({
+                                        date: new Date(report.date).toISOString().split('T')[0],
+                                        startTime: report.startTime || '',
+                                        endTime: report.endTime || '',
+                                        title: report.title || '',
+                                        weekNo: report.weekNo || '',
+                                        topic: report.topic || '',
+                                        description: report.description || '',
+                                        classStatus: report.classStatus || 'Class Taken',
+                                        yearGroupFilter: report.yearGroupFilter || 'all',
+                                        studentId: report.studentId || 'all'
+                                      });
+                                      setGraderInstruction(report.graderInstruction || '');
+                                      setEditingSchemeId(report._id);
+                                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }} className="p-2 bg-indigo-50 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-lg shadow-sm transition-all" title="Edit Report">
+                                      ✏️
+                                    </button>
+                                    <button onClick={() => setModal({ type: 'deleteScheme', hwId: report._id, data: '' })} 
+                                      className="p-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg shadow-sm transition-all" title="Delete Report">
+                                      🗑️
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             </td>
