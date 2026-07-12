@@ -1830,6 +1830,11 @@ export default function AdminDashboard() {
                                     {[student.schoolName, student.city].filter(Boolean).join(', ')}
                                   </span>
                                 )}
+                                {student.studentId && (
+                                  <span className="text-[11px] font-black text-indigo-400 mt-0.5 tracking-wide uppercase">
+                                    ID: {student.studentId}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </td>
