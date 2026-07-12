@@ -23,6 +23,13 @@ const getOverdueTime = (dueDate, submittedAt = null) => {
   return `${diffMins} min${diffMins > 1 ? 's' : ''}`;
 };
 
+const calculateEndTime = (startTime) => {
+  if (!startTime) return '';
+  const [h, m] = startTime.split(':').map(Number);
+  const endH = (h + 1) % 24; 
+  return `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
 export default function AdminDashboard() {
   // Navigation & Data State
   const { user } = useContext(AuthContext);
@@ -607,7 +614,7 @@ export default function AdminDashboard() {
   const handleExportCSV = () => {
     if (students.length === 0) return showToast("No students to export", "error");
 
-    const headers = ["Student Name", "Email", "Completed Tasks", "Pending Review", "Average Score (%)"];
+    const headers = ["Student Name", "School", "City", "Phone", "Email", "Completed Tasks", "Pending Review", "Average Score (%)"];
     
     const rows = students.map(student => {
       const studentHw = homeworks.filter(h => h.studentId?._id === student._id);
@@ -617,14 +624,14 @@ export default function AdminDashboard() {
       const gradedHw = studentHw.filter(h => h.status === 'Graded');
       let totalEarned = 0; let totalPossible = 0;
       gradedHw.forEach(h => {
-      if(h.grading?.score != null && h.grading?.totalScore) {
-      totalEarned += h.grading.score;
-      totalPossible += h.grading.totalScore;
-    }
-  });
+        if(h.grading?.score != null && h.grading?.totalScore) {
+          totalEarned += h.grading.score;
+          totalPossible += h.grading.totalScore;
+        }
+      });
       const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : "0.0";
 
-      return `"${student.registrationName || student.name} ${student.yearGroup ? `- ${student.yearGroup}` : ''}","${student.email}",${completedCount},${pendingCount},${avgScore}`;
+      return `"${student.registrationName || student.name} ${student.yearGroup ? `- ${student.yearGroup}` : ''}","${student.schoolName || 'N/A'}","${student.city || 'N/A'}","${student.phone || 'N/A'}","${student.email}",${completedCount},${pendingCount},${avgScore}`;
     });
 
     const csvContent = [headers.join(","), ...rows].join("\n");
@@ -652,7 +659,7 @@ export default function AdminDashboard() {
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-      const tableColumn = ["Student Name", "Email", "Completed Tasks", "Pending Review", "Avg Score (%)"];
+      const tableColumn = ["Student Name", "School & City", "Phone", "Email", "Completed", "Pending", "Avg Score (%)"];
       const tableRows = [];
 
       students.forEach(student => {
@@ -662,15 +669,25 @@ export default function AdminDashboard() {
         
         const gradedHw = studentHw.filter(h => h.status === 'Graded');
         let totalEarned = 0; let totalPossible = 0;
-gradedHw.forEach(h => {
-  if(h.grading?.score != null && h.grading?.totalScore) {
-      totalEarned += h.grading.score;
-      totalPossible += h.grading.totalScore;
-  }
-});
-const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : "0.0";
+        gradedHw.forEach(h => {
+          if(h.grading?.score != null && h.grading?.totalScore) {
+              totalEarned += h.grading.score;
+              totalPossible += h.grading.totalScore;
+          }
+        });
+        const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : "0.0";
 
-        tableRows.push([`${student.registrationName || student.name} ${student.yearGroup ? `- ${student.yearGroup}` : ''}`, student.email, completedCount.toString(), pendingCount.toString(), `${avgScore}%`]);
+        const schoolDetails = [student.schoolName, student.city].filter(Boolean).join(', ') || 'N/A';
+
+        tableRows.push([
+          `${student.registrationName || student.name} ${student.yearGroup ? `- ${student.yearGroup}` : ''}`, 
+          schoolDetails, 
+          student.phone || 'N/A', 
+          student.email, 
+          completedCount.toString(), 
+          pendingCount.toString(), 
+          `${avgScore}%`
+        ]);
       });
 
       autoTable(doc, {
@@ -1712,17 +1729,29 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         <tr key={student._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                           <td className="p-5">
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-black text-xl shadow-md">
+                              <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-black text-xl shadow-md shrink-0">
                                 {student.name.charAt(0).toUpperCase()}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-black text-[#1B2559] text-base">{student.registrationName || student.name}</span>
-                                {student.yearGroup && <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded-md">{student.yearGroup}</span>}
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-black text-[#1B2559] text-base">{student.registrationName || student.name}</span>
+                                  {student.yearGroup && <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded-md">{student.yearGroup}</span>}
+                                </div>
+                                {(student.schoolName || student.city) && (
+                                  <span className="text-xs font-bold text-slate-500 mt-1">
+                                    {[student.schoolName, student.city].filter(Boolean).join(', ')}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </td>
                           <td className="p-5">
-                            <span className="text-sm font-bold text-slate-500">{student.email}</span>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-slate-700">{student.email}</span>
+                              {student.phone && (
+                                <span className="text-xs font-bold text-slate-500 mt-1">{student.phone}</span>
+                              )}
+                            </div>
                           </td>
                           <td className="p-5">
                             <div className="flex gap-2 flex-wrap">
@@ -2016,7 +2045,17 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="text-xs font-black text-[#A3AED0] uppercase">Start Time</label>
-                            <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.startTime} onChange={e => setSchemeForm({...schemeForm, startTime: e.target.value})} />
+                            <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" 
+                              value={schemeForm.startTime} 
+                              onChange={e => {
+                                const newStart = e.target.value;
+                                setSchemeForm({
+                                  ...schemeForm, 
+                                  startTime: newStart, 
+                                  endTime: calculateEndTime(newStart) 
+                                });
+                              }} 
+                            />
                           </div>
                           <div>
                             <label className="text-xs font-black text-[#A3AED0] uppercase">End Time</label>
@@ -2929,7 +2968,15 @@ const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFix
                           <div>
                             <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Start Time</label>
                             <input type="time" required className="w-full p-3 sm:p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
-                              value={plannerForm.startTime} onChange={e => setPlannerForm({...plannerForm, startTime: e.target.value})}
+                              value={plannerForm.startTime} 
+                              onChange={e => {
+                                const newStart = e.target.value;
+                                setPlannerForm({
+                                  ...plannerForm, 
+                                  startTime: newStart, 
+                                  endTime: calculateEndTime(newStart)
+                                });
+                              }}
                               readOnly={!!plannerModal.data} />
                           </div>
                           <div>

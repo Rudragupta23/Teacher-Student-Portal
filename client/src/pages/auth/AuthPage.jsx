@@ -41,7 +41,8 @@ const validateData = (email, phone, view) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return 'Please enter a valid email address.';
 
-  if (view === 'signup' && phone) {
+  if (view === 'signup') {
+    if (!phone) return 'Please enter a phone number.';
     const cleanPhone = phone.replace(/[\s-]/g, '');
     const phoneRegex = /^\+?[0-9]{7,15}$/;
     if (!phoneRegex.test(cleanPhone)) return 'Please enter a valid phone number.';
@@ -175,11 +176,11 @@ const AuthPage = () => {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7 }}
-              className="text-4xl xl:text-5xl font-extrabold mb-6 tracking-tight drop-shadow-xl"
+              className="text-4xl xl:text-5xl font-extrabold mb-6 tracking-tight drop-shadow-xl whitespace-normal md:whitespace-nowrap"
             >
-              <span className="text-white">MathCom</span> <span className="text-sky-400">Mentors</span>
+              <span className="text-white">MathCom</span> <br className="md:hidden" /> <span className="text-sky-400">Mentors</span>
             </motion.h1>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.7 }}
@@ -306,7 +307,7 @@ const AuthPage = () => {
                   
                   <motion.div variants={itemVariants} className="relative group">
                     <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
-                    <input type="tel" name="phone" placeholder="Phone Number" onChange={handleChange}
+                    <input type="tel" name="phone" placeholder="Phone Number" required onChange={handleChange}
                       className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
                   </motion.div>
 

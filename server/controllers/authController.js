@@ -9,7 +9,6 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 // @desc    Register a new user & Send OTP
 // @route   POST /api/auth/register
 exports.register = async (req, res) => {
-  // const { name, email, password, phone, classCode, yearGroup, isParent, linkedStudentId } = req.body;
   const { name, email, password, phone, yearGroup, isParent, linkedStudentId, schoolName, city, country } = req.body;
 
   try {
@@ -18,9 +17,12 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Invalid email format' });
     }
 
-    const cleanPhone = phone ? phone.replace(/[\s-]/g, '') : '';
+    if (!phone) {
+      return res.status(400).json({ message: 'Phone number is required.' });
+    }
+    const cleanPhone = phone.replace(/[\s-]/g, '');
     const phoneRegex = /^\+?[0-9]{7,15}$/;
-    if (phone && !phoneRegex.test(cleanPhone)) {
+    if (!phoneRegex.test(cleanPhone)) {
       return res.status(400).json({ message: 'Please enter a valid phone number.' });
     }
 
@@ -29,6 +31,11 @@ exports.register = async (req, res) => {
 
     // Determine Role
     let role = email === process.env.ADMIN_EMAIL ? 'admin' : (isParent ? 'parent' : 'student');
+    
+    // Require School Name and City for Students
+    if (role === 'student' && (!schoolName || !city)) {
+      return res.status(400).json({ message: 'School name and city are required.' });
+    }
     
     // if (role === 'student' && classCode !== process.env.ADMIN_CLASS_CODE) {
     //   return res.status(403).json({ message: 'Invalid Class Code' });
