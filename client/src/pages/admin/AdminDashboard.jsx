@@ -122,6 +122,16 @@ export default function AdminDashboard() {
   const [plannerModal, setPlannerModal] = useState({ show: false, selectedDate: null, data: null });
   const [plannerForm, setPlannerForm] = useState({ topic: '', weekNo: '', title: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: 'all' });
 
+// Topic Progress Tracker States
+  const [topics, setTopics] = useState([]);
+  const [topicForm, setTopicForm] = useState({ topicName: '', areaName: '', grade: '', datesCovered: [''] });
+  const [topicSearchTerm, setTopicSearchTerm] = useState('');
+  const [topicSortConfig, setTopicSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+  
+  // NEW: States for the Topic Modal and Editing
+  const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
+  const [editingTopicId, setEditingTopicId] = useState(null);
+
   const fetchPendingStudents = async () => {
     if (user?.role === 'admin') {
       try {
@@ -160,6 +170,7 @@ export default function AdminDashboard() {
     fetchProfile(); 
     fetchDriveLinks();
     fetchPendingStudents();
+    fetchTopics();
 
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -175,6 +186,13 @@ export default function AdminDashboard() {
       }
     }
   }, []);
+
+  const fetchTopics = async () => {
+    try {
+      const res = await api.get('/topics');
+      setTopics(res.data);
+    } catch (e) { console.error("Error fetching topics"); }
+  };
 
   const fetchProfile = async () => {
     setIsLoading(true); 
@@ -624,6 +642,64 @@ export default function AdminDashboard() {
     }
   };
 
+  // Topic Handlers
+  const handleTopicSubmit = async (e) => {
+    e.preventDefault();
+    const validDates = topicForm.datesCovered.filter(d => d.trim() !== '');
+    if (validDates.length === 0) return showToast("Please add at least one valid date.", "error");
+
+    try {
+      if (editingTopicId) {
+        await api.put(`/topics/${editingTopicId}`, { ...topicForm, datesCovered: validDates });
+        showToast("Topic progress updated successfully!");
+      } else {
+        await api.post('/topics', { ...topicForm, datesCovered: validDates });
+        showToast("Topic progress saved successfully!");
+      }
+      setIsTopicModalOpen(false);
+      setEditingTopicId(null);
+      setTopicForm({ topicName: '', areaName: '', grade: '', datesCovered: [''] });
+      fetchTopics();
+    } catch(err) { showToast("Failed to save topic", "error"); }
+  };
+
+  const handleEditTopic = (topic) => {
+    setTopicForm({
+      topicName: topic.topicName,
+      areaName: topic.areaName,
+      grade: topic.grade,
+      datesCovered: topic.datesCovered.length > 0 ? topic.datesCovered : ['']
+    });
+    setEditingTopicId(topic._id);
+    setIsTopicModalOpen(true);
+  };
+
+  const handleDeleteTopic = async (id) => {
+    try {
+      await api.delete(`/topics/${id}`);
+      showToast("Topic record deleted", "error");
+      fetchTopics();
+    } catch(err) { showToast("Failed to delete", "error"); }
+  };
+
+  const handleSortTopics = (key) => {
+    let direction = 'asc';
+    if (topicSortConfig.key === key && topicSortConfig.direction === 'asc') direction = 'desc';
+    setTopicSortConfig({ key, direction });
+  };
+
+  const processedTopics = topics
+    .filter(t => 
+      t.topicName.toLowerCase().includes(topicSearchTerm.toLowerCase()) || 
+      t.areaName.toLowerCase().includes(topicSearchTerm.toLowerCase()) ||
+      t.grade.toLowerCase().includes(topicSearchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (a[topicSortConfig.key] < b[topicSortConfig.key]) return topicSortConfig.direction === 'asc' ? -1 : 1;
+      if (a[topicSortConfig.key] > b[topicSortConfig.key]) return topicSortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
   const filteredHomeworks = homeworks.filter(hw => 
     !hw.isTest && (hw.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
     hw.studentId?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -673,7 +749,7 @@ export default function AdminDashboard() {
   const handleExportCSV = () => {
     if (students.length === 0) return showToast("No students to export", "error");
 
-    const headers = ["Student Name", "School", "City", "Phone", "Email", "Completed Tasks", "Pending Review", "Average Score (%)"];
+    const headers = ["Student Name", "Student ID", "Year Group", "Board Name", "School", "City", "Phone", "Email", "Completed Tasks", "Pending Review", "Average Score (%)"];
     
     const rows = students.map(student => {
       const studentHw = homeworks.filter(h => h.studentId?._id === student._id);
@@ -690,7 +766,7 @@ export default function AdminDashboard() {
       });
       const avgScore = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : "0.0";
 
-      return `"${student.registrationName || student.name} ${student.yearGroup ? `- ${student.yearGroup}` : ''}","${student.schoolName || 'N/A'}","${student.city || 'N/A'}","${student.phone || 'N/A'}","${student.email}",${completedCount},${pendingCount},${avgScore}`;
+      return `"${student.registrationName || student.name}","${student.studentId || 'N/A'}","${student.yearGroup || 'N/A'}","${student.boardName || 'N/A'}","${student.schoolName || 'N/A'}","${student.city || 'N/A'}","${student.phone || 'N/A'}","${student.email}",${completedCount},${pendingCount},${avgScore}`;
     });
 
     const csvContent = [headers.join(","), ...rows].join("\n");
@@ -710,7 +786,7 @@ export default function AdminDashboard() {
     if (students.length === 0) return showToast("No students to export", "error");
 
     try {
-      const doc = new jsPDF();
+      const doc = new jsPDF('landscape'); 
       
       doc.setFontSize(18);
       doc.text("Student Performance Report", 14, 22);
@@ -718,7 +794,7 @@ export default function AdminDashboard() {
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-      const tableColumn = ["Student Name", "School & City", "Phone", "Email", "Completed", "Pending", "Avg Score (%)"];
+      const tableColumn = ["Student Name", "ID", "Year", "Board", "School & City", "Phone", "Email", "Completed", "Pending", "Avg Score (%)"];
       const tableRows = [];
 
       students.forEach(student => {
@@ -739,7 +815,10 @@ export default function AdminDashboard() {
         const schoolDetails = [student.schoolName, student.city].filter(Boolean).join(', ') || 'N/A';
 
         tableRows.push([
-          `${student.registrationName || student.name} ${student.yearGroup ? `- ${student.yearGroup}` : ''}`, 
+          student.registrationName || student.name,
+          student.studentId || 'N/A',
+          student.yearGroup || 'N/A',
+          student.boardName || 'N/A',
           schoolDetails, 
           student.phone || 'N/A', 
           student.email, 
@@ -1107,7 +1186,7 @@ export default function AdminDashboard() {
                 {/* 3. Students Enrolled */}
                 <button onClick={() => { setActiveTab('students'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'students' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                  Students Enrolled
+                  Enrolled Students 
                 </button>
 
                 {/* 4. Class Planner */}
@@ -1120,6 +1199,12 @@ export default function AdminDashboard() {
                 <button onClick={() => { setActiveTab('scheme'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                   Lesson Schedule
+                </button>
+
+                {/* 5.5 Topic Tracker */}
+                <button onClick={() => { setActiveTab('topics'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'topics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                  Topic Covered
                 </button>
 
                 {/* 6. Google Drive */}
@@ -3442,6 +3527,165 @@ export default function AdminDashboard() {
               </div>
             );
           })()}
+
+          {/* VIEW: TOPIC PROGRESS TRACKER */}
+          {activeTab === 'topics' && (
+            <div className="animate-fade-in relative">
+              
+              {/* TOPIC MODAL (POPUP) */}
+              {isTopicModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
+                  <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl transform scale-100 animate-slide-up max-h-[90vh] overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                      <div className="bg-sky-500 w-2 h-8 rounded-full"></div>
+                      <h2 className="text-2xl font-black text-[#1B2559]">
+                        {editingTopicId ? 'Edit Topic Record' : 'Add Topic Record'}
+                      </h2>
+                    </div>
+                    
+                    <form onSubmit={handleTopicSubmit} className="space-y-4">
+                      <div>
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">Topic Name</label>
+                        <input type="text" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none focus:ring-4 focus:ring-sky-500/20 text-[#1B2559]" 
+                          placeholder="e.g. Algebra Fundamentals" value={topicForm.topicName} onChange={e => setTopicForm({...topicForm, topicName: e.target.value})} />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">Area Name</label>
+                        <input type="text" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none focus:ring-4 focus:ring-sky-500/20 text-[#1B2559]" 
+                          placeholder="e.g. Mathematics" value={topicForm.areaName} onChange={e => setTopicForm({...topicForm, areaName: e.target.value})} />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">Grade</label>
+                        <input type="text" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none focus:ring-4 focus:ring-sky-500/20 text-[#1B2559]" 
+                          placeholder="e.g. Grade 7" value={topicForm.grade} onChange={e => setTopicForm({...topicForm, grade: e.target.value})} />
+                      </div>
+
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase mb-2 block">Dates Covered</label>
+                        <div className="space-y-2">
+                          {topicForm.datesCovered.map((date, index) => (
+                            <div key={index} className="flex gap-2">
+                              <input type="date" required className="w-full p-3 bg-white border border-slate-200 rounded-lg font-bold outline-none focus:ring-2 focus:ring-sky-500 text-[#1B2559]" 
+                                value={date} onChange={e => {
+                                  const newDates = [...topicForm.datesCovered];
+                                  newDates[index] = e.target.value;
+                                  setTopicForm({...topicForm, datesCovered: newDates});
+                                }} />
+                              {topicForm.datesCovered.length > 1 && (
+                                <button type="button" onClick={() => {
+                                  const newDates = topicForm.datesCovered.filter((_, i) => i !== index);
+                                  setTopicForm({...topicForm, datesCovered: newDates});
+                                }} className="px-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg font-black transition-colors">X</button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <button type="button" onClick={() => setTopicForm({...topicForm, datesCovered: [...topicForm.datesCovered, '']})} 
+                          className="mt-3 w-full py-2 border-2 border-dashed border-sky-200 text-sky-600 rounded-lg font-bold hover:bg-sky-50 transition-colors text-sm">
+                          + Add Another Date
+                        </button>
+                      </div>
+
+                      <div className="flex gap-3 mt-6">
+                        <button type="button" onClick={() => {
+                          setIsTopicModalOpen(false);
+                          setEditingTopicId(null);
+                          setTopicForm({ topicName: '', areaName: '', grade: '', datesCovered: [''] });
+                        }} className="flex-1 py-4 bg-slate-100 text-slate-600 font-black rounded-xl hover:bg-slate-200 transition-colors">
+                          Cancel
+                        </button>
+                        <button type="submit" className="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-black py-4 rounded-xl transition-all shadow-lg">
+                          {editingTopicId ? 'Update Record' : 'Save Record'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* FULL-WIDTH DATABASE TABLE */}
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 border-b border-slate-100 pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Topics Covered</h2>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                    <div className="relative">
+                      <input type="text" placeholder="Search topics, area, or grade..." 
+                        className="w-full sm:w-72 p-3 pl-4 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/10 font-bold text-[#1B2559]"
+                        value={topicSearchTerm} onChange={e => setTopicSearchTerm(e.target.value)} />
+                    </div>
+                    
+                    <button onClick={() => {
+                      setTopicForm({ topicName: '', areaName: '', grade: '', datesCovered: [''] });
+                      setEditingTopicId(null);
+                      setIsTopicModalOpen(true);
+                    }} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-2 whitespace-nowrap">
+                      <span>+</span> Add New Topic
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
+                  <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
+                    <thead>
+                      <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10">
+                        <th className="p-4 rounded-tl-2xl cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('topicName')}>
+                          Topic Name {topicSortConfig.key === 'topicName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('areaName')}>
+                          Area {topicSortConfig.key === 'areaName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('grade')}>
+                          Grade {topicSortConfig.key === 'grade' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4">Dates Covered</th>
+                        <th className="p-4 rounded-tr-2xl text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {processedTopics.map(topic => (
+                        <tr key={topic._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                          <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
+                          <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
+                          <td className="p-4"><span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md font-black text-xs">{topic.grade}</span></td>
+                          <td className="p-4">
+                            <div className="flex flex-wrap gap-1 max-w-[250px]">
+                              {topic.datesCovered.map((date, i) => (
+                                <span key={i} className="text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-1 rounded">
+                                  {new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="p-4 text-center">
+                            <div className="flex justify-center items-center gap-2">
+                              <button onClick={() => handleEditTopic(topic)} className="p-2 bg-indigo-50 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-lg transition-colors shadow-sm" title="Edit Topic">
+                                ✏️
+                              </button>
+                              <button onClick={() => handleDeleteTopic(topic._id)} className="p-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-colors shadow-sm" title="Delete Topic">
+                                🗑️
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {processedTopics.length === 0 && (
+                        <tr>
+                          <td colSpan="5" className="text-center py-10 text-slate-400 font-bold">No topic records found. Click 'Add New Topic' to get started.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>

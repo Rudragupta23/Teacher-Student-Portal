@@ -1,4 +1,5 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, User, Phone, Key, ShieldCheck, ArrowLeft, AlertCircle, Send, CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-react';
 import api from '../../services/api';
@@ -50,10 +51,24 @@ const validateData = (email, phone, view) => {
   return null;
 };
 
-const AuthPage = () => {
-  const [view, setView] = useState('login'); 
+const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
+  const navigate = useNavigate();
+  const [view, setView] = useState(defaultView); 
   const { loginUser } = useContext(AuthContext);
-  const [isParentMode, setIsParentMode] = useState(false); 
+  const [isParentMode, setIsParentMode] = useState(defaultParentMode); 
+
+  // This ensures the view changes immediately when the URL changes
+  useEffect(() => {
+    setView(defaultView);
+    setIsParentMode(defaultParentMode);
+    setStatusMsg({ type: '', text: '' });
+    setFormData(prev => ({
+      ...prev,
+      password: '',
+      newPassword: '',
+      otp: ''
+    }));
+  }, [defaultView, defaultParentMode]);
   // Password visibility states
   const [showPassword, setShowPassword] = useState(false);
   const [showSetPassword, setShowSetPassword] = useState(false);
@@ -91,7 +106,7 @@ const AuthPage = () => {
       setStatusMsg({ type: 'error', text: errorMsg });
       return;
     }
-    changeView('forgot'); 
+    navigate('/forgot-password'); 
   };
 
   const handleSubmit = async (e) => {
@@ -199,10 +214,10 @@ const AuthPage = () => {
         <div className="md:w-1/2 p-6 sm:p-10 lg:p-14 relative bg-white flex flex-col justify-center">
           
           {(view === 'forgot' || view === 'reset') && (
-            <button type="button" onClick={() => changeView('login')} className="absolute top-4 left-6 sm:top-8 sm:left-8 text-gray-400 hover:text-indigo-600 flex items-center gap-2 transition-colors font-semibold outline-none z-20">
-              <ArrowLeft size={18} /> Back
-            </button>
-          )}
+    <button type="button" onClick={() => navigate('/login')} className="absolute top-4 left-6 sm:top-8 sm:left-8 text-gray-400 hover:text-indigo-600 flex items-center gap-2 transition-colors font-semibold outline-none z-20">
+      <ArrowLeft size={18} /> Back
+    </button>
+  )}
 
           <AnimatePresence mode="wait">
             <motion.form
@@ -399,27 +414,26 @@ const AuthPage = () => {
               </motion.button>
 
               {(view === 'login' || view === 'signup') && (
-                <motion.div variants={itemVariants} className="text-center text-sm text-gray-500 font-medium mt-2 pt-6 border-t border-gray-100 flex flex-col gap-3">
-                  {view === 'login' ? (
-                    <p>Don't have an account? <button type="button" onClick={() => changeView('signup')} className="text-violet-600 font-bold hover:underline outline-none">Sign up</button></p>
-                  ) : (
-                    <p>Already have an account? <button type="button" onClick={() => changeView('login')} className="text-violet-600 font-bold hover:underline outline-none">Log in</button></p>
-                  )}
-                  
-                  {/* NEW PARENT/STUDENT TOGGLE */}
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      setIsParentMode(!isParentMode);
-                      changeView('signup'); // Force to signup view if they toggle
-                    }} 
-                    className="inline-flex items-center justify-center gap-2 text-gray-600 hover:text-violet-700 transition-colors font-semibold"
-                  >
-                    <User size={16} />
-                    {isParentMode ? "I am a Student" : "Are you a Parent? Click here"}
-                  </button>
-                </motion.div>
-              )}
+    <motion.div variants={itemVariants} className="text-center text-sm text-gray-500 font-medium mt-2 pt-6 border-t border-gray-100 flex flex-col gap-3">
+      {view === 'login' ? (
+        <p>Don't have an account? <button type="button" onClick={() => navigate('/signup')} className="text-violet-600 font-bold hover:underline outline-none">Sign up</button></p>
+      ) : (
+        <p>Already have an account? <button type="button" onClick={() => navigate('/login')} className="text-violet-600 font-bold hover:underline outline-none">Log in</button></p>
+      )}
+      
+      {/* NEW PARENT/STUDENT TOGGLE */}
+      <button 
+        type="button" 
+        onClick={() => {
+          navigate(isParentMode ? '/signup' : '/parent-signup');
+        }} 
+        className="inline-flex items-center justify-center gap-2 text-gray-600 hover:text-violet-700 transition-colors font-semibold"
+      >
+        <User size={16} />
+        {isParentMode ? "I am a Student" : "Are you a Parent? Click here"}
+      </button>
+    </motion.div>
+  )}
             </motion.form>
           </AnimatePresence>
         </div>

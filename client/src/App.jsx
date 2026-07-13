@@ -20,7 +20,11 @@ function App() {
           <Route path="/" element={<HomePage />} />
 
           {/* The Login Page is now at /login */}
-          <Route path="/login" element={<AuthPage />} />
+          {/* <Route path="/login" element={<AuthPage />} /> */}
+          <Route path="/login" element={<AuthPage defaultView="login" defaultParentMode={false} />} />
+          <Route path="/signup" element={<AuthPage defaultView="signup" defaultParentMode={false} />} />
+          <Route path="/parent-signup" element={<AuthPage defaultView="signup" defaultParentMode={true} />} />
+          <Route path="/forgot-password" element={<AuthPage defaultView="forgot" defaultParentMode={false} />} />
           
           {/* Protected Admin Route */}
           <Route 

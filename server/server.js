@@ -37,6 +37,7 @@ app.use('/api/scheme', require('./routes/schemeRoutes'));
 app.use('/api/drive-links', require('./routes/driveRoutes'));
 app.use('/api/planner', classPlannerRoutes);
 app.use('/api/contact', require('./routes/contactRoutes'));
+app.use('/api/topics', require('./routes/topicProgressRoutes'));
 require('./jobs/reminderJob');
 const PORT = process.env.PORT || 5000;
 
