@@ -170,7 +170,7 @@ exports.deleteAllReports = async (req, res) => {
 // @route   PUT /api/scheme/:id
 exports.updateScheme = async (req, res) => {
   try {
-    const updatedScheme = await Scheme.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updatedScheme = await Scheme.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after' }); 
     res.status(200).json(updatedScheme);
   } catch (error) {
     res.status(500).json({ message: 'Error updating scheme', error: error.message });

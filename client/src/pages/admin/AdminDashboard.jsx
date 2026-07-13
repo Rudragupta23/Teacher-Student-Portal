@@ -746,6 +746,76 @@ export default function AdminDashboard() {
       showToast("Failed to update student", "error");
     }
   };
+  const handleExportTopicsCSV = () => {
+    if (processedTopics.length === 0) return showToast("No topics to export", "error");
+
+    const headers = ["Topic Name", "Area Name", "Grade", "Dates Covered"];
+    
+    const rows = processedTopics.map(topic => {
+      // Join dates together in a readable format
+      const dates = topic.datesCovered
+        .map(d => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))
+        .join(" | ");
+      return `"${topic.topicName}","${topic.areaName}","${topic.grade}","${dates}"`;
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Topics_Covered_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast("Topics successfully exported to CSV!");
+  };
+
+  const handleExportTopicsPDF = async () => { 
+    if (processedTopics.length === 0) return showToast("No topics to export", "error");
+
+    try {
+      const doc = new jsPDF('landscape'); 
+      
+      doc.setFontSize(18);
+      doc.text("Topics Covered Report", 14, 22);
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+
+      const tableColumn = ["Topic Name", "Area Name", "Grade", "Dates Covered"];
+      const tableRows = [];
+
+      processedTopics.forEach(topic => {
+        const dates = topic.datesCovered
+          .map(d => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))
+          .join(", ");
+        
+        tableRows.push([
+          topic.topicName,
+          topic.areaName,
+          topic.grade,
+          dates
+        ]);
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 40,
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229] },
+      });
+
+      doc.save(`Topics_Covered_${new Date().toISOString().split('T')[0]}.pdf`);
+      showToast("Topics successfully exported to PDF!");
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      showToast("Error generating PDF.", "error");
+    }
+  };
   const handleExportCSV = () => {
     if (students.length === 0) return showToast("No students to export", "error");
 
@@ -3613,13 +3683,23 @@ export default function AdminDashboard() {
                     <h2 className="text-2xl font-black text-[#1B2559]">Topics Covered</h2>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                 <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto flex-wrap justify-end">
                     <div className="relative">
                       <input type="text" placeholder="Search topics, area, or grade..." 
                         className="w-full sm:w-72 p-3 pl-4 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/10 font-bold text-[#1B2559]"
                         value={topicSearchTerm} onChange={e => setTopicSearchTerm(e.target.value)} />
                     </div>
                     
+                    <button onClick={handleExportTopicsCSV} className="px-4 py-3 bg-slate-50 text-slate-700 hover:bg-slate-700 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center gap-2 border border-slate-200 whitespace-nowrap">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                      Export CSV
+                    </button>
+                    
+                    <button onClick={handleExportTopicsPDF} className="px-4 py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center gap-2 border border-indigo-100 whitespace-nowrap">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                      Export PDF
+                    </button>
+
                     <button onClick={() => {
                       setTopicForm({ topicName: '', areaName: '', grade: '', datesCovered: [''] });
                       setEditingTopicId(null);

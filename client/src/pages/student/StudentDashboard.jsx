@@ -104,11 +104,14 @@ export default function StudentDashboard() {
     try {
       const res = await api.get('/auth/profile');
       setStudentProfile({ 
-    name: res.data.name, 
-    profilePic: res.data.profilePic || '', 
-    studentId: res.data.studentId, 
-    yearGroup: res.data.yearGroup || 'Y?' 
-});
+        name: res.data.name, 
+        profilePic: res.data.profilePic || '', 
+        studentId: res.data.studentId, 
+        yearGroup: res.data.yearGroup || 'Y?',
+        boardName: res.data.boardName || '',
+        schoolName: res.data.adminOverrides?.schoolName || res.data.schoolName || '',
+        city: res.data.adminOverrides?.city || res.data.city || ''
+      });
       setSettingsForm({ name: res.data.name, profilePic: res.data.profilePic || '' });
     } catch (error) {
       console.error("Error fetching profile from DB");
@@ -586,16 +589,46 @@ export default function StudentDashboard() {
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 gap-6">
   <div>
     <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, {studentProfile.name} 👋</h1>
-    <div className="flex items-center gap-3 mt-2">
-      <p className="text-[#A3AED0] font-bold tracking-wide">Stay on top of your coursework and grades.</p>
-                <div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-black tracking-widest border border-indigo-200 flex items-center gap-2 w-fit">
-  <span className="truncate">ID: {studentProfile.studentId}</span>
-  <button onClick={() => {navigator.clipboard.writeText(studentProfile.studentId); showToast("ID Copied!");}} className="hover:text-indigo-900" title="Copy ID">
-    📋
-  </button>
-</div>
-              </div>
-            </div>
+    <p className="text-[#A3AED0] font-bold tracking-wide mt-2">Stay on top of your coursework and grades.</p>
+    
+    <div className="flex flex-wrap items-center gap-2 mt-3">
+      {/* Original ID Badge */}
+      <div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-black tracking-widest border border-indigo-200 flex items-center gap-2 w-fit shadow-sm">
+        <span className="truncate">ID: {studentProfile.studentId}</span>
+        <button onClick={() => {navigator.clipboard.writeText(studentProfile.studentId); showToast("ID Copied!");}} className="hover:text-indigo-900" title="Copy ID">
+          📋
+        </button>
+      </div>
+
+      {/* New Year Badge */}
+      {studentProfile.yearGroup && studentProfile.yearGroup !== 'Y?' && (
+        <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-black tracking-widest border border-emerald-200 w-fit shadow-sm">
+          {studentProfile.yearGroup}
+        </div>
+      )}
+
+      {/* New Board Badge */}
+      {studentProfile.boardName && (
+        <div className="bg-sky-100 text-sky-700 px-3 py-1 rounded-full text-xs font-black tracking-widest border border-sky-200 w-fit shadow-sm">
+          {studentProfile.boardName}
+        </div>
+      )}
+
+      {/* New School Badge */}
+      {studentProfile.schoolName && (
+        <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-black tracking-widest border border-amber-200 w-fit shadow-sm">
+          🏫 {studentProfile.schoolName}
+        </div>
+      )}
+
+      {/* New City Badge */}
+      {studentProfile.city && (
+        <div className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-xs font-black tracking-widest border border-rose-200 w-fit shadow-sm">
+          📍 {studentProfile.city}
+        </div>
+      )}
+    </div>
+  </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full xl:w-auto shrink-0">
               <div className="bg-white px-6 py-4 rounded-3xl shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex items-center gap-4">

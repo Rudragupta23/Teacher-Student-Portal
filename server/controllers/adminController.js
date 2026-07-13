@@ -278,7 +278,7 @@ exports.updateStudentBoard = async (req, res) => {
     const student = await User.findByIdAndUpdate(
       req.params.id,
       { boardName: req.body.boardName },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!student) return res.status(404).json({ message: 'Student not found' });
     res.status(200).json({ message: 'Board updated', student });

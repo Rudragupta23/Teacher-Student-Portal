@@ -31,11 +31,13 @@ exports.deleteTopic = async (req, res) => {
 exports.updateTopic = async (req, res) => {
   try {
     const { topicName, areaName, grade, datesCovered } = req.body;
+    
     const updatedTopic = await TopicProgress.findByIdAndUpdate(
       req.params.id,
       { topicName, areaName, grade, datesCovered },
-      { new: true }
+      { returnDocument: 'after' }
     );
+    
     res.status(200).json(updatedTopic);
   } catch (error) {
     res.status(500).json({ message: 'Failed to update topic' });
