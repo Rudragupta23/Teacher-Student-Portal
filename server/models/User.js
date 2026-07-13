@@ -30,6 +30,12 @@ const userSchema = new mongoose.Schema({
   },
   boardName: { type: String },
   resetPasswordOtp: { type: String },
+  adminOverrides: {
+    name: { type: String },
+    phone: { type: String },
+    schoolName: { type: String },
+    city: { type: String }
+    },
   resetPasswordExpires: { type: Date },
   
   performance: {

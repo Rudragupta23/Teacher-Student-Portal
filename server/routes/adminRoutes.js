@@ -12,7 +12,8 @@ const {
   allocateStudentsToGrader,
   getPendingStudents, 
   approveStudent,
-  updateStudentBoard      
+  updateStudentBoard,
+  updateStudentDetails      
 } = require('../controllers/adminController');
 
 // Import graderOrAdmin alongside protect and admin
@@ -25,6 +26,7 @@ router.delete('/students/:id', protect, admin, deleteStudent);
 router.get('/students/pending', protect, admin, getPendingStudents);
 router.put('/students/:id/approve', protect, admin, approveStudent);
 router.put('/students/:id/board', protect, admin, updateStudentBoard);
+router.put('/students/:id', protect, admin, updateStudentDetails);
 
 // Grader Management (Admin Only)
 router.post('/graders', protect, admin, createGrader);

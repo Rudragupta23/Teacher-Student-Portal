@@ -76,6 +76,7 @@ export default function AdminDashboard() {
   // Admin Profile & Settings State
   const [adminProfile, setAdminProfile] = useState({ name: 'Mentor', profilePic: '' });
   const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '', studentToDelete: '' });
+  const [editStudentForm, setEditStudentForm] = useState({ id: '', name: '', phone: '', schoolName: '', city: '' });
   const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [userId, setUserId] = useState(null); 
 
@@ -189,19 +190,33 @@ export default function AdminDashboard() {
   };
 
   const fetchData = async () => {
+    const processStudents = (data) => data.map(s => ({
+      ...s,
+      originalName: s.name,
+      name: s.adminOverrides?.name || s.name,
+      registrationName: s.adminOverrides?.name || s.registrationName || s.name,
+      email: s.email, 
+      phone: s.adminOverrides?.phone || s.phone,
+      schoolName: s.adminOverrides?.schoolName || s.schoolName,
+      city: s.adminOverrides?.city || s.city,
+      yearGroup: s.yearGroup, 
+    }));
+
     try {
       if (user?.role === 'admin') {
         const [studentRes, hwRes, annRes, resRes, graderRes, schemeRes, plannerRes] = await Promise.all([
           api.get('/admin/students'), api.get('/homework/admin'), api.get('/announcements/admin'),
           api.get('/resources'), api.get('/admin/graders').catch(() => ({ data: [] })), api.get('/scheme'), api.get('/planner')
         ]);
-        setStudents(studentRes.data); setHomeworks(hwRes.data); setAnnouncements(annRes.data);
+        setStudents(processStudents(studentRes.data)); 
+        setHomeworks(hwRes.data); setAnnouncements(annRes.data);
         setResources(resRes.data); setGraders(graderRes.data); setSchemes(schemeRes.data); setPlannerSessions(plannerRes.data || []);
       } else if (user?.role === 'grader') {
         const [studentRes, hwRes, schemeRes] = await Promise.all([
           api.get('/admin/students'), api.get('/homework/admin'), api.get('/scheme')
         ]);
-        setStudents(studentRes.data); setHomeworks(hwRes.data); setSchemes(schemeRes.data);
+        setStudents(processStudents(studentRes.data)); 
+        setHomeworks(hwRes.data); setSchemes(schemeRes.data);
       }
     } catch (error) {
       showToast("Error fetching dashboard data.", "error");
@@ -642,7 +657,19 @@ export default function AdminDashboard() {
       showToast("Failed to save profile", "error");
     }
   };
-  
+  const handleUpdateStudentDetails = async () => {
+    if (!editStudentForm.id) return showToast("Please select a student first!", "error");
+    try {
+      await api.put(`/admin/students/${editStudentForm.id}`, editStudentForm);
+      showToast("Student details updated successfully!");
+      
+      // Close the edit window by resetting the state
+      setEditStudentForm({ id: '', name: '', phone: '', schoolName: '', city: '' });
+      fetchData(); 
+    } catch (error) {
+      showToast("Failed to update student", "error");
+    }
+  };
   const handleExportCSV = () => {
     if (students.length === 0) return showToast("No students to export", "error");
 
@@ -1841,9 +1868,17 @@ export default function AdminDashboard() {
                         <tr key={student._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                           <td className="p-5">
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-black text-xl shadow-md shrink-0">
-                                {student.name.charAt(0).toUpperCase()}
-                              </div>
+                              {student.profilePic ? (
+                                <img 
+                                  src={student.profilePic} 
+                                  alt={student.name} 
+                                  className="w-12 h-12 rounded-full object-cover shadow-md shrink-0 border-2 border-indigo-100" 
+                                />
+                              ) : (
+                                <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-black text-xl shadow-md shrink-0">
+                                  {student.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
                               <div className="flex flex-col">
                                 <div className="flex items-center gap-2">
                                   <span className="font-black text-[#1B2559] text-base">{student.registrationName || student.name}</span>
@@ -2008,12 +2043,78 @@ export default function AdminDashboard() {
                     }} 
                     className="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white font-black rounded-2xl shadow-lg transition-transform hover:-translate-y-1"
                   >
-                    
                     Delete Selected Student
                   </button>
                 </div>
               </div>
 
+              {/* NEW: Edit Student Details Zone (Admin Only) */}
+              {user?.role === 'admin' && (
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex flex-col xl:col-span-2">
+                <div className="flex items-center gap-3 mb-8 border-b border-indigo-100 pb-6">
+                  <div className="bg-amber-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Edit Student Details</h2>
+                </div>
+
+                <div className="space-y-6 flex flex-col h-full">
+                  <p className="text-sm font-bold text-slate-500">Modify a student's profile. These changes are only visible to Admins. The student will still see their original details.</p>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-amber-500 uppercase tracking-wide">Select a Student to Edit</label>
+                    <select
+                      className="w-full p-4 bg-amber-50 text-amber-900 border border-amber-100 rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/20 font-bold"
+                      value={editStudentForm.id}
+                      onChange={e => {
+                        const student = students.find(s => s._id === e.target.value);
+                        if (student) {
+                          setEditStudentForm({
+                            id: student._id,
+                            name: student.adminOverrides?.name || student.originalName || student.name || '',
+                            phone: student.adminOverrides?.phone || student.phone || '',
+                            schoolName: student.adminOverrides?.schoolName || student.schoolName || '',
+                            city: student.adminOverrides?.city || student.city || ''
+                          });
+                        } else {
+                          setEditStudentForm({ id: '', name: '', phone: '', schoolName: '', city: '' });
+                        }
+                      }}
+                    >
+                      <option value="">-- Choose a Student --</option>
+                      {students.map(s => (
+                        <option key={s._id} value={s._id}>
+                          {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''} ({s.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {editStudentForm.id && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 bg-slate-50 p-6 rounded-2xl border border-slate-100 animate-fade-in">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">Name</label>
+                        <input type="text" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-[#1B2559]" value={editStudentForm.name} onChange={e => setEditStudentForm({...editStudentForm, name: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">Phone</label>
+                        <input type="text" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-[#1B2559]" value={editStudentForm.phone} onChange={e => setEditStudentForm({...editStudentForm, phone: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">School Name</label>
+                        <input type="text" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-[#1B2559]" value={editStudentForm.schoolName} onChange={e => setEditStudentForm({...editStudentForm, schoolName: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">City</label>
+                        <input type="text" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-[#1B2559]" value={editStudentForm.city} onChange={e => setEditStudentForm({...editStudentForm, city: e.target.value})} />
+                      </div>
+
+                      <button onClick={handleUpdateStudentDetails} className="md:col-span-2 mt-4 py-4 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl shadow-lg transition-transform hover:-translate-y-1">
+                        Save Student Details
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              )}
             </div>
           )}
           {/* VIEW 3.5: ANNOUNCEMENTS TAB */}

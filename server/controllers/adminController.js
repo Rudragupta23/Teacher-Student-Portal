@@ -286,3 +286,21 @@ exports.updateStudentBoard = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
+// @desc    Update student details (Admin overrides)
+// @route   PUT /api/admin/students/:id
+exports.updateStudentDetails = async (req, res) => {
+  try {
+    const studentIdToEdit = req.params.id;
+    const { name, phone, schoolName, city } = req.body;
+
+    const student = await User.findById(studentIdToEdit);
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    student.adminOverrides = { name, phone, schoolName, city };
+
+    await student.save();
+    res.status(200).json({ message: 'Student details updated successfully.', student });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
