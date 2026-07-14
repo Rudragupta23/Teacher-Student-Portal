@@ -124,7 +124,8 @@ export default function AdminDashboard() {
 
 // Topic Progress Tracker States
   const [topics, setTopics] = useState([]);
-  const [topicForm, setTopicForm] = useState({ topicName: '', areaName: '', grade: '', datesCovered: [''] });
+  const [topicForm, setTopicForm] = useState({ topicName: '', areaName: '', grade: '', studentId: '', datesCovered: [''] });
+  const [topicYearFilter, setTopicYearFilter] = useState('all');
   const [topicSearchTerm, setTopicSearchTerm] = useState('');
   const [topicSortConfig, setTopicSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
   
@@ -647,20 +648,33 @@ export default function AdminDashboard() {
     e.preventDefault();
     const validDates = topicForm.datesCovered.filter(d => d.trim() !== '');
     if (validDates.length === 0) return showToast("Please add at least one valid date.", "error");
+    if (!topicForm.studentId) return showToast("Please select a student or 'Everyone'.", "error");
+    
+    // Safely structure payload to avoid CastErrors in MongoDB
+    const payload = {
+      topicName: topicForm.topicName,
+      areaName: topicForm.areaName,
+      grade: topicForm.grade,
+      datesCovered: validDates,
+      studentId: topicForm.studentId === 'all' ? null : topicForm.studentId
+    };
 
     try {
       if (editingTopicId) {
-        await api.put(`/topics/${editingTopicId}`, { ...topicForm, datesCovered: validDates });
+        await api.put(`/topics/${editingTopicId}`, payload);
         showToast("Topic progress updated successfully!");
       } else {
-        await api.post('/topics', { ...topicForm, datesCovered: validDates });
+        await api.post('/topics', payload);
         showToast("Topic progress saved successfully!");
       }
       setIsTopicModalOpen(false);
       setEditingTopicId(null);
-      setTopicForm({ topicName: '', areaName: '', grade: '', datesCovered: [''] });
+      setTopicForm({ topicName: '', areaName: '', grade: '', studentId: '', datesCovered: [''] });
       fetchTopics();
-    } catch(err) { showToast("Failed to save topic", "error"); }
+    } catch(err) { 
+      console.error("Save Topic Error:", err);
+      showToast(err.response?.data?.message || "Failed to save topic (Check Console)", "error"); 
+    }
   };
 
   const handleEditTopic = (topic) => {
@@ -668,6 +682,7 @@ export default function AdminDashboard() {
       topicName: topic.topicName,
       areaName: topic.areaName,
       grade: topic.grade,
+      studentId: topic.studentId ? (topic.studentId._id || topic.studentId) : 'all',
       datesCovered: topic.datesCovered.length > 0 ? topic.datesCovered : ['']
     });
     setEditingTopicId(topic._id);
@@ -739,7 +754,6 @@ export default function AdminDashboard() {
       await api.put(`/admin/students/${editStudentForm.id}`, editStudentForm);
       showToast("Student details updated successfully!");
       
-      // Close the edit window by resetting the state
       setEditStudentForm({ id: '', name: '', phone: '', schoolName: '', city: '' });
       fetchData(); 
     } catch (error) {
@@ -749,14 +763,15 @@ export default function AdminDashboard() {
   const handleExportTopicsCSV = () => {
     if (processedTopics.length === 0) return showToast("No topics to export", "error");
 
-    const headers = ["Topic Name", "Area Name", "Grade", "Dates Covered"];
+    const headers = ["Topic Name", "Area Name", "Student Name", "Year Group", "Grade", "Dates Covered"];
     
     const rows = processedTopics.map(topic => {
-      // Join dates together in a readable format
+      const studentName = (!topic.studentId || topic.studentId === 'all') ? 'Everyone' : (topic.studentId.registrationName || topic.studentId.name || 'Unknown');
+      const yearGroup = (!topic.studentId || topic.studentId === 'all') ? 'All' : (topic.studentId.yearGroup || 'N/A');
       const dates = topic.datesCovered
         .map(d => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))
         .join(" | ");
-      return `"${topic.topicName}","${topic.areaName}","${topic.grade}","${dates}"`;
+      return `"${topic.topicName}","${topic.areaName}","${studentName}","${yearGroup}","${topic.grade}","${dates}"`;
     });
 
     const csvContent = [headers.join(","), ...rows].join("\n");
@@ -785,10 +800,12 @@ export default function AdminDashboard() {
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-      const tableColumn = ["Topic Name", "Area Name", "Grade", "Dates Covered"];
+      const tableColumn = ["Topic Name", "Area Name", "Student Name", "Year Group", "Grade", "Dates Covered"];
       const tableRows = [];
 
       processedTopics.forEach(topic => {
+        const studentName = (!topic.studentId || topic.studentId === 'all') ? 'Everyone' : (topic.studentId.registrationName || topic.studentId.name || 'Unknown');
+        const yearGroup = (!topic.studentId || topic.studentId === 'all') ? 'All' : (topic.studentId.yearGroup || 'N/A');
         const dates = topic.datesCovered
           .map(d => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))
           .join(", ");
@@ -796,6 +813,8 @@ export default function AdminDashboard() {
         tableRows.push([
           topic.topicName,
           topic.areaName,
+          studentName,
+          yearGroup,
           topic.grade,
           dates
         ]);
@@ -3632,6 +3651,31 @@ export default function AdminDashboard() {
                           placeholder="e.g. Grade 7" value={topicForm.grade} onChange={e => setTopicForm({...topicForm, grade: e.target.value})} />
                       </div>
 
+                     <div className="space-y-4">
+                        <div>
+                          <label className="text-xs font-black text-[#A3AED0] uppercase">Filter by Year Group</label>
+                          <select className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none"
+                            value={topicYearFilter} onChange={e => setTopicYearFilter(e.target.value)}>
+                            <option value="all">All Years</option>
+                            {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                              <option key={yg} value={yg}>{yg}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-black text-[#A3AED0] uppercase">Assign to Student</label>
+                          <select required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none"
+                            value={topicForm.studentId} onChange={e => setTopicForm({...topicForm, studentId: e.target.value})}>
+                            <option value="">-- Select Target --</option>
+                            <option value="all">📢 Everyone (All Students)</option>
+                            {students.filter(s => topicYearFilter === 'all' || s.yearGroup === topicYearFilter).map(s => (
+                              <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `(${s.yearGroup})` : ''}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                         <label className="text-xs font-black text-[#A3AED0] uppercase mb-2 block">Dates Covered</label>
                         <div className="space-y-2">
@@ -3701,7 +3745,7 @@ export default function AdminDashboard() {
                     </button>
 
                     <button onClick={() => {
-                      setTopicForm({ topicName: '', areaName: '', grade: '', datesCovered: [''] });
+                      setTopicForm({ topicName: '', areaName: '', grade: '', studentId: '', datesCovered: [''] });
                       setEditingTopicId(null);
                       setIsTopicModalOpen(true);
                     }} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-2 whitespace-nowrap">
@@ -3720,6 +3764,8 @@ export default function AdminDashboard() {
                         <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('areaName')}>
                           Area {topicSortConfig.key === 'areaName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
+                        <th className="p-4">Student Name</th>
+                        <th className="p-4">Year Group</th>
                         <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('grade')}>
                           Grade {topicSortConfig.key === 'grade' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
@@ -3732,7 +3778,27 @@ export default function AdminDashboard() {
                         <tr key={topic._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                           <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
                           <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
-                          <td className="p-4"><span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md font-black text-xs">{topic.grade}</span></td>
+                          <td className="p-4 font-bold text-[#1B2559]">
+                            {(!topic.studentId || topic.studentId === 'all') ? (
+                               <span className="text-emerald-600">Everyone</span>
+                            ) : (
+                               topic.studentId.registrationName || topic.studentId.name || 'Unknown Student'
+                            )}
+                          </td>
+                          <td className="p-4">
+                            {(!topic.studentId || topic.studentId === 'all') ? (
+                                <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded-md font-black text-xs">All</span>
+                            ) : (
+                                <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md font-black text-xs">
+                                  {topic.studentId.yearGroup || 'N/A'}
+                                </span>
+                            )}
+                          </td>
+                          <td className="p-4">
+                            <span className="bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 px-2 py-1 rounded-md font-black text-xs">
+                              {topic.grade}
+                            </span>
+                          </td>
                           <td className="p-4">
                             <div className="flex flex-wrap gap-1 max-w-[250px]">
                               {topic.datesCovered.map((date, i) => (
@@ -3756,7 +3822,7 @@ export default function AdminDashboard() {
                       ))}
                       {processedTopics.length === 0 && (
                         <tr>
-                          <td colSpan="5" className="text-center py-10 text-slate-400 font-bold">No topic records found. Click 'Add New Topic' to get started.</td>
+                          <td colSpan="7" className="text-center py-10 text-slate-400 font-bold">No topic records found. Click 'Add New Topic' to get started.</td>
                         </tr>
                       )}
                     </tbody>

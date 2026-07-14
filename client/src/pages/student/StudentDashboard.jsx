@@ -36,10 +36,18 @@ export default function StudentDashboard() {
   const [resources, setResources] = useState([]);
   const [schemes, setSchemes] = useState([]);
   const [driveLinks, setDriveLinks] = useState([]); 
+  const [topics, setTopics] = useState([]); 
 
   const [plannerSessions, setPlannerSessions] = useState([]);
 
-  // Move this function outside the useEffect
+  // NEW FETCH FUNCTION FOR TOPICS
+  const fetchTopics = async () => {
+    try {
+      const res = await api.get('/topics');
+      setTopics(res.data);
+    } catch (e) { console.error("Error fetching topics"); }
+  };
+
   const fetchSchemes = async () => {
     try {
       const res = await api.get('/scheme');
@@ -67,6 +75,7 @@ export default function StudentDashboard() {
     fetchSchemes(); 
     fetchDriveLinks();
     fetchPlanner();
+    fetchTopics();
     
     const token = localStorage.getItem('token');
     if (token) {
@@ -521,9 +530,14 @@ export default function StudentDashboard() {
             </button>
 
             <button onClick={() => { setActiveTab('scheme'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-violet-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-  Lesson Schedule
-</button>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              Lesson Schedule
+            </button>
+
+            <button onClick={() => { setActiveTab('topics'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'topics' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+              Topic Covered
+            </button>
 
             <button onClick={() => { setActiveTab('announcements'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'announcements' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
@@ -1249,6 +1263,64 @@ export default function StudentDashboard() {
                     <p className="text-[#A3AED0] font-bold">Your teacher hasn't shared any Drive links with you yet.</p>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+          {/* STUDENT VIEW: TOPICS COVERED TAB */}
+          {activeTab === 'topics' && (
+            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+              <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                <div className="bg-emerald-500 w-2 h-8 rounded-full"></div>
+                <h2 className="text-2xl font-black text-[#1B2559]">Topics Covered 📚</h2>
+              </div>
+              <p className="text-slate-500 font-bold mb-8">Review the curriculum areas and topics you have completed so far.</p>
+              
+              <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
+                <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10">
+                      <th className="p-4 rounded-tl-2xl">Topic Name</th>
+                      <th className="p-4">Area</th>
+                      <th className="p-4">Grade</th>
+                      <th className="p-4 rounded-tr-2xl">Dates Covered</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topics.filter(topic => {
+                      if (!topic.studentId || topic.studentId === 'all') return true;
+                      const assignedId = typeof topic.studentId === 'object' ? topic.studentId._id : topic.studentId;
+                      return assignedId === userId;
+                    }).map(topic => (
+                      <tr key={topic._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
+                        <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
+                        <td className="p-4">
+                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1 rounded-md font-black text-xs">
+                            {topic.grade}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex flex-wrap gap-1 max-w-[250px]">
+                            {topic.datesCovered.map((date, i) => (
+                              <span key={i} className="text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-1 rounded">
+                                {new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {topics.filter(topic => {
+                      if (!topic.studentId || topic.studentId === 'all') return true;
+                      const assignedId = typeof topic.studentId === 'object' ? topic.studentId._id : topic.studentId;
+                      return assignedId === userId;
+                    }).length === 0 && (
+                      <tr>
+                        <td colSpan="4" className="text-center py-10 text-slate-400 font-bold">No topics recorded for you yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
