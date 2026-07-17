@@ -48,17 +48,17 @@ export default function AdminDashboard() {
   const [yearGroupAllocate, setYearGroupAllocate] = useState('all');
   const [selectedStudentsToAllocate, setSelectedStudentsToAllocate] = useState([]);
 
-  // Form State
-  const [assignForm, setAssignForm] = useState({
-    title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Medium', 
-    dueDate: '', fileUrl: '', content: '', 
-    mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
-  });
-  const [testForm, setTestForm] = useState({
-    title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Easy', 
-    startDate: '', dueDate: '', fileUrl: '', content: '', 
-    mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
-  });
+  // REPLACE line 46-53 with:
+const [assignForm, setAssignForm] = useState({
+  title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Medium', 
+  dueDate: '', fileUrl: '', content: '', studentInstructions: '',
+  mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
+});
+const [testForm, setTestForm] = useState({
+  title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Easy', 
+  startDate: '', dueDate: '', fileUrl: '', content: '', studentInstructions: '',
+  mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
+});
   const [testYearGroupAssign, setTestYearGroupAssign] = useState('all');
   const [testFileName, setTestFileName] = useState('');
 
@@ -438,20 +438,21 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleAssignSubmit = async (e) => {
-    e.preventDefault();
-    if (!assignForm.dueDate) return showToast("Please assign a valid Due Date!", "error");
+  // REPLACE line 301-310 (handleAssignSubmit) with:
+const handleAssignSubmit = async (e) => {
+  e.preventDefault();
+  if (!assignForm.dueDate) return showToast("Please assign a valid Due Date!", "error");
 
-    try {
+  try {
       await api.post('/homework/assign', assignForm);
       showToast('🎉 Homework successfully published!');
-      fetchData(); 
-      setAssignForm({ ...assignForm, title: '', fileUrl: '', content: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
-      setFileName('');
-    } catch (err) {
-      showToast(err.response?.data?.message || 'Error assigning work.', "error");
-    }
-  };
+    fetchData(); 
+    setAssignForm({ ...assignForm, title: '', fileUrl: '', content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
+    setFileName('');
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Error assigning work.', "error");
+  }
+};
 
   const updateMcq = (index, field, value, optionIndex = null) => {
     const updatedMcqs = assignForm.mcqs.map((mcq, i) => {
@@ -1293,7 +1294,7 @@ export default function AdminDashboard() {
                 {/* 5.5 Topic Tracker */}
                 <button onClick={() => { setActiveTab('topics'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'topics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                  Topic Covered
+                  Topics Covered
                 </button>
 
                 {/* 6. Google Drive */}
@@ -1527,6 +1528,13 @@ export default function AdminDashboard() {
   onChange={e => setAssignForm({...assignForm, dueDate: e.target.value})} />
                   </div>
 
+                  <div className="space-y-1 mt-4">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Instructions for Student (Optional)</label>
+                    <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl focus:ring-4 focus:ring-indigo-500/20 text-[#1B2559] outline-none font-bold" 
+                      placeholder="e.g. Please show all your working out..." 
+                      value={assignForm.studentInstructions} onChange={e => setAssignForm({...assignForm, studentInstructions: e.target.value})} />
+                  </div>
+
                   <div className="space-y-1 pt-4 border-t border-slate-100">
                     <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Format Type</label>
                     <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl font-bold text-[#1B2559] outline-none mb-4 cursor-pointer" 
@@ -1752,10 +1760,13 @@ export default function AdminDashboard() {
                   if (!testForm.startDate || !testForm.dueDate) return showToast("Assign Start & Due Dates!", "error");
                   if (new Date(testForm.startDate) >= new Date(testForm.dueDate)) return showToast("Due date must be after Start date!", "error");
                   try {
-                    await api.post('/homework/assign', { ...testForm, isTest: true });
+                    await api.post('/homework/assign', { 
+                      ...testForm, 
+                      isTest: true
+                    });
                     showToast('🎉 Test scheduled successfully!');
                     fetchData(); 
-                    setTestForm({ ...testForm, title: '', startDate: '', dueDate: '', fileUrl: '', content: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
+                    setTestForm({ ...testForm, title: '', startDate: '', dueDate: '', fileUrl: '', content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
                     setTestFileName(''); 
                   } catch (err) { showToast('Error scheduling test.', "error"); }
                 }} className="space-y-6">
@@ -1842,6 +1853,13 @@ export default function AdminDashboard() {
                       <input type="datetime-local" required min={testForm.startDate || minDateTime} className="w-full max-w-full p-4 bg-rose-50 text-rose-800 rounded-2xl outline-none cursor-pointer font-bold" 
   value={testForm.dueDate} onChange={e => setTestForm({...testForm, dueDate: e.target.value})} />
                     </div>
+                  </div>
+
+                  <div className="space-y-1 mt-4">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Instructions for Student (Optional)</label>
+                    <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl focus:ring-4 focus:ring-rose-500/20 text-[#1B2559] outline-none font-bold" 
+                      placeholder="e.g. Calculators are not allowed..." 
+                      value={testForm.studentInstructions} onChange={e => setTestForm({...testForm, studentInstructions: e.target.value})} />
                   </div>
 
                   {/* FORMAT TYPE & BUILDER */}
@@ -2491,28 +2509,9 @@ export default function AdminDashboard() {
                           </div>
                         )}
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-xs font-black text-[#A3AED0] uppercase">Week No (Optional)</label>
-                            <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" placeholder="e.g. 1" value={schemeForm.weekNo} onChange={e => {
-                                const newWeek = e.target.value;
-                                const newTitle = newWeek && schemeForm.topic ? `WEEK ${newWeek} - ${schemeForm.topic}`.toUpperCase() : (schemeForm.topic ? schemeForm.topic.toUpperCase() : 'Class Taken');
-                                setSchemeForm({...schemeForm, weekNo: newWeek, title: newTitle});
-                              }} />
-                          </div>
-                          <div>
-                            <label className="text-xs font-black text-[#A3AED0] uppercase">Topic (Optional)</label>
-                            <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" placeholder="e.g. Algebra" value={schemeForm.topic} onChange={e => {
-                                const newTopic = e.target.value;
-                                const newTitle = schemeForm.weekNo && newTopic ? `WEEK ${schemeForm.weekNo} - ${newTopic}`.toUpperCase() : (newTopic ? newTopic.toUpperCase() : 'Class Taken');
-                                setSchemeForm({...schemeForm, topic: newTopic, title: newTitle});
-                              }} />
-                          </div>
-                        </div>
-
                         <div>
-                          <label className="text-xs font-black text-[#A3AED0] uppercase">Lesson Title (Auto-Generated)</label>
-                          <input type="text" placeholder="Lesson Session" className="w-full p-4 mt-1 bg-[#E2E8F0] border-none rounded-xl font-bold opacity-70 cursor-not-allowed" value={schemeForm.title} readOnly />
+                          <label className="text-xs font-black text-[#A3AED0] uppercase">Lesson Title</label>
+                          <input type="text" placeholder="Enter Lesson Title..." required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none" value={schemeForm.title} onChange={e => setSchemeForm({...schemeForm, title: e.target.value})} />
                         </div>
 
                         <div>
@@ -2587,7 +2586,7 @@ export default function AdminDashboard() {
                     <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
                       <thead>
                         <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10">
-                          <th className="p-5 rounded-tl-2xl">Date & Week</th>
+                          <th className="p-5 rounded-tl-2xl">Date</th>
                           <th className="p-5">Lesson Title</th>
                           <th className="p-5">Status</th>
                           <th className="p-5">Time & Duration</th>
@@ -2623,11 +2622,9 @@ export default function AdminDashboard() {
                               <p className="font-bold text-[#1B2559]">
                                 {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                               </p>
-                              <p className="text-xs font-bold text-[#A3AED0] mt-1">Week {report.weekNo || 'N/A'}</p>
                             </td>
                             <td className="p-5">
-                          <p className="font-bold text-[#1B2559]">{report.title}</p>
-                          {report.topic && <p className="text-xs font-bold text-slate-500 mt-1 mb-1">Topic: {report.topic}</p>}
+                          <p className="font-bold text-[#1B2559] mb-1">{report.title}</p>
                           
                           {report.studentId && report.studentId !== 'all' ? (
                             <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
@@ -2672,7 +2669,7 @@ export default function AdminDashboard() {
                               <div className="flex justify-between items-center gap-4 group p-2 -m-2 rounded-xl hover:bg-slate-50 transition-colors">
                                 <div className="flex-1 min-w-0">
                                   {report.description ? (
-                                    <p className="text-sm text-slate-600 font-medium line-clamp-2 mb-2" title={report.description}>
+                                    <p className="text-sm text-slate-600 font-medium whitespace-pre-wrap mb-2" title="Description">
                                       {report.description}
                                     </p>
                                   ) : (
@@ -3578,14 +3575,22 @@ export default function AdminDashboard() {
                                className="min-h-[100px] md:min-h-[120px] p-2 md:p-3 rounded-2xl border bg-white border-slate-100 hover:border-indigo-300 cursor-pointer transition-all">
                             <div className="text-xs md:text-sm font-black w-7 h-7 flex items-center justify-center rounded-full mb-2 text-[#1B2559]">{day}</div>
                             <div className="space-y-1.5 overflow-y-auto max-h-[70px] custom-scrollbar">
-                              {daySessions.map(session => (
+                              {daySessions.slice(0, 4).map(session => (
                                 <div key={session._id} onClick={(e) => { e.stopPropagation(); setPlannerForm({ topic: session.topic, weekNo: session.weekNo || '', title: session.title || session.topic, startTime: new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), endTime: new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), isRecurring: session.isRecurring, yearGroupFilter: session.yearGroupFilter || 'all', studentId: session.studentId || 'all' }); setPlannerModal({show: true, selectedDate: dateStr, data: session}); }}
-                                  className="text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg bg-indigo-100 text-indigo-700 shadow-sm flex items-center gap-1 overflow-hidden" title={session.title || session.topic}>
+                                  className="text-[10px] leading-tight font-black px-1.5 py-1 rounded bg-indigo-100 text-indigo-800 shadow-sm flex justify-between items-center overflow-hidden whitespace-nowrap cursor-pointer hover:bg-indigo-200" title={session.topic}>
                                   <span className="shrink-0">{new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
-                                  {session.studentId && session.studentId !== 'all' && <span className="shrink-0 text-[10px] md:text-xs">👤</span>}
-                                  <span className="truncate">{session.topic}</span>
+                                  <span className="truncate text-indigo-600 ml-1">
+                                    {session.studentId && session.studentId !== 'all' 
+                                      ? (students.find(s => s._id === session.studentId)?.name?.split(' ')[0] || 'Unknown') 
+                                      : 'All'}
+                                  </span>
                                 </div>
                               ))}
+                              {daySessions.length > 4 && (
+                                <div className="text-[10px] font-black text-slate-500 text-center bg-slate-100 rounded py-0.5">
+                                  +{daySessions.length - 4} more
+                                </div>
+                              )}
                             </div>
                           </div>
                         );

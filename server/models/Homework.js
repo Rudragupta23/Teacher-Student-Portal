@@ -14,6 +14,7 @@ const homeworkSchema = new mongoose.Schema({
   
   fileUrl: { type: String }, 
   content: { type: String }, 
+  studentInstructions: { type: String },
   mcqs: [{
     question: String,
     options: [String],

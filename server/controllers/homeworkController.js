@@ -3,7 +3,7 @@ const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail'); 
 
 exports.assignHomework = async (req, res) => {
-  const { title, weekNo, topic, description, type, studentId, difficulty, dueDate, startDate, isTest, fileUrl, content, mcqs } = req.body;
+  const { title, weekNo, topic, description, type, studentId, difficulty, dueDate, startDate, isTest, fileUrl, content, mcqs, studentInstructions } = req.body;
   
   try {
     let targetStudents = [];
@@ -46,6 +46,7 @@ exports.assignHomework = async (req, res) => {
         difficulty,
         fileUrl: type === 'File' ? fileUrl : undefined,
         content: type === 'Text' ? content : undefined,
+        studentInstructions,
         mcqs: type === 'MCQ' ? mcqs : [],
         dueDate: new Date(dueDate),
         startDate: startDate ? new Date(startDate) : new Date(),

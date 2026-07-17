@@ -307,6 +307,13 @@ export default function StudentDashboard() {
               <div className="bg-[#F4F7FE] p-6 rounded-3xl mb-8">
                 <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-4">Homework Details</h4>
                 
+                {modalTask.studentInstructions && (
+                  <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-r-xl mb-4">
+                    <p className="text-xs font-black text-indigo-800 uppercase tracking-wide mb-1">Teacher's Instructions</p>
+                    <p className="text-indigo-900 font-medium text-sm whitespace-pre-wrap">{modalTask.studentInstructions}</p>
+                  </div>
+                )}
+                
                 {modalTask.type === 'File' && modalTask.fileUrl && (
   <div className="flex flex-col gap-4 w-full">
     <p className="text-sm font-black text-[#1B2559] uppercase tracking-wide">Attachment Preview</p>
@@ -1161,7 +1168,7 @@ export default function StudentDashboard() {
                 <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
                   <thead>
                     <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider">
-                      <th className="p-5 rounded-tl-2xl">Date & Week</th>
+                      <th className="p-5 rounded-tl-2xl">Date</th>
                       <th className="p-5">Lesson Title</th>
                       <th className="p-5">Status</th>
                       <th className="p-5">Time & Duration</th>
@@ -1175,11 +1182,9 @@ export default function StudentDashboard() {
                           <p className="font-bold text-[#1B2559]">
                             {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                           </p>
-                          <p className="text-xs font-bold text-[#A3AED0] mt-1">Week {report.weekNo || 'N/A'}</p>
                         </td>
                         <td className="p-5">
                           <p className="font-bold text-[#1B2559]">{report.title}</p>
-                          {report.topic && <p className="text-xs font-bold text-slate-500 mt-1">Topic: {report.topic}</p>}
                         </td>
                         <td className="p-5">
                           <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
@@ -1211,7 +1216,7 @@ export default function StudentDashboard() {
                           )}
                         </td>
                         <td className="p-5 w-[300px] whitespace-normal">
-                          <p className="text-sm text-slate-600 font-medium line-clamp-2" title={report.description}>
+                          <p className="text-sm text-slate-600 font-medium whitespace-pre-wrap" title="Description">
                             {report.description || '-'}
                           </p>
                         </td>
