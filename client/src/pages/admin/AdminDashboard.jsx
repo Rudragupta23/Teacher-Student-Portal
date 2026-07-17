@@ -3403,7 +3403,9 @@ const handleAssignSubmit = async (e) => {
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col">
                       <h3 className="text-xl sm:text-2xl font-black text-[#1B2559] mb-4 shrink-0">
-                        {plannerModal.data ? 'Edit Class Session' : `Schedule Class for ${plannerModal.selectedDate}`}
+                        {plannerModal.data 
+                          ? `Edit Class: ${plannerModal.data.studentId && plannerModal.data.studentId !== 'all' ? (students.find(s => s._id === plannerModal.data.studentId)?.registrationName || students.find(s => s._id === plannerModal.data.studentId)?.name || 'Unknown') : 'All Students'}` 
+                          : `Schedule Class for ${plannerModal.selectedDate}`}
                       </h3>
                       
                       <form onSubmit={handlePlannerSubmit} className="space-y-3 sm:space-y-4 shrink-0">
@@ -3571,7 +3573,10 @@ const handleAssignSubmit = async (e) => {
                         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                         const daySessions = getSessionsForDay(day);
                         return (
-                          <div key={day} onClick={() => setPlannerModal({show: true, selectedDate: dateStr, data: null})} 
+                          <div key={day} onClick={() => {
+                            setPlannerForm({ topic: '', weekNo: '', title: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: 'all' });
+                            setPlannerModal({show: true, selectedDate: dateStr, data: null});
+                          }}
                                className="min-h-[100px] md:min-h-[120px] p-2 md:p-3 rounded-2xl border bg-white border-slate-100 hover:border-indigo-300 cursor-pointer transition-all">
                             <div className="text-xs md:text-sm font-black w-7 h-7 flex items-center justify-center rounded-full mb-2 text-[#1B2559]">{day}</div>
                             <div className="space-y-1.5 overflow-y-auto max-h-[70px] custom-scrollbar">
