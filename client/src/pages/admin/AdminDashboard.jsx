@@ -101,6 +101,7 @@ const [testForm, setTestForm] = useState({
   const [editingBoardId, setEditingBoardId] = useState(null);
   const [editBoardName, setEditBoardName] = useState('');
   const [editingSchemeId, setEditingSchemeId] = useState(null);
+  const [isSchemeModalOpen, setIsSchemeModalOpen] = useState(false);
 
   const [chatTarget, setChatTarget] = useState('student'); 
   const [selectedParent, setSelectedParent] = useState(null); 
@@ -588,6 +589,7 @@ const handleAssignSubmit = async (e) => {
         }
         setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' });
         setGraderInstruction('');
+        setIsSchemeModalOpen(false);
       }
       else if (modal.type === 'deleteScheme') {
         await api.delete(`/scheme/${modal.hwId}`);
@@ -605,11 +607,13 @@ const handleAssignSubmit = async (e) => {
       showToast(error.response?.data?.message || "Action failed.", "error");
     }
   };
+  
   const handleSchemeInitialSubmit = async (e) => {
     e.preventDefault();
     if (isLoading) return; 
 
-    if (schemeForm.classStatus === 'Class Taken') {
+    // Only show Grader Instruction if there is at least one grader assigned!
+    if (schemeForm.classStatus === 'Class Taken' && graders.length > 0) {
       setModal({ type: 'graderInstruction', data: '' });
     } else {
       await executeSchemeSubmitDirect();
@@ -636,6 +640,7 @@ const handleAssignSubmit = async (e) => {
       setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' });
       setGraderInstruction('');
       setModal({ type: null });
+      setIsSchemeModalOpen(false);
       fetchData(); 
     } catch(err) { 
       showToast("Error submitting/updating report", "error"); 
@@ -2395,336 +2400,348 @@ const handleAssignSubmit = async (e) => {
           )}
           {/* SCHEME OF WORK TAB */}
           {activeTab === 'scheme' && (
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
-              {user?.role === 'admin' && (
-                <div className="xl:col-span-4 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
-                  <div className="flex items-center gap-3 mb-8">
-                    <div className="bg-fuchsia-500 w-2 h-8 rounded-full"></div>
-                    <h2 className="text-2xl font-black text-[#1B2559]">Daily Report</h2>
-                  </div>
-                  
-                  <form onSubmit={handleSchemeInitialSubmit} className="space-y-4">
-                    <div className="mb-4">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase">Date</label>
-                      <input type="date" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.date} onChange={e => setSchemeForm({...schemeForm, date: e.target.value})} />
+            <div className="animate-fade-in relative">
+
+              {/* SCHEME MODAL (POPUP) */}
+              {isSchemeModalOpen && user?.role === 'admin' && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
+                  <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl transform scale-100 animate-slide-up max-h-[90vh] overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                      <div className="bg-fuchsia-500 w-2 h-8 rounded-full"></div>
+                      <h2 className="text-2xl font-black text-[#1B2559]">
+                        {editingSchemeId ? 'Edit Daily Report' : 'Add Daily Report'}
+                      </h2>
                     </div>
 
-                    {/* NEW STATUS RADIO BUTTONS */}
-                    <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-xl mb-4 border border-slate-100">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Class Status</label>
-                      
-                      <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
-                        <input type="radio" name="classStatus" value="Class Taken" 
-                          checked={schemeForm.classStatus === 'Class Taken'} 
-                          onChange={e => setSchemeForm({...schemeForm, classStatus: e.target.value, title: schemeForm.weekNo && schemeForm.topic ? `WEEK ${schemeForm.weekNo} - ${schemeForm.topic}`.toUpperCase() : ''})} 
-                          className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
-                        <span className="font-bold text-slate-700 text-sm">✅ Class Taken</span>
-                      </label>
-                      
-                      <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
-                        <input type="radio" name="classStatus" value="Class Cancelled by Teacher" 
-                          checked={schemeForm.classStatus === 'Class Cancelled by Teacher'} 
-                          onChange={e => setSchemeForm({...schemeForm, classStatus: e.target.value, title: 'CANCELLED BY TEACHER'})} 
-                          className="w-5 h-5 text-rose-600 focus:ring-rose-500 cursor-pointer" />
-                        <span className="font-bold text-slate-700 text-sm">❌ Class Cancelled by Teacher</span>
-                      </label>
-
-                      <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
-                        <input type="radio" name="classStatus" value="Class Cancelled by Student" 
-                          checked={schemeForm.classStatus === 'Class Cancelled by Student'} 
-                          onChange={e => setSchemeForm({...schemeForm, classStatus: e.target.value, title: 'CANCELLED BY STUDENT'})} 
-                          className="w-5 h-5 text-rose-600 focus:ring-rose-500 cursor-pointer" />
-                        <span className="font-bold text-slate-700 text-sm">❌ Class Cancelled by Student</span>
-                      </label>
-                    </div>
-
-                    <div className="flex flex-col gap-4 mb-6 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
-                      <div>
-                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
-                        <select className="w-full p-3 mt-1 bg-white border border-indigo-100 rounded-xl outline-none font-bold text-[#1B2559]"
-                          value={schemeForm.yearGroupFilter}
-                          onChange={e => {
-                            const selectedYear = e.target.value;
-                            const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
-                            setSchemeForm({
-                              ...schemeForm,
-                              yearGroupFilter: selectedYear,
-                              studentId: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
-                            });
-                          }}>
-                          <option value="all">All Years</option>
-                          {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
-                            <option key={yg} value={yg}>{yg}</option>
-                          ))}
-                        </select>
+                    <form onSubmit={handleSchemeInitialSubmit} className="space-y-4">
+                      <div className="mb-4">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">Date</label>
+                        <input type="date" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none" value={schemeForm.date} onChange={e => setSchemeForm({...schemeForm, date: e.target.value})} />
                       </div>
-                      <div>
-                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Student</label>
-                        <select className="w-full p-3 mt-1 bg-white border border-indigo-100 rounded-xl outline-none font-bold text-[#1B2559]"
-                          value={schemeForm.studentId}
-                          onChange={e => setSchemeForm({...schemeForm, studentId: e.target.value})}>
-                          {schemeForm.yearGroupFilter === 'all' && <option value="all">📢 All Students</option>}
-                          {students.filter(s => schemeForm.yearGroupFilter === 'all' || s.yearGroup === schemeForm.yearGroupFilter).map(s => (
-                            <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
 
-                    {schemeForm.classStatus === 'Class Taken' && (
-                      <div className="animate-fade-in space-y-4">
+                      <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-xl mb-4 border border-slate-100">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Class Status</label>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-xs font-black text-[#A3AED0] uppercase">Start Time</label>
-                            <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" 
-                              value={schemeForm.startTime} 
-                              onChange={e => {
-                                const newStart = e.target.value;
-                                setSchemeForm({
-                                  ...schemeForm, 
-                                  startTime: newStart, 
-                                  endTime: calculateEndTime(newStart) 
-                                });
-                              }} 
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs font-black text-[#A3AED0] uppercase">End Time</label>
-                            <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold" value={schemeForm.endTime} onChange={e => setSchemeForm({...schemeForm, endTime: e.target.value})} />
-                          </div>
-                        </div>
+                        <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
+                          <input type="radio" name="classStatus" value="Class Taken" 
+                            checked={schemeForm.classStatus === 'Class Taken'} 
+                            onChange={e => setSchemeForm({...schemeForm, classStatus: e.target.value, title: schemeForm.weekNo && schemeForm.topic ? `WEEK ${schemeForm.weekNo} - ${schemeForm.topic}`.toUpperCase() : ''})} 
+                            className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
+                          <span className="font-bold text-slate-700 text-sm">✅ Class Taken</span>
+                        </label>
+                        
+                        <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
+                          <input type="radio" name="classStatus" value="Class Cancelled by Teacher" 
+                            checked={schemeForm.classStatus === 'Class Cancelled by Teacher'} 
+                            onChange={e => setSchemeForm({...schemeForm, classStatus: e.target.value, title: 'CANCELLED BY TEACHER'})} 
+                            className="w-5 h-5 text-rose-600 focus:ring-rose-500 cursor-pointer" />
+                          <span className="font-bold text-slate-700 text-sm">❌ Class Cancelled by Teacher</span>
+                        </label>
 
-                        {schemeForm.startTime && schemeForm.endTime && (
-                          <div className="text-sm font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 flex justify-center items-center">
-                            ⏱️ Total Duration: {(() => {
-                              const [sh, sm] = schemeForm.startTime.split(':').map(Number);
-                              const [eh, em] = schemeForm.endTime.split(':').map(Number);
-                              let diff = (eh * 60 + em) - (sh * 60 + sm);
-                              if(diff < 0) diff += 24 * 60;
-                              const h = Math.floor(diff/60);
-                              const m = diff % 60;
-                              return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`;
-                            })()}
-                          </div>
-                        )}
+                        <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
+                          <input type="radio" name="classStatus" value="Class Cancelled by Student" 
+                            checked={schemeForm.classStatus === 'Class Cancelled by Student'} 
+                            onChange={e => setSchemeForm({...schemeForm, classStatus: e.target.value, title: 'CANCELLED BY STUDENT'})} 
+                            className="w-5 h-5 text-rose-600 focus:ring-rose-500 cursor-pointer" />
+                          <span className="font-bold text-slate-700 text-sm">❌ Class Cancelled by Student</span>
+                        </label>
+                      </div>
 
+                      <div className="flex flex-col gap-4 mb-6 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
                         <div>
-                          <label className="text-xs font-black text-[#A3AED0] uppercase">Lesson Title</label>
-                          <input type="text" placeholder="Enter Lesson Title..." required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none" value={schemeForm.title} onChange={e => setSchemeForm({...schemeForm, title: e.target.value})} />
+                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
+                          <select className="w-full p-3 mt-1 bg-white border border-indigo-100 rounded-xl outline-none font-bold text-[#1B2559]"
+                            value={schemeForm.yearGroupFilter}
+                            onChange={e => {
+                              const selectedYear = e.target.value;
+                              const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
+                              setSchemeForm({
+                                ...schemeForm,
+                                yearGroupFilter: selectedYear,
+                                studentId: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
+                              });
+                            }}>
+                            <option value="all">All Years</option>
+                            {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                              <option key={yg} value={yg}>{yg}</option>
+                            ))}
+                          </select>
                         </div>
-
                         <div>
-                          <label className="text-xs font-black text-[#A3AED0] uppercase">Description (Optional)</label>
-                          <textarea className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold min-h-[100px]" placeholder="What was covered today..." value={schemeForm.description} onChange={e => setSchemeForm({...schemeForm, description: e.target.value})} />
+                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Student</label>
+                          <select className="w-full p-3 mt-1 bg-white border border-indigo-100 rounded-xl outline-none font-bold text-[#1B2559]"
+                            value={schemeForm.studentId}
+                            onChange={e => setSchemeForm({...schemeForm, studentId: e.target.value})}>
+                            {schemeForm.yearGroupFilter === 'all' && <option value="all">📢 All Students</option>}
+                            {students.filter(s => schemeForm.yearGroupFilter === 'all' || s.yearGroup === schemeForm.yearGroupFilter).map(s => (
+                              <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                            ))}
+                          </select>
                         </div>
                       </div>
-                    )}
 
-                    <div className="flex gap-3 mt-4">
-                      {editingSchemeId && (
+                      {schemeForm.classStatus === 'Class Taken' && (
+                        <div className="animate-fade-in space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-xs font-black text-[#A3AED0] uppercase">Start Time</label>
+                              <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none" 
+                                value={schemeForm.startTime} 
+                                onChange={e => {
+                                  const newStart = e.target.value;
+                                  setSchemeForm({
+                                    ...schemeForm, 
+                                    startTime: newStart, 
+                                    endTime: calculateEndTime(newStart) 
+                                  });
+                                }} 
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-black text-[#A3AED0] uppercase">End Time</label>
+                              <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none" value={schemeForm.endTime} onChange={e => setSchemeForm({...schemeForm, endTime: e.target.value})} />
+                            </div>
+                          </div>
+
+                          {schemeForm.startTime && schemeForm.endTime && (
+                            <div className="text-sm font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 flex justify-center items-center">
+                              ⏱️ Total Duration: {(() => {
+                                const [sh, sm] = schemeForm.startTime.split(':').map(Number);
+                                const [eh, em] = schemeForm.endTime.split(':').map(Number);
+                                let diff = (eh * 60 + em) - (sh * 60 + sm);
+                                if(diff < 0) diff += 24 * 60;
+                                const h = Math.floor(diff/60);
+                                const m = diff % 60;
+                                return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`;
+                              })()}
+                            </div>
+                          )}
+
+                          <div>
+                            <label className="text-xs font-black text-[#A3AED0] uppercase">Lesson Title</label>
+                            <input type="text" placeholder="Enter Lesson Title..." className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none" value={schemeForm.title} onChange={e => setSchemeForm({...schemeForm, title: e.target.value})} />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-black text-[#A3AED0] uppercase">Description (Optional)</label>
+                            <textarea className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none min-h-[100px]" placeholder="What was covered today..." value={schemeForm.description} onChange={e => setSchemeForm({...schemeForm, description: e.target.value})} />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 mt-6">
                         <button type="button" onClick={() => { 
+                          setIsSchemeModalOpen(false);
                           setEditingSchemeId(null); 
                           setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' }); 
                           setGraderInstruction(''); 
-                        }} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-4 rounded-xl transition-all shadow-sm">
-                          Cancel Edit
+                        }} className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-xl transition-all shadow-sm">
+                          Cancel
                         </button>
-                      )}
-                      <button type="submit" className="flex-1 bg-[#1B2559] hover:bg-fuchsia-600 text-white font-black py-4 rounded-xl transition-all shadow-lg">
-                        {editingSchemeId ? 'Update Daily Report' : 'Submit Daily Report'}
-                      </button>
-                    </div>
-                  </form>
+                        <button type="submit" className="flex-1 bg-[#1B2559] hover:bg-fuchsia-600 text-white font-black py-4 rounded-xl transition-all shadow-lg">
+                          {editingSchemeId ? 'Update Report' : 'Submit Report'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               )}
 
-              {/* View Reports (Admins & Graders) */}
-              <div className={user?.role === 'admin' ? "xl:col-span-8" : "xl:col-span-12"}>
-                <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
-                  <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
-                      <h2 className="text-2xl font-black text-[#1B2559]">Lesson Schedule</h2>
-                    </div>
+              {/* FULL-WIDTH DATABASE TABLE */}
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-slate-100 pb-6 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Lesson Schedule</h2>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto flex-wrap justify-end">
                     {user?.role === 'admin' && schemes.length > 0 && (
-                      <button onClick={() => setModal({ type: 'deleteAllSchemes', data: '' })} className="px-4 py-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl font-bold transition-all shadow-sm flex items-center gap-2">
+                      <button onClick={() => setModal({ type: 'deleteAllSchemes', data: '' })} className="px-4 py-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl font-black transition-all shadow-sm flex items-center gap-2 whitespace-nowrap">
                         🗑️ Delete All
                       </button>
                     )}
+                    {user?.role === 'admin' && (
+                      <button onClick={() => {
+                        setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' });
+                        setEditingSchemeId(null);
+                        setIsSchemeModalOpen(true);
+                      }} className="px-6 py-3 bg-[#1B2559] hover:bg-fuchsia-600 text-white font-black rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-2 whitespace-nowrap">
+                        <span>+</span> Add Daily Report
+                      </button>
+                    )}
                   </div>
+                </div>
 
-                  {/* LIST FILTERS */}
-                  <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <div className="flex-1">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
-                      <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
-                        value={schemeListYear}
-                        onChange={e => {
-                          setSchemeListYear(e.target.value);
-                          setSchemeListStudent('all');
-                        }}>
-                        <option value="all">All Years</option>
-                        {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
-                          <option key={yg} value={yg}>{yg}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Student</label>
-                      <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
-                        value={schemeListStudent} onChange={e => setSchemeListStudent(e.target.value)}>
-                        <option value="all">All Filtered Students</option>
-                        {students.filter(s => schemeListYear === 'all' || s.yearGroup === schemeListYear).map(s => (
-                          <option key={s._id} value={s._id}>{s.registrationName || s.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                {/* LIST FILTERS */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="flex-1">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
+                    <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
+                      value={schemeListYear}
+                      onChange={e => {
+                        setSchemeListYear(e.target.value);
+                        setSchemeListStudent('all');
+                      }}>
+                      <option value="all">All Years</option>
+                      {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                        <option key={yg} value={yg}>{yg}</option>
+                      ))}
+                    </select>
                   </div>
-                  
-                  <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
-                    <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
-                      <thead>
-                        <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10">
-                          <th className="p-5 rounded-tl-2xl">Date</th>
-                          <th className="p-5">Lesson Title</th>
-                          <th className="p-5">Status</th>
-                          <th className="p-5">Time & Duration</th>
-                          <th className="p-5 rounded-tr-2xl">Details & Instructions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {schemes.filter(report => {
-                          if (user?.role === 'grader') {
-                            const isAllocated = report.studentId === 'all' || students.some(s => s._id === report.studentId);
-                            if (!isAllocated) return false;
-                          }
-                          
-                          if (schemeListYear !== 'all') {
-                            if (report.studentId && report.studentId !== 'all') {
-                              const studentForReport = students.find(s => s._id === report.studentId);
-                              if (!studentForReport || studentForReport.yearGroup !== schemeListYear) {
-                                return false;
-                              }
-                            } else {
-                              if (report.yearGroupFilter !== 'all' && report.yearGroupFilter !== schemeListYear) {
-                                return false;
-                              }
+                  <div className="flex-1">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Student</label>
+                    <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
+                      value={schemeListStudent} onChange={e => setSchemeListStudent(e.target.value)}>
+                      <option value="all">All Filtered Students</option>
+                      {students.filter(s => schemeListYear === 'all' || s.yearGroup === schemeListYear).map(s => (
+                        <option key={s._id} value={s._id}>{s.registrationName || s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
+                  <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
+                    <thead>
+                      <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10">
+                        <th className="p-5 rounded-tl-2xl">Date</th>
+                        <th className="p-5">Lesson Title</th>
+                        <th className="p-5">Status</th>
+                        <th className="p-5">Time & Duration</th>
+                        <th className="p-5 rounded-tr-2xl">Details & Instructions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {schemes.filter(report => {
+                        if (user?.role === 'grader') {
+                          const isAllocated = report.studentId === 'all' || students.some(s => s._id === report.studentId);
+                          if (!isAllocated) return false;
+                        }
+                        
+                        if (schemeListYear !== 'all') {
+                          if (report.studentId && report.studentId !== 'all') {
+                            const studentForReport = students.find(s => s._id === report.studentId);
+                            if (!studentForReport || studentForReport.yearGroup !== schemeListYear) {
+                              return false;
+                            }
+                          } else {
+                            if (report.yearGroupFilter !== 'all' && report.yearGroupFilter !== schemeListYear) {
+                              return false;
                             }
                           }
-                          
-                          if (schemeListStudent !== 'all' && report.studentId !== 'all' && report.studentId !== schemeListStudent) return false;
-                          
-                          return true;
-                        }).map(report => (
-                          <tr key={report._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                            <td className="p-5">
-                              <p className="font-bold text-[#1B2559]">
-                                {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-                              </p>
-                            </td>
-                            <td className="p-5">
-                          <p className="font-bold text-[#1B2559] mb-1">{report.title}</p>
-                          
-                          {report.studentId && report.studentId !== 'all' ? (
-                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
-                              👤 {students.find(s => s._id === report.studentId)?.name || 'Specific Student'}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                              📢 Entire Class
-                            </span>
-                          )}
-                        </td>
-                            <td className="p-5">
-                              <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                                {report.classStatus === 'Class Taken' ? '✅ Class Taken' : `❌ ${report.classStatus}`}
+                        }
+                        
+                        if (schemeListStudent !== 'all' && report.studentId !== 'all' && report.studentId !== schemeListStudent) return false;
+                        
+                        return true;
+                      }).map(report => (
+                        <tr key={report._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                          <td className="p-5">
+                            <p className="font-bold text-[#1B2559]">
+                              {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                            </p>
+                          </td>
+                          <td className="p-5">
+                            {report.title && (
+                              <p className="font-bold text-[#1B2559] mb-1">{report.title}</p>
+                            )}
+                            {report.studentId && report.studentId !== 'all' ? (
+                              <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                                👤 {students.find(s => s._id === report.studentId)?.name || 'Specific Student'}
                               </span>
-                            </td>
-                            <td className="p-5">
-                              {report.classStatus === 'Class Taken' && report.startTime && report.endTime ? (
-                                <div>
-                                  <p className="text-sm font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md inline-block mb-1 border border-indigo-100">
-                                    {report.startTime} - {report.endTime}
+                            ) : (
+                              <span className="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                                📢 Entire Class
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-5">
+                            <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                              {report.classStatus === 'Class Taken' ? '✅ Class Taken' : `❌ ${report.classStatus}`}
+                            </span>
+                          </td>
+                          <td className="p-5">
+                            {report.classStatus === 'Class Taken' && report.startTime && report.endTime ? (
+                              <div>
+                                <p className="text-sm font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md inline-block mb-1 border border-indigo-100">
+                                  {report.startTime} - {report.endTime}
+                                </p>
+                                <p className="text-xs font-bold text-slate-500 block">
+                                  Duration: {
+                                    (() => {
+                                      const [sh, sm] = report.startTime.split(':').map(Number);
+                                      const [eh, em] = report.endTime.split(':').map(Number);
+                                      let diff = (eh * 60 + em) - (sh * 60 + sm);
+                                      if(diff < 0) diff += 24 * 60;
+                                      const h = Math.floor(diff/60);
+                                      const m = diff % 60;
+                                      return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`.trim();
+                                    })()
+                                  }
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="text-xs font-bold text-slate-400">-</span>
+                            )}
+                          </td>
+                          <td className="p-5 w-[350px] whitespace-normal">
+                            <div className="flex justify-between items-center gap-4 group p-2 -m-2 rounded-xl hover:bg-slate-50 transition-colors">
+                              <div className="flex-1 min-w-0">
+                                {report.description ? (
+                                  <p className="text-sm text-slate-600 font-medium whitespace-pre-wrap mb-2" title="Description">
+                                    {report.description}
                                   </p>
-                                  <p className="text-xs font-bold text-slate-500 block">
-                                    Duration: {
-                                      (() => {
-                                        const [sh, sm] = report.startTime.split(':').map(Number);
-                                        const [eh, em] = report.endTime.split(':').map(Number);
-                                        let diff = (eh * 60 + em) - (sh * 60 + sm);
-                                        if(diff < 0) diff += 24 * 60;
-                                        const h = Math.floor(diff/60);
-                                        const m = diff % 60;
-                                        return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`.trim();
-                                      })()
-                                    }
-                                  </p>
-                                </div>
-                              ) : (
-                                <span className="text-xs font-bold text-slate-400">-</span>
-                              )}
-                            </td>
-                            <td className="p-5 w-[350px] whitespace-normal">
-                              <div className="flex justify-between items-center gap-4 group p-2 -m-2 rounded-xl hover:bg-slate-50 transition-colors">
-                                <div className="flex-1 min-w-0">
-                                  {report.description ? (
-                                    <p className="text-sm text-slate-600 font-medium whitespace-pre-wrap mb-2" title="Description">
-                                      {report.description}
-                                    </p>
-                                  ) : (
-                                    <p className="text-sm text-slate-400 font-medium mb-2">-</p>
-                                  )}
-                                  
-                                  {/* Admin/Grader ONLY: Grader Instructions */}
-                                  {(user?.role === 'admin' || user?.role === 'grader') && report.graderInstruction && (
-                                    <div className="bg-indigo-50 border-l-4 border-indigo-500 p-2 rounded-r-lg">
-                                      <p className="text-[10px] font-black text-indigo-800 uppercase mb-0.5">Grader Instructions:</p>
-                                      <p className="text-indigo-900 font-medium text-xs line-clamp-2" title={report.graderInstruction}>{report.graderInstruction}</p>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {user?.role === 'admin' && (
-                                  <div className="flex flex-col gap-2 shrink-0 mt-1">
-                                    <button onClick={() => {
-                                      setSchemeForm({
-                                        date: new Date(report.date).toISOString().split('T')[0],
-                                        startTime: report.startTime || '',
-                                        endTime: report.endTime || '',
-                                        title: report.title || '',
-                                        weekNo: report.weekNo || '',
-                                        topic: report.topic || '',
-                                        description: report.description || '',
-                                        classStatus: report.classStatus || 'Class Taken',
-                                        yearGroupFilter: report.yearGroupFilter || 'all',
-                                        studentId: report.studentId || 'all'
-                                      });
-                                      setGraderInstruction(report.graderInstruction || '');
-                                      setEditingSchemeId(report._id);
-                                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                                    }} className="p-2 bg-indigo-50 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-lg shadow-sm transition-all" title="Edit Report">
-                                      ✏️
-                                    </button>
-                                    <button onClick={() => setModal({ type: 'deleteScheme', hwId: report._id, data: '' })} 
-                                      className="p-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg shadow-sm transition-all" title="Delete Report">
-                                      🗑️
-                                    </button>
+                                ) : (
+                                  <p className="text-sm text-slate-400 font-medium mb-2">-</p>
+                                )}
+                                
+                                {(user?.role === 'admin' || user?.role === 'grader') && report.graderInstruction && (
+                                  <div className="bg-indigo-50 border-l-4 border-indigo-500 p-2 rounded-r-lg">
+                                    <p className="text-[10px] font-black text-indigo-800 uppercase mb-0.5">Grader Instructions:</p>
+                                    <p className="text-indigo-900 font-medium text-xs line-clamp-2" title={report.graderInstruction}>{report.graderInstruction}</p>
                                   </div>
                                 )}
                               </div>
-                            </td>
-                          </tr>
-                        ))}
-                        {schemes.length === 0 && (
-                          <tr>
-                            <td colSpan="5" className="text-center py-10 text-slate-400 font-bold">No daily reports recorded yet.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
 
+                              {user?.role === 'admin' && (
+                                <div className="flex flex-col gap-2 shrink-0 mt-1">
+                                  <button onClick={() => {
+                                    setSchemeForm({
+                                      date: new Date(report.date).toISOString().split('T')[0],
+                                      startTime: report.startTime || '',
+                                      endTime: report.endTime || '',
+                                      title: report.title || '',
+                                      weekNo: report.weekNo || '',
+                                      topic: report.topic || '',
+                                      description: report.description || '',
+                                      classStatus: report.classStatus || 'Class Taken',
+                                      yearGroupFilter: report.yearGroupFilter || 'all',
+                                      studentId: report.studentId || 'all'
+                                    });
+                                    setGraderInstruction(report.graderInstruction || '');
+                                    setEditingSchemeId(report._id);
+                                    setIsSchemeModalOpen(true);
+                                  }} className="p-2 bg-indigo-50 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-lg shadow-sm transition-all" title="Edit Report">
+                                    ✏️
+                                  </button>
+                                  <button onClick={() => setModal({ type: 'deleteScheme', hwId: report._id, data: '' })} 
+                                    className="p-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg shadow-sm transition-all" title="Delete Report">
+                                    🗑️
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {schemes.length === 0 && (
+                        <tr>
+                          <td colSpan="5" className="text-center py-10 text-slate-400 font-bold">No daily reports recorded yet.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -3510,6 +3527,7 @@ const handleAssignSubmit = async (e) => {
                             });
                             setPlannerModal({ show: false, selectedDate: null, data: null });
                             setActiveTab('scheme');
+                            setIsSchemeModalOpen(true);
                           }} className="w-full py-3 sm:py-4 mt-4 sm:mt-6 mb-2 bg-emerald-500 text-white font-black rounded-xl hover:bg-emerald-600 shadow-md flex justify-center items-center gap-2 text-sm sm:text-base">
                             📝 Log Daily Report in Lesson Schedule
                           </button>
