@@ -112,8 +112,11 @@ export default function StudentDashboard() {
     setIsLoading(true); 
     try {
       const res = await api.get('/auth/profile');
+      
+      const displayName = res.data.adminOverrides?.name || res.data.name;
+
       setStudentProfile({ 
-        name: res.data.name, 
+        name: displayName, 
         profilePic: res.data.profilePic || '', 
         studentId: res.data.studentId, 
         yearGroup: res.data.yearGroup || 'Y?',
@@ -121,7 +124,8 @@ export default function StudentDashboard() {
         schoolName: res.data.adminOverrides?.schoolName || res.data.schoolName || '',
         city: res.data.adminOverrides?.city || res.data.city || ''
       });
-      setSettingsForm({ name: res.data.name, profilePic: res.data.profilePic || '' });
+      
+      setSettingsForm({ name: displayName, profilePic: res.data.profilePic || '' });
     } catch (error) {
       console.error("Error fetching profile from DB");
     } finally {
