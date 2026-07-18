@@ -32,6 +32,18 @@ exports.getTopics = async (req, res) => {
   }
 };
 
+exports.bulkCreateTopics = async (req, res) => {
+  try {
+    const { topics } = req.body;
+    if (!topics || !Array.isArray(topics)) return res.status(400).json({ message: 'Invalid data format' });
+
+    await TopicProgress.insertMany(topics);
+    res.status(201).json({ message: `${topics.length} topics added successfully!` });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to bulk create topics' });
+  }
+};
+
 exports.createTopic = async (req, res) => {
   try {
     const { topicName, areaName, grade, yearLevel, studentConfidence, datesCovered, studentId } = req.body;

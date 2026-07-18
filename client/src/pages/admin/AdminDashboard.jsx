@@ -134,6 +134,7 @@ const [testForm, setTestForm] = useState({
   // NEW: States for the Topic Modal and Editing
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
   const [editingTopicId, setEditingTopicId] = useState(null);
+  const [isUploadingCSV, setIsUploadingCSV] = useState(false);
 
   const fetchPendingStudents = async () => {
     if (user?.role === 'admin') {
@@ -710,6 +711,87 @@ const handleAssignSubmit = async (e) => {
     let direction = 'asc';
     if (topicSortConfig.key === key && topicSortConfig.direction === 'asc') direction = 'desc';
     setTopicSortConfig({ key, direction });
+  };
+
+  const handleCSVUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!topicSelectedStudent) return showToast("Please select a student first!", "error");
+
+    setIsUploadingCSV(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target.result;
+      const rows = text.split('\n');
+      
+      if (rows.length < 2) {
+        setIsUploadingCSV(false);
+        return showToast("CSV file appears to be empty.", "error");
+      }
+
+      const parseCSVRow = (str) => {
+        let result = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < str.length; i++) {
+          if (str[i] === '"') inQuotes = !inQuotes;
+          else if (str[i] === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+          else current += str[i];
+        }
+        result.push(current.trim());
+        return result.map(s => s.replace(/(^"|"$)/g, ''));
+      };
+
+      const headers = parseCSVRow(rows[0]).map(h => h.toLowerCase());
+      const areaIdx = headers.findIndex(h => h.includes('area'));
+      const topicIdx = headers.findIndex(h => h.includes('topic'));
+      const gradeIdx = headers.findIndex(h => h.includes('grade'));
+      const yearIdx = headers.findIndex(h => h.includes('year'));
+
+      if (areaIdx === -1 && topicIdx === -1 && gradeIdx === -1) {
+        setIsUploadingCSV(false);
+        return showToast("CSV must have at least one recognizable header ('Area', 'Topic', or 'Grade').", "error");
+      }
+
+      const topicsToUpload = [];
+      for (let i = 1; i < rows.length; i++) {
+        if (!rows[i].trim()) continue;
+        const cleanRow = parseCSVRow(rows[i]);
+
+        const tName = topicIdx !== -1 ? cleanRow[topicIdx] : '';
+        const aName = areaIdx !== -1 ? cleanRow[areaIdx] : '';
+        const gName = gradeIdx !== -1 ? cleanRow[gradeIdx] : '';
+        const yLevel = yearIdx !== -1 ? cleanRow[yearIdx] : '';
+
+        if (tName || aName || gName) {
+          topicsToUpload.push({
+            areaName: aName || '', 
+            topicName: tName || 'Untitled Topic',
+            grade: gName || 'N/A',
+            yearLevel: yLevel || '',
+            studentConfidence: '',
+            datesCovered: [],
+            studentId: topicSelectedStudent
+          });
+        }
+      }
+
+      if (topicsToUpload.length === 0) {
+        setIsUploadingCSV(false);
+        return showToast("No valid topics found in CSV.", "error");
+      }
+
+      try {
+        await api.post('/topics/bulk', { topics: topicsToUpload });
+        showToast(`Successfully uploaded ${topicsToUpload.length} topics!`);
+        fetchTopics();
+      } catch (err) {
+        showToast("Failed to upload topics.", "error");
+      }
+      setIsUploadingCSV(false);
+      e.target.value = null;
+    };
+    reader.readAsText(file);
   };
 
   const processedTopics = !topicSelectedStudent ? [] : (topics || [])
@@ -3786,7 +3868,7 @@ const handleAssignSubmit = async (e) => {
                 </div>
                 
                 {/* Topic Filters Above Table */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:items-end">
                   <div className="flex-1">
                     <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
                     <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
@@ -3806,6 +3888,14 @@ const handleAssignSubmit = async (e) => {
                         <option key={s._id} value={s._id}>{s.registrationName || s.name}</option>
                       ))}
                     </select>
+                  </div>
+                  <div className="shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
+                    <input type="file" accept=".csv" id="csv-upload" className="hidden" onChange={handleCSVUpload} />
+                    <label htmlFor={topicSelectedStudent && !isUploadingCSV ? "csv-upload" : ""} 
+                      className={`w-full sm:w-auto px-6 py-3 font-black rounded-xl shadow-sm transition-transform flex items-center justify-center gap-2 whitespace-nowrap 
+                        ${!topicSelectedStudent ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : isUploadingCSV ? 'bg-emerald-300 text-emerald-800 cursor-wait' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:-translate-y-1 cursor-pointer border border-emerald-200'}`}>
+                      {isUploadingCSV ? '⏳ Uploading...' : '📁 Bulk Upload CSV'}
+                    </label>
                   </div>
                 </div>
 
