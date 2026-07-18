@@ -125,8 +125,9 @@ const [testForm, setTestForm] = useState({
 
 // Topic Progress Tracker States
   const [topics, setTopics] = useState([]);
-  const [topicForm, setTopicForm] = useState({ topicName: '', areaName: '', grade: '', studentId: '', datesCovered: [''] });
+  const [topicForm, setTopicForm] = useState({ topicName: '', areaName: '', grade: '', yearLevel: '', studentConfidence: '', datesCovered: [''] });
   const [topicYearFilter, setTopicYearFilter] = useState('all');
+  const [topicSelectedStudent, setTopicSelectedStudent] = useState('');
   const [topicSearchTerm, setTopicSearchTerm] = useState('');
   const [topicSortConfig, setTopicSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
   
@@ -653,16 +654,16 @@ const handleAssignSubmit = async (e) => {
   const handleTopicSubmit = async (e) => {
     e.preventDefault();
     const validDates = topicForm.datesCovered.filter(d => d.trim() !== '');
-    if (validDates.length === 0) return showToast("Please add at least one valid date.", "error");
-    if (!topicForm.studentId) return showToast("Please select a student or 'Everyone'.", "error");
+    if (!topicSelectedStudent) return showToast("Please select a student from the main page first.", "error");
     
-    // Safely structure payload to avoid CastErrors in MongoDB
     const payload = {
       topicName: topicForm.topicName,
       areaName: topicForm.areaName,
       grade: topicForm.grade,
+      yearLevel: topicForm.yearLevel,
+      studentConfidence: topicForm.studentConfidence,
       datesCovered: validDates,
-      studentId: topicForm.studentId === 'all' ? null : topicForm.studentId
+      studentId: topicSelectedStudent
     };
 
     try {
@@ -675,7 +676,7 @@ const handleAssignSubmit = async (e) => {
       }
       setIsTopicModalOpen(false);
       setEditingTopicId(null);
-      setTopicForm({ topicName: '', areaName: '', grade: '', studentId: '', datesCovered: [''] });
+      setTopicForm({ topicName: '', areaName: '', grade: '', yearLevel: '', studentConfidence: '', datesCovered: [''] });
       fetchTopics();
     } catch(err) { 
       console.error("Save Topic Error:", err);
@@ -688,9 +689,11 @@ const handleAssignSubmit = async (e) => {
       topicName: topic.topicName,
       areaName: topic.areaName,
       grade: topic.grade,
-      studentId: topic.studentId ? (topic.studentId._id || topic.studentId) : 'all',
+      yearLevel: topic.yearLevel || '',
+      studentConfidence: topic.studentConfidence || '',
       datesCovered: topic.datesCovered.length > 0 ? topic.datesCovered : ['']
     });
+    setTopicSelectedStudent(topic.studentId ? (topic.studentId._id || topic.studentId) : '');
     setEditingTopicId(topic._id);
     setIsTopicModalOpen(true);
   };
@@ -709,15 +712,19 @@ const handleAssignSubmit = async (e) => {
     setTopicSortConfig({ key, direction });
   };
 
-  const processedTopics = topics
-    .filter(t => 
-      t.topicName.toLowerCase().includes(topicSearchTerm.toLowerCase()) || 
-      t.areaName.toLowerCase().includes(topicSearchTerm.toLowerCase()) ||
-      t.grade.toLowerCase().includes(topicSearchTerm.toLowerCase())
-    )
+  const processedTopics = !topicSelectedStudent ? [] : (topics || [])
+    .filter(t => {
+       if (topicSelectedStudent && t.studentId?._id !== topicSelectedStudent) return false;
+       return (t.topicName || '').toLowerCase().includes(topicSearchTerm.toLowerCase()) || 
+              (t.areaName || '').toLowerCase().includes(topicSearchTerm.toLowerCase()) ||
+              (t.grade || '').toLowerCase().includes(topicSearchTerm.toLowerCase());
+    })
     .sort((a, b) => {
-      if (a[topicSortConfig.key] < b[topicSortConfig.key]) return topicSortConfig.direction === 'asc' ? -1 : 1;
-      if (a[topicSortConfig.key] > b[topicSortConfig.key]) return topicSortConfig.direction === 'asc' ? 1 : -1;
+      if (!topicSortConfig || !topicSortConfig.key) return 0;
+      const valA = (a[topicSortConfig.key] || '').toString().toLowerCase();
+      const valB = (b[topicSortConfig.key] || '').toString().toLowerCase();
+      if (valA < valB) return topicSortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return topicSortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
 
@@ -769,15 +776,13 @@ const handleAssignSubmit = async (e) => {
   const handleExportTopicsCSV = () => {
     if (processedTopics.length === 0) return showToast("No topics to export", "error");
 
-    const headers = ["Topic Name", "Area Name", "Student Name", "Year Group", "Grade", "Dates Covered"];
+    const headers = ["Area Name", "Topic Name", "Grade", "Year Level", "Dates Covered", "Student Confidence Level"];
     
     const rows = processedTopics.map(topic => {
-      const studentName = (!topic.studentId || topic.studentId === 'all') ? 'Everyone' : (topic.studentId.registrationName || topic.studentId.name || 'Unknown');
-      const yearGroup = (!topic.studentId || topic.studentId === 'all') ? 'All' : (topic.studentId.yearGroup || 'N/A');
       const dates = topic.datesCovered
         .map(d => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))
         .join(" | ");
-      return `"${topic.topicName}","${topic.areaName}","${studentName}","${yearGroup}","${topic.grade}","${dates}"`;
+      return `"${topic.areaName}","${topic.topicName}","${topic.grade}","${topic.yearLevel || ''}","${dates}","${topic.studentConfidence || ''}"`;
     });
 
     const csvContent = [headers.join(","), ...rows].join("\n");
@@ -806,23 +811,21 @@ const handleAssignSubmit = async (e) => {
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-      const tableColumn = ["Topic Name", "Area Name", "Student Name", "Year Group", "Grade", "Dates Covered"];
+      const tableColumn = ["Area Name", "Topic Name", "Grade", "Year Level", "Dates Covered", "Student Confidence Level"];
       const tableRows = [];
 
       processedTopics.forEach(topic => {
-        const studentName = (!topic.studentId || topic.studentId === 'all') ? 'Everyone' : (topic.studentId.registrationName || topic.studentId.name || 'Unknown');
-        const yearGroup = (!topic.studentId || topic.studentId === 'all') ? 'All' : (topic.studentId.yearGroup || 'N/A');
         const dates = topic.datesCovered
           .map(d => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))
           .join(", ");
         
         tableRows.push([
-          topic.topicName,
           topic.areaName,
-          studentName,
-          yearGroup,
+          topic.topicName,
           topic.grade,
-          dates
+          topic.yearLevel || '-',
+          dates,
+          topic.studentConfidence || '-'
         ]);
       });
 
@@ -3529,7 +3532,7 @@ const handleAssignSubmit = async (e) => {
                             setActiveTab('scheme');
                             setIsSchemeModalOpen(true);
                           }} className="w-full py-3 sm:py-4 mt-4 sm:mt-6 mb-2 bg-emerald-500 text-white font-black rounded-xl hover:bg-emerald-600 shadow-md flex justify-center items-center gap-2 text-sm sm:text-base">
-                            📝 Log Daily Report in Lesson Schedule
+                            Log Daily Report in Lesson Schedule
                           </button>
                         )}
 
@@ -3662,15 +3665,15 @@ const handleAssignSubmit = async (e) => {
                     
                     <form onSubmit={handleTopicSubmit} className="space-y-4">
                       <div>
-                        <label className="text-xs font-black text-[#A3AED0] uppercase">Topic Name</label>
-                        <input type="text" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none focus:ring-4 focus:ring-sky-500/20 text-[#1B2559]" 
-                          placeholder="e.g. Algebra Fundamentals" value={topicForm.topicName} onChange={e => setTopicForm({...topicForm, topicName: e.target.value})} />
-                      </div>
-
-                      <div>
                         <label className="text-xs font-black text-[#A3AED0] uppercase">Area Name</label>
                         <input type="text" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none focus:ring-4 focus:ring-sky-500/20 text-[#1B2559]" 
                           placeholder="e.g. Mathematics" value={topicForm.areaName} onChange={e => setTopicForm({...topicForm, areaName: e.target.value})} />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">Topic Name</label>
+                        <input type="text" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none focus:ring-4 focus:ring-sky-500/20 text-[#1B2559]" 
+                          placeholder="e.g. Algebra Fundamentals" value={topicForm.topicName} onChange={e => setTopicForm({...topicForm, topicName: e.target.value})} />
                       </div>
 
                       <div>
@@ -3678,38 +3681,37 @@ const handleAssignSubmit = async (e) => {
                         <input type="text" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none focus:ring-4 focus:ring-sky-500/20 text-[#1B2559]" 
                           placeholder="e.g. Grade 7" value={topicForm.grade} onChange={e => setTopicForm({...topicForm, grade: e.target.value})} />
                       </div>
+                      
+                      <div>
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">Year Level (Optional)</label>
+                        <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none focus:ring-4 focus:ring-sky-500/20 text-[#1B2559]" 
+                          placeholder="e.g. Year 8" value={topicForm.yearLevel} onChange={e => setTopicForm({...topicForm, yearLevel: e.target.value})} />
+                      </div>
 
-                     <div className="space-y-4">
-                        <div>
-                          <label className="text-xs font-black text-[#A3AED0] uppercase">Filter by Year Group</label>
-                          <select className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none"
-                            value={topicYearFilter} onChange={e => setTopicYearFilter(e.target.value)}>
-                            <option value="all">All Years</option>
-                            {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
-                              <option key={yg} value={yg}>{yg}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-black text-[#A3AED0] uppercase">Assign to Student</label>
-                          <select required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none"
-                            value={topicForm.studentId} onChange={e => setTopicForm({...topicForm, studentId: e.target.value})}>
-                            <option value="">-- Select Target --</option>
-                            <option value="all">📢 Everyone (All Students)</option>
-                            {students.filter(s => topicYearFilter === 'all' || s.yearGroup === topicYearFilter).map(s => (
-                              <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `(${s.yearGroup})` : ''}</option>
-                            ))}
-                          </select>
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase mb-2 block">Student Confidence Level (Optional)</label>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-rose-700">
+                            <input type="radio" name="confidence" value="Red" checked={topicForm.studentConfidence === 'Red'} onChange={e => setTopicForm({...topicForm, studentConfidence: e.target.value})} className="w-4 h-4 text-rose-500 focus:ring-rose-500" />
+                            🔴 Red
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-amber-700">
+                            <input type="radio" name="confidence" value="Amber" checked={topicForm.studentConfidence === 'Amber'} onChange={e => setTopicForm({...topicForm, studentConfidence: e.target.value})} className="w-4 h-4 text-amber-500 focus:ring-amber-500" />
+                            🟡 Amber
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-emerald-700">
+                            <input type="radio" name="confidence" value="Green" checked={topicForm.studentConfidence === 'Green'} onChange={e => setTopicForm({...topicForm, studentConfidence: e.target.value})} className="w-4 h-4 text-emerald-500 focus:ring-emerald-500" />
+                            🟢 Green
+                          </label>
                         </div>
                       </div>
 
                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <label className="text-xs font-black text-[#A3AED0] uppercase mb-2 block">Dates Covered</label>
+                        <label className="text-xs font-black text-[#A3AED0] uppercase mb-2 block">Dates Covered (Optional)</label>
                         <div className="space-y-2">
                           {topicForm.datesCovered.map((date, index) => (
                             <div key={index} className="flex gap-2">
-                              <input type="date" required className="w-full p-3 bg-white border border-slate-200 rounded-lg font-bold outline-none focus:ring-2 focus:ring-sky-500 text-[#1B2559]" 
+                              <input type="date" className="w-full p-3 bg-white border border-slate-200 rounded-lg font-bold outline-none focus:ring-2 focus:ring-sky-500 text-[#1B2559]" 
                                 value={date} onChange={e => {
                                   const newDates = [...topicForm.datesCovered];
                                   newDates[index] = e.target.value;
@@ -3734,7 +3736,7 @@ const handleAssignSubmit = async (e) => {
                         <button type="button" onClick={() => {
                           setIsTopicModalOpen(false);
                           setEditingTopicId(null);
-                          setTopicForm({ topicName: '', areaName: '', grade: '', datesCovered: [''] });
+                          setTopicForm({ topicName: '', areaName: '', grade: '', yearLevel: '', studentConfidence: '', datesCovered: [''] });
                         }} className="flex-1 py-4 bg-slate-100 text-slate-600 font-black rounded-xl hover:bg-slate-200 transition-colors">
                           Cancel
                         </button>
@@ -3772,69 +3774,102 @@ const handleAssignSubmit = async (e) => {
                       Export PDF
                     </button>
 
-                    <button onClick={() => {
-                      setTopicForm({ topicName: '', areaName: '', grade: '', studentId: '', datesCovered: [''] });
+                    <button disabled={!topicSelectedStudent} onClick={() => {
+                      setTopicForm({ topicName: '', areaName: '', grade: '', yearLevel: '', studentConfidence: '', datesCovered: [''] });
                       setEditingTopicId(null);
                       setIsTopicModalOpen(true);
-                    }} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-2 whitespace-nowrap">
+                    }} className={`px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap
+                      ${!topicSelectedStudent ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white hover:-translate-y-1'}`}>
                       <span>+</span> Add New Topic
                     </button>
                   </div>
                 </div>
                 
+                {/* Topic Filters Above Table */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="flex-1">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
+                    <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
+                      value={topicYearFilter} onChange={e => { setTopicYearFilter(e.target.value); setTopicSelectedStudent(''); }}>
+                      <option value="all">All Years</option>
+                      {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                        <option key={yg} value={yg}>{yg}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Student</label>
+                    <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
+                      value={topicSelectedStudent} onChange={e => setTopicSelectedStudent(e.target.value)}>
+                      <option value="">-- Choose a Student --</option>
+                      {students.filter(s => topicYearFilter === 'all' || s.yearGroup === topicYearFilter).map(s => (
+                        <option key={s._id} value={s._id}>{s.registrationName || s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
                   <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
                     <thead>
                       <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10">
-                        <th className="p-4 rounded-tl-2xl cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('topicName')}>
-                          Topic Name {topicSortConfig.key === 'topicName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
-                        </th>
-                        <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('areaName')}>
+                        <th className="p-4 rounded-tl-2xl cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('areaName')}>
                           Area {topicSortConfig.key === 'areaName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
-                        <th className="p-4">Student Name</th>
-                        <th className="p-4">Year Group</th>
+                        <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('topicName')}>
+                          Topic Name {topicSortConfig.key === 'topicName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
                         <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('grade')}>
                           Grade {topicSortConfig.key === 'grade' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
+                        <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('yearLevel')}>
+                          Year Level {topicSortConfig.key === 'yearLevel' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
                         <th className="p-4">Dates Covered</th>
+                        <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('studentConfidence')}>
+                          Student Confidence {topicSortConfig.key === 'studentConfidence' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
                         <th className="p-4 rounded-tr-2xl text-center">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {processedTopics.map(topic => (
+                      {!topicSelectedStudent ? (
+                        <tr>
+                          <td colSpan="7" className="text-center py-10 text-black-600 font-black">
+                            Please select a student from the dropdown above to view their topics.
+                          </td>
+                        </tr>
+                      ) : processedTopics.map(topic => (
                         <tr key={topic._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                          <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
                           <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
-                          <td className="p-4 font-bold text-[#1B2559]">
-                            {(!topic.studentId || topic.studentId === 'all') ? (
-                               <span className="text-emerald-600">Everyone</span>
-                            ) : (
-                               topic.studentId.registrationName || topic.studentId.name || 'Unknown Student'
-                            )}
-                          </td>
-                          <td className="p-4">
-                            {(!topic.studentId || topic.studentId === 'all') ? (
-                                <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded-md font-black text-xs">All</span>
-                            ) : (
-                                <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md font-black text-xs">
-                                  {topic.studentId.yearGroup || 'N/A'}
-                                </span>
-                            )}
-                          </td>
+                          <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
                           <td className="p-4">
                             <span className="bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 px-2 py-1 rounded-md font-black text-xs">
                               {topic.grade}
                             </span>
                           </td>
+                          <td className="p-4 font-bold text-[#1B2559]">{topic.yearLevel || '-'}</td>
                           <td className="p-4">
                             <div className="flex flex-wrap gap-1 max-w-[250px]">
-                              {topic.datesCovered.map((date, i) => (
+                              {topic.datesCovered.filter(d => d.trim() !== '').map((date, i) => (
                                 <span key={i} className="text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-1 rounded">
                                   {new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </span>
                               ))}
+                              {topic.datesCovered.filter(d => d.trim() !== '').length === 0 && <span className="text-slate-400 font-bold">-</span>}
                             </div>
+                          </td>
+                          <td className="p-4">
+                            {topic.studentConfidence ? (
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm
+                                ${topic.studentConfidence === 'Green' ? 'bg-emerald-100 text-emerald-700' : 
+                                  topic.studentConfidence === 'Amber' ? 'bg-amber-100 text-amber-700' : 
+                                  'bg-rose-100 text-rose-700'}`}>
+                                {topic.studentConfidence === 'Green' ? '🟢 Green' : topic.studentConfidence === 'Amber' ? '🟡 Amber' : '🔴 Red'}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-bold text-xs">-</span>
+                            )}
                           </td>
                           <td className="p-4 text-center">
                             <div className="flex justify-center items-center gap-2">
@@ -3848,10 +3883,10 @@ const handleAssignSubmit = async (e) => {
                           </td>
                         </tr>
                       ))}
-                      {processedTopics.length === 0 && (
-                        <tr>
-                          <td colSpan="7" className="text-center py-10 text-slate-400 font-bold">No topic records found. Click 'Add New Topic' to get started.</td>
-                        </tr>
+                      {topicSelectedStudent && processedTopics.length === 0 && (
+                    <tr>
+                      <td colSpan="7" className="text-center py-10 text-slate-400 font-bold">No topic records found for the selected student.</td>
+                    </tr>
                       )}
                     </tbody>
                   </table>

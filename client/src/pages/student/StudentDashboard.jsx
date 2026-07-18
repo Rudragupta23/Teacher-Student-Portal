@@ -259,6 +259,16 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleConfidenceChange = async (topicId, newConfidence) => {
+    try {
+      await api.put(`/topics/${topicId}`, { studentConfidence: newConfidence });
+      fetchTopics();
+      showToast("Confidence level updated!");
+    } catch (e) {
+      showToast("Failed to update confidence.", "error");
+    }
+  };
+
   // Save Profile Settings to Database
   const handleSaveSettings = async () => {
     try {
@@ -1278,16 +1288,28 @@ export default function StudentDashboard() {
                 <div className="bg-emerald-500 w-2 h-8 rounded-full"></div>
                 <h2 className="text-2xl font-black text-[#1B2559]">Topics Covered 📚</h2>
               </div>
-              <p className="text-slate-500 font-bold mb-8">Review the curriculum areas and topics you have completed so far.</p>
+              <p className="text-slate-500 font-bold mb-8">Review the curriculum areas and topics you have completed so far. Mark your confidence level so your teacher knows how you're feeling!</p>
               
+              {topics.some(topic => {
+                const assignedId = typeof topic.studentId === 'object' ? topic.studentId?._id : topic.studentId;
+                return (!assignedId || assignedId === 'all' || assignedId === userId) && !topic.studentConfidence;
+              }) && (
+                <div className="bg-amber-100 border-2 border-amber-400 text-amber-900 p-4 rounded-2xl mb-6 font-bold flex items-center gap-3 animate-pulse">
+                  <span className="text-2xl">🚨</span>
+                  Action Required: You have topics missing a confidence level! Please mark your confidence for the highlighted topics below.
+                </div>
+              )}
+
               <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
                 <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
                   <thead>
                     <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10">
-                      <th className="p-4 rounded-tl-2xl">Topic Name</th>
-                      <th className="p-4">Area</th>
+                      <th className="p-4 rounded-tl-2xl">Area</th>
+                      <th className="p-4">Topic Name</th>
                       <th className="p-4">Grade</th>
-                      <th className="p-4 rounded-tr-2xl">Dates Covered</th>
+                      <th className="p-4">Year Level</th>
+                      <th className="p-4">Dates Covered</th>
+                      <th className="p-4 rounded-tr-2xl">My Confidence</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1297,21 +1319,39 @@ export default function StudentDashboard() {
                       return assignedId === userId;
                     }).map(topic => (
                       <tr key={topic._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
                         <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
+                        <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
                         <td className="p-4">
                           <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1 rounded-md font-black text-xs">
                             {topic.grade}
                           </span>
                         </td>
+                        <td className="p-4 font-bold text-[#1B2559]">{topic.yearLevel || '-'}</td>
                         <td className="p-4">
                           <div className="flex flex-wrap gap-1 max-w-[250px]">
-                            {topic.datesCovered.map((date, i) => (
+                            {topic.datesCovered.filter(d => d.trim() !== '').map((date, i) => (
                               <span key={i} className="text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-1 rounded">
                                 {new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                               </span>
                             ))}
+                            {topic.datesCovered.filter(d => d.trim() !== '').length === 0 && <span className="text-slate-400 font-bold">-</span>}
                           </div>
+                        </td>
+                        <td className="p-4">
+                          <select 
+                            value={topic.studentConfidence || ''} 
+                            onChange={(e) => handleConfidenceChange(topic._id, e.target.value)}
+                            className={`p-2 rounded-xl font-bold outline-none text-xs border-2 shadow-sm cursor-pointer transition-colors
+                              ${!topic.studentConfidence ? 'bg-amber-50 border-amber-400 text-amber-800 ring-4 ring-amber-400/30 shadow-amber-400/20' :
+                                topic.studentConfidence === 'Green' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 
+                                topic.studentConfidence === 'Amber' ? 'bg-amber-50 border-amber-200 text-amber-700' : 
+                                topic.studentConfidence === 'Red' ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-white border-slate-200 text-slate-500'}`}
+                          >
+                            <option value="">Set Confidence...</option>
+                            <option value="Green">🟢 Green</option>
+                            <option value="Amber">🟡 Amber</option>
+                            <option value="Red">🔴 Red</option>
+                          </select>
                         </td>
                       </tr>
                     ))}
@@ -1321,7 +1361,7 @@ export default function StudentDashboard() {
                       return assignedId === userId;
                     }).length === 0 && (
                       <tr>
-                        <td colSpan="4" className="text-center py-10 text-slate-400 font-bold">No topics recorded for you yet.</td>
+                        <td colSpan="6" className="text-center py-10 text-slate-400 font-bold">No topics recorded for you yet.</td>
                       </tr>
                     )}
                   </tbody>

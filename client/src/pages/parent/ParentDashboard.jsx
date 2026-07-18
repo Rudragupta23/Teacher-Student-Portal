@@ -935,10 +935,12 @@ export default function ParentDashboard() {
                 <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
                   <thead>
                     <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10">
-                      <th className="p-4 rounded-tl-2xl">Topic Name</th>
-                      <th className="p-4">Area</th>
+                      <th className="p-4 rounded-tl-2xl">Area</th>
+                      <th className="p-4">Topic Name</th>
                       <th className="p-4">Grade</th>
-                      <th className="p-4 rounded-tr-2xl">Dates Covered</th>
+                      <th className="p-4">Year Level</th>
+                      <th className="p-4">Dates Covered</th>
+                      <th className="p-4 rounded-tr-2xl">Student Confidence</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -948,21 +950,35 @@ export default function ParentDashboard() {
                       return assignedId === childData?._id;
                     }).map(topic => (
                       <tr key={topic._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
                         <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
+                        <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
                         <td className="p-4">
                           <span className="bg-violet-50 text-violet-700 border border-violet-200 px-2 py-1 rounded-md font-black text-xs">
                             {topic.grade}
                           </span>
                         </td>
+                        <td className="p-4 font-bold text-[#1B2559]">{topic.yearLevel || '-'}</td>
                         <td className="p-4">
                           <div className="flex flex-wrap gap-1 max-w-[250px]">
-                            {topic.datesCovered.map((date, i) => (
+                            {topic.datesCovered.filter(d => d.trim() !== '').map((date, i) => (
                               <span key={i} className="text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-1 rounded">
                                 {new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                               </span>
                             ))}
+                            {topic.datesCovered.filter(d => d.trim() !== '').length === 0 && <span className="text-slate-400 font-bold">-</span>}
                           </div>
+                        </td>
+                        <td className="p-4">
+                            {topic.studentConfidence ? (
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm
+                                ${topic.studentConfidence === 'Green' ? 'bg-emerald-100 text-emerald-700' : 
+                                  topic.studentConfidence === 'Amber' ? 'bg-amber-100 text-amber-700' : 
+                                  'bg-rose-100 text-rose-700'}`}>
+                                {topic.studentConfidence === 'Green' ? '🟢 Green' : topic.studentConfidence === 'Amber' ? '🟡 Amber' : '🔴 Red'}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-bold text-xs">-</span>
+                            )}
                         </td>
                       </tr>
                     ))}
@@ -972,7 +988,7 @@ export default function ParentDashboard() {
                       return assignedId === childData?._id;
                     }).length === 0 && (
                       <tr>
-                        <td colSpan="4" className="text-center py-10 text-slate-400 font-bold">No topics recorded for your child yet.</td>
+                        <td colSpan="6" className="text-center py-10 text-slate-400 font-bold">No topics recorded for your child yet.</td>
                       </tr>
                     )}
                   </tbody>
