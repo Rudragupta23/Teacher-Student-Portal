@@ -26,7 +26,7 @@ function App() {
           <Route path="/parent-signup" element={<AuthPage defaultView="signup" defaultParentMode={true} />} />
           <Route path="/forgot-password" element={<AuthPage defaultView="forgot" defaultParentMode={false} />} />
           
-          {/* Protected Admin Route */}
+          {/* Protected Admin Routes */}
           <Route 
             path="/admin-dashboard" 
             element={
@@ -35,8 +35,16 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/admin-dashboard/:tab" 
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
           
-          {/* Protected Student Route */}
+          {/* Protected Student Routes */}
           <Route 
             path="/student-dashboard" 
             element={
@@ -45,10 +53,26 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/student-dashboard/:tab" 
+            element={
+              <ProtectedRoute allowedRole="student">
+                <StudentDashboard />
+              </ProtectedRoute>
+            } 
+          />
           
-          {/* Protected Parent Route */}
+          {/* Protected Parent Routes */}
           <Route 
             path="/parent-dashboard" 
+            element={
+              <ProtectedRoute allowedRole="parent">
+                <ParentDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/parent-dashboard/:tab" 
             element={
               <ProtectedRoute allowedRole="parent">
                 <ParentDashboard />
