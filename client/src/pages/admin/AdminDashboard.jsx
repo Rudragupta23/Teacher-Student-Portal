@@ -1387,7 +1387,7 @@ const handleAssignSubmit = async (e) => {
                 {/* 5.5 Topic Tracker */}
                 <button onClick={() => { navigate('/admin-dashboard/topics'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'topics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                  Topics Covered
+                  All Topics
                 </button>
 
                 {/* 6. Google Drive */}
@@ -3685,25 +3685,27 @@ const handleAssignSubmit = async (e) => {
                           }}
                                className="min-h-[100px] md:min-h-[120px] p-2 md:p-3 rounded-2xl border bg-white border-slate-100 hover:border-indigo-300 cursor-pointer transition-all">
                             <div className="text-xs md:text-sm font-black w-7 h-7 flex items-center justify-center rounded-full mb-2 text-[#1B2559]">{day}</div>
-                            <div className="space-y-1.5 overflow-y-auto max-h-[70px] custom-scrollbar">
-                              {daySessions.slice(0, 4).map(session => (
-                                <div key={session._id} onClick={(e) => { e.stopPropagation(); setPlannerForm({ topic: session.topic, weekNo: session.weekNo || '', title: session.title || session.topic, startTime: new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), endTime: new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), isRecurring: session.isRecurring, yearGroupFilter: session.yearGroupFilter || 'all', studentId: session.studentId || 'all' }); setPlannerModal({show: true, selectedDate: dateStr, data: session}); }}
-                                  className="text-[10px] leading-tight font-black px-1.5 py-1 rounded bg-indigo-100 text-indigo-800 shadow-sm flex justify-between items-center overflow-hidden whitespace-nowrap cursor-pointer hover:bg-indigo-200" title={session.topic}>
-                                  <span className="shrink-0">{new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
-                                  <span className="truncate text-indigo-600 ml-1">
-                                    {session.studentId && session.studentId !== 'all' 
-                                      ? (students.find(s => s._id === session.studentId)?.name?.split(' ')[0] || 'Unknown') 
-                                      : 'All'}
-                                  </span>
-                                </div>
-                              ))}
-                              {daySessions.length > 4 && (
-                                <div className="text-[10px] font-black text-slate-500 text-center bg-slate-100 rounded py-0.5">
-                                  +{daySessions.length - 4} more
-                                </div>
-                              )}
+                            <div className="space-y-1 overflow-y-auto max-h-[85px] custom-scrollbar">
+                            {daySessions.slice(0, 4).map(session => (
+                            <div key={session._id} onClick={(e) => { e.stopPropagation(); setPlannerForm({ topic: session.topic, weekNo: session.weekNo || '', title: session.title || session.topic, startTime: new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), endTime: new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), isRecurring: session.isRecurring, yearGroupFilter: session.yearGroupFilter || 'all', studentId: session.studentId || 'all' }); setPlannerModal({show: true, selectedDate: dateStr, data: session}); }}
+                              className="text-[10px] leading-tight font-bold px-1 py-0.5 rounded-md bg-indigo-100 text-indigo-700 shadow-sm flex items-center gap-1.5 overflow-hidden whitespace-nowrap cursor-pointer hover:bg-indigo-200" title={session.topic}>
+                              <span className="shrink-0 bg-white text-indigo-900 font-black px-1 rounded shadow-sm">
+                                {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                              </span>
+                              <span className="truncate pr-1">
+                                {session.studentId && session.studentId !== 'all' 
+                                ? (students.find(s => s._id === session.studentId)?.name?.split(' ')[0] || 'Unknown') 
+                                : 'All'}
+                              </span>
                             </div>
-                          </div>
+                          ))}
+                        {daySessions.length > 4 && (
+                        <div className="text-[10px] font-black text-slate-500 text-center bg-slate-100 rounded py-0.5 mt-1">
+                          +{daySessions.length - 4} more
+                        </div>
+                        )}
+                        </div>
+                        </div>
                         );
                       })}
                     </div>
