@@ -128,7 +128,7 @@ const [testForm, setTestForm] = useState({
 
 // Topic Progress Tracker States
   const [topics, setTopics] = useState([]);
-  const [topicForm, setTopicForm] = useState({ topicName: '', areaName: '', grade: '', yearLevel: '', studentConfidence: '', datesCovered: [''] });
+  const [topicForm, setTopicForm] = useState({ topicName: '', areaName: '', grade: '', yearLevel: '', sparxCode: '', pastPaperQues: '', flashCards: '', studentConfidence: '', datesCovered: [''] });
   const [topicYearFilter, setTopicYearFilter] = useState('all');
   const [topicSelectedStudent, setTopicSelectedStudent] = useState('');
   const [topicSearchTerm, setTopicSearchTerm] = useState('');
@@ -665,6 +665,9 @@ const handleAssignSubmit = async (e) => {
       areaName: topicForm.areaName,
       grade: topicForm.grade,
       yearLevel: topicForm.yearLevel,
+      sparxCode: topicForm.sparxCode,
+      pastPaperQues: topicForm.pastPaperQues,
+      flashCards: topicForm.flashCards,
       studentConfidence: topicForm.studentConfidence,
       datesCovered: validDates,
       studentId: topicSelectedStudent
@@ -680,7 +683,7 @@ const handleAssignSubmit = async (e) => {
       }
       setIsTopicModalOpen(false);
       setEditingTopicId(null);
-      setTopicForm({ topicName: '', areaName: '', grade: '', yearLevel: '', studentConfidence: '', datesCovered: [''] });
+      setTopicForm({ topicName: '', areaName: '', grade: '', yearLevel: '', sparxCode: '', pastPaperQues: '', flashCards: '', studentConfidence: '', datesCovered: [''] });
       fetchTopics();
     } catch(err) { 
       console.error("Save Topic Error:", err);
@@ -694,6 +697,9 @@ const handleAssignSubmit = async (e) => {
       areaName: topic.areaName,
       grade: topic.grade,
       yearLevel: topic.yearLevel || '',
+      sparxCode: topic.sparxCode || '',
+      pastPaperQues: topic.pastPaperQues || '',
+      flashCards: topic.flashCards || '',
       studentConfidence: topic.studentConfidence || '',
       datesCovered: topic.datesCovered.length > 0 ? topic.datesCovered : ['']
     });
@@ -750,6 +756,9 @@ const handleAssignSubmit = async (e) => {
       const topicIdx = headers.findIndex(h => h.includes('topic'));
       const gradeIdx = headers.findIndex(h => h.includes('grade'));
       const yearIdx = headers.findIndex(h => h.includes('year'));
+      const sparxIdx = headers.findIndex(h => h.includes('sparx'));
+      const pastPaperIdx = headers.findIndex(h => h.includes('past paper'));
+      const flashcardIdx = headers.findIndex(h => h.includes('flashcard'));
 
       if (areaIdx === -1 && topicIdx === -1 && gradeIdx === -1) {
         setIsUploadingCSV(false);
@@ -765,6 +774,9 @@ const handleAssignSubmit = async (e) => {
         const aName = areaIdx !== -1 ? cleanRow[areaIdx] : '';
         const gName = gradeIdx !== -1 ? cleanRow[gradeIdx] : '';
         const yLevel = yearIdx !== -1 ? cleanRow[yearIdx] : '';
+        const sCode = sparxIdx !== -1 ? cleanRow[sparxIdx] : '';
+        const ppQues = pastPaperIdx !== -1 ? cleanRow[pastPaperIdx] : '';
+        const fCards = flashcardIdx !== -1 ? cleanRow[flashcardIdx] : '';
 
         if (tName || aName || gName) {
           topicsToUpload.push({
@@ -772,6 +784,9 @@ const handleAssignSubmit = async (e) => {
             topicName: tName || 'Untitled Topic',
             grade: gName || 'N/A',
             yearLevel: yLevel || '',
+            sparxCode: sCode || '',
+            pastPaperQues: ppQues || '',
+            flashCards: fCards || '',
             studentConfidence: '',
             datesCovered: [],
             studentId: topicSelectedStudent
@@ -861,13 +876,13 @@ const handleAssignSubmit = async (e) => {
   const handleExportTopicsCSV = () => {
     if (processedTopics.length === 0) return showToast("No topics to export", "error");
 
-    const headers = ["Area Name", "Topic Name", "Grade", "Year Level", "Dates Covered", "Student Confidence Level"];
+    const headers = ["Area Name", "Topic Name", "Grade", "Year Level", "Sparx Code", "Past Papers", "FlashCards", "Dates Covered", "Student Confidence Level"];
     
     const rows = processedTopics.map(topic => {
       const dates = topic.datesCovered
         .map(d => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))
         .join(" | ");
-      return `"${topic.areaName}","${topic.topicName}","${topic.grade}","${topic.yearLevel || ''}","${dates}","${topic.studentConfidence || ''}"`;
+      return `"${topic.areaName}","${topic.topicName}","${topic.grade}","${topic.yearLevel || ''}","${topic.sparxCode || ''}","${topic.pastPaperQues || ''}","${topic.flashCards || ''}","${dates}","${topic.studentConfidence || ''}"`;
     });
 
     const csvContent = [headers.join(","), ...rows].join("\n");
@@ -896,7 +911,7 @@ const handleAssignSubmit = async (e) => {
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-      const tableColumn = ["Area Name", "Topic Name", "Grade", "Year Level", "Dates Covered", "Student Confidence Level"];
+      const tableColumn = ["Area", "Topic", "Grade", "Year", "Sparx", "Past Papers", "FlashCards", "Dates", "Confidence"];
       const tableRows = [];
 
       processedTopics.forEach(topic => {
@@ -909,6 +924,9 @@ const handleAssignSubmit = async (e) => {
           topic.topicName,
           topic.grade,
           topic.yearLevel || '-',
+          topic.sparxCode || '-',
+          topic.pastPaperQues ? 'Link Attached' : '-',
+          topic.flashCards ? 'Link Attached' : '-',
           dates,
           topic.studentConfidence || '-'
         ]);
@@ -3864,6 +3882,24 @@ const handleAssignSubmit = async (e) => {
                           placeholder="e.g. Year 8" value={topicForm.yearLevel} onChange={e => setTopicForm({...topicForm, yearLevel: e.target.value})} />
                       </div>
 
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-xs font-black text-[#A3AED0] uppercase">Sparx Code</label>
+                          <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none focus:ring-4 focus:ring-sky-500/20 text-[#1B2559]" 
+                            placeholder="e.g. U189" value={topicForm.sparxCode} onChange={e => setTopicForm({...topicForm, sparxCode: e.target.value})} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-black text-[#A3AED0] uppercase">Past Papers URL</label>
+                          <input type="url" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none focus:ring-4 focus:ring-sky-500/20 text-[#1B2559]" 
+                            placeholder="https://..." value={topicForm.pastPaperQues} onChange={e => setTopicForm({...topicForm, pastPaperQues: e.target.value})} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-black text-[#A3AED0] uppercase">FlashCards URL</label>
+                          <input type="url" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none focus:ring-4 focus:ring-sky-500/20 text-[#1B2559]" 
+                            placeholder="https://..." value={topicForm.flashCards} onChange={e => setTopicForm({...topicForm, flashCards: e.target.value})} />
+                        </div>
+                      </div>
+
                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                         <label className="text-xs font-black text-[#A3AED0] uppercase mb-2 block">Student Confidence Level (Optional)</label>
                         <div className="flex gap-4">
@@ -3996,22 +4032,27 @@ const handleAssignSubmit = async (e) => {
                 <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
                   <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
                     <thead>
-                      <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10">
+                      <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top">
                         <th className="p-4 rounded-tl-2xl cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('areaName')}>
                           Area {topicSortConfig.key === 'areaName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
-                        <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('topicName')}>
-                          Topic Name {topicSortConfig.key === 'topicName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors leading-tight" onClick={() => handleSortTopics('topicName')}>
+                          Topic<br/>Name {topicSortConfig.key === 'topicName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
                         <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('grade')}>
                           Grade {topicSortConfig.key === 'grade' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
-                        <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('yearLevel')}>
-                          Year Level {topicSortConfig.key === 'yearLevel' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors leading-tight" onClick={() => handleSortTopics('yearLevel')}>
+                          Year<br/>Level {topicSortConfig.key === 'yearLevel' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
-                        <th className="p-4">Dates Covered</th>
-                        <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('studentConfidence')}>
-                          Student Confidence {topicSortConfig.key === 'studentConfidence' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        <th className="p-4 leading-tight cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('sparxCode')}>
+                          Sparx<br/>Code {topicSortConfig.key === 'sparxCode' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4 leading-tight">Past<br/>Papers</th>
+                        <th className="p-4">FlashCards</th>
+                        <th className="p-4 leading-tight">Dates<br/>Covered</th>
+                        <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors leading-tight" onClick={() => handleSortTopics('studentConfidence')}>
+                          Student<br/>Confidence {topicSortConfig.key === 'studentConfidence' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
                         <th className="p-4 rounded-tr-2xl text-center">Actions</th>
                       </tr>
@@ -4019,20 +4060,35 @@ const handleAssignSubmit = async (e) => {
                     <tbody>
                       {!topicSelectedStudent ? (
                         <tr>
-                          <td colSpan="7" className="text-center py-10 text-black-600 font-black">
+                          <td colSpan="10" className="text-center py-10 text-slate-500 font-black">
                             Please select a student from the dropdown above to view their topics.
                           </td>
                         </tr>
-                      ) : processedTopics.map(topic => (
-                        <tr key={topic._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      ) : processedTopics.map((topic, index) => (
+                        <tr key={topic._id} className={`border-b border-slate-100 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-[#F4F7FE]'}`}>
                           <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
                           <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
                           <td className="p-4">
-                            <span className="bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 px-2 py-1 rounded-md font-black text-xs">
-                              {topic.grade}
-                            </span>
+                            {topic.grade && topic.grade !== 'N/A' ? (
+                              <span className="bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 px-2 py-1 rounded-md font-black text-xs">
+                                {topic.grade}
+                              </span>
+                            ) : (
+                              <span className="font-bold text-slate-500">-</span>
+                            )}
                           </td>
                           <td className="p-4 font-bold text-[#1B2559]">{topic.yearLevel || '-'}</td>
+                          <td className="p-4 font-bold text-slate-500 text-sm">{topic.sparxCode || '-'}</td>
+                          <td className="p-4">
+                            {topic.pastPaperQues ? (
+                              <a href={topic.pastPaperQues} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline font-bold text-xs">Click Here</a>
+                            ) : <span className="text-slate-400 font-bold">-</span>}
+                          </td>
+                          <td className="p-4">
+                            {topic.flashCards ? (
+                              <a href={topic.flashCards} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline font-bold text-xs">Click Here</a>
+                            ) : <span className="text-slate-400 font-bold">-</span>}
+                          </td>
                           <td className="p-4">
                             <div className="flex flex-wrap gap-1 max-w-[250px]">
                               {topic.datesCovered.filter(d => d.trim() !== '').map((date, i) => (
@@ -4069,7 +4125,7 @@ const handleAssignSubmit = async (e) => {
                       ))}
                       {topicSelectedStudent && processedTopics.length === 0 && (
                     <tr>
-                      <td colSpan="7" className="text-center py-10 text-slate-400 font-bold">No topic records found for the selected student.</td>
+                      <td colSpan="10" className="text-center py-10 text-slate-400 font-bold">No topic records found for the selected student.</td>
                     </tr>
                       )}
                     </tbody>

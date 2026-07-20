@@ -937,30 +937,48 @@ export default function ParentDashboard() {
               <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
                 <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
                   <thead>
-                    <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10">
-                      <th className="p-4 rounded-tl-2xl">Area</th>
-                      <th className="p-4">Topic Name</th>
-                      <th className="p-4">Grade</th>
-                      <th className="p-4">Year Level</th>
-                      <th className="p-4">Dates Covered</th>
-                      <th className="p-4 rounded-tr-2xl">Student Confidence</th>
-                    </tr>
-                  </thead>
+                      <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top">
+                        <th className="p-4 rounded-tl-2xl">Area</th>
+                        <th className="p-4 leading-tight">Topic<br/>Name</th>
+                        <th className="p-4">Grade</th>
+                        <th className="p-4 leading-tight">Year<br/>Level</th>
+                        <th className="p-4 leading-tight">Sparx<br/>Code</th>
+                        <th className="p-4 leading-tight">Past<br/>Papers</th>
+                        <th className="p-4">FlashCards</th>
+                        <th className="p-4 leading-tight">Dates<br/>Covered</th>
+                        <th className="p-4 rounded-tr-2xl leading-tight">Student<br/>Confidence</th>
+                      </tr>
+                    </thead>
                   <tbody>
                     {topics.filter(topic => {
                       if (!topic.studentId || topic.studentId === 'all') return true;
                       const assignedId = typeof topic.studentId === 'object' ? topic.studentId._id : topic.studentId;
                       return assignedId === childData?._id;
-                    }).map(topic => (
-                      <tr key={topic._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    }).map((topic, index) => (
+                      <tr key={topic._id} className={`border-b border-slate-100 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-[#F4F7FE]'}`}>
                         <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
                         <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
                         <td className="p-4">
-                          <span className="bg-violet-50 text-violet-700 border border-violet-200 px-2 py-1 rounded-md font-black text-xs">
-                            {topic.grade}
-                          </span>
+                          {topic.grade && topic.grade !== 'N/A' ? (
+                            <span className="bg-violet-50 text-violet-700 border border-violet-200 px-2 py-1 rounded-md font-black text-xs">
+                              {topic.grade}
+                            </span>
+                          ) : (
+                            <span className="font-bold text-slate-500">-</span>
+                          )}
                         </td>
                         <td className="p-4 font-bold text-[#1B2559]">{topic.yearLevel || '-'}</td>
+                        <td className="p-4 font-bold text-slate-500 text-sm">{topic.sparxCode || '-'}</td>
+                        <td className="p-4">
+                          {topic.pastPaperQues ? (
+                            <a href={topic.pastPaperQues} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline font-bold text-xs">Click Here</a>
+                          ) : <span className="text-slate-400 font-bold">-</span>}
+                        </td>
+                        <td className="p-4">
+                          {topic.flashCards ? (
+                            <a href={topic.flashCards} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline font-bold text-xs">Click Here</a>
+                          ) : <span className="text-slate-400 font-bold">-</span>}
+                        </td>
                         <td className="p-4">
                           <div className="flex flex-wrap gap-1 max-w-[250px]">
                             {topic.datesCovered.filter(d => d.trim() !== '').map((date, i) => (
@@ -991,7 +1009,7 @@ export default function ParentDashboard() {
                       return assignedId === childData?._id;
                     }).length === 0 && (
                       <tr>
-                        <td colSpan="6" className="text-center py-10 text-slate-400 font-bold">No topics recorded for your child yet.</td>
+                        <td colSpan="9" className="text-center py-10 text-slate-400 font-bold">No topics recorded for your child yet.</td>
                       </tr>
                     )}
                   </tbody>

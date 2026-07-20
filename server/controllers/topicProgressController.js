@@ -46,9 +46,9 @@ exports.bulkCreateTopics = async (req, res) => {
 
 exports.createTopic = async (req, res) => {
   try {
-    const { topicName, areaName, grade, yearLevel, studentConfidence, datesCovered, studentId } = req.body;
+    const { topicName, areaName, grade, yearLevel, sparxCode, pastPaperQues, flashCards, studentConfidence, datesCovered, studentId } = req.body;
 
-    const newTopic = await TopicProgress.create({ topicName, areaName, grade, yearLevel, studentConfidence, datesCovered, studentId });
+    const newTopic = await TopicProgress.create({ topicName, areaName, grade, yearLevel, sparxCode, pastPaperQues, flashCards, studentConfidence, datesCovered, studentId });
     
     if (newTopic.studentId) {
       await newTopic.populate('studentId', 'name registrationName yearGroup');
