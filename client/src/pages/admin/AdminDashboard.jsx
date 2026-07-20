@@ -1044,6 +1044,81 @@ const handleAssignSubmit = async (e) => {
     }
   };
 
+  const handleExportPlannerPDF = async () => {
+    try {
+      const doc = new jsPDF('landscape');
+      doc.setFontSize(18);
+      doc.text("Class Planner Schedule", 14, 22);
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+
+      let currentY = 40;
+
+      const calendarElement = document.getElementById('planner-calendar-view');
+      if (calendarElement && plannerFilter === 'calendar') {
+        const canvas = await html2canvas(calendarElement, { scale: 2, backgroundColor: '#ffffff' });
+        const imgData = canvas.toDataURL('image/png');
+        
+        const pdfWidth = 265; 
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        doc.addImage(imgData, 'PNG', 15, currentY, pdfWidth, pdfHeight);
+        
+        doc.addPage();
+        currentY = 20; 
+      }
+
+      let listToExport = [];
+      const year = plannerCurrentDate.getFullYear();
+      const month = plannerCurrentDate.getMonth();
+
+      if (plannerFilter === 'day') {
+        const today = new Date().toLocaleDateString();
+        listToExport = plannerSessions.filter(s => new Date(s.startDate).toLocaleDateString() === today);
+      } else if (plannerFilter === 'week') {
+        const now = new Date();
+        const first = now.getDate() - now.getDay();
+        const firstDay = new Date(new Date().setDate(first));
+        const lastDay = new Date(new Date().setDate(first + 6));
+        listToExport = plannerSessions.filter(s => {
+          const d = new Date(s.startDate);
+          return d >= firstDay && d <= lastDay;
+        });
+      } else {
+        listToExport = plannerSessions.filter(s => new Date(s.startDate).getMonth() === month && new Date(s.startDate).getFullYear() === year);
+      }
+
+      listToExport.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+      const tableColumn = ["Date", "Time", "Lesson Topic", "Student / Audience", "Recurring"];
+      const tableRows = [];
+
+      listToExport.forEach(session => {
+        const dateStr = new Date(session.startDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        const timeStr = `${new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+        const studentName = session.studentId && session.studentId !== 'all' ? (students.find(s => s._id === session.studentId)?.registrationName || students.find(s => s._id === session.studentId)?.name || 'Unknown') : 'Entire Class';
+        const recurring = session.isRecurring ? 'Yes' : 'No';
+
+        tableRows.push([dateStr, timeStr, session.topic || '-', studentName, recurring]);
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: currentY,
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229] },
+      });
+
+      doc.save(`Class_Planner_${new Date().toISOString().split('T')[0]}.pdf`);
+      showToast("Planner successfully exported to PDF!");
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      showToast("Error generating PDF.", "error");
+    }
+  };
+
   const chartData = Object.values(homeworks.reduce((acc, hw) => {
     if (hw.status === 'Graded' && hw.grading?.score != null && hw.grading?.totalScore) {
       if (!acc[hw.title]) {
@@ -1387,7 +1462,7 @@ const handleAssignSubmit = async (e) => {
                 {/* 5.5 Topic Tracker */}
                 <button onClick={() => { navigate('/admin-dashboard/topics'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'topics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                  All Topics
+                  Topics Covered
                 </button>
 
                 {/* 6. Google Drive */}
@@ -2212,7 +2287,7 @@ const handleAssignSubmit = async (e) => {
                               {pendingTasksCount} Pending
                             </span>
                             <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-1 rounded-lg text-center">
-                              {pendingCount} Review
+                              {pendingCount} For Marking
                             </span>
                             <span className="bg-rose-100 text-rose-700 text-[10px] font-black px-2 py-1 rounded-lg text-center">
                               {overdueCount} Overdue
@@ -3470,6 +3545,7 @@ const handleAssignSubmit = async (e) => {
             const month = plannerCurrentDate.getMonth();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const emptyDays = (firstDayOfMonth + 6) % 7;
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
             const getSessionsForDay = (day, m = month, y = year) => {
@@ -3646,11 +3722,18 @@ const handleAssignSubmit = async (e) => {
                     <h2 className="text-2xl font-black text-[#1B2559]">Class Planner</h2>
                   </div>
                   
-                  <div className="flex gap-2 bg-[#F4F7FE] p-2 rounded-2xl">
-                    <button onClick={() => setPlannerFilter('calendar')} className={`px-4 py-2 rounded-xl font-bold text-sm ${plannerFilter === 'calendar' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>Calendar</button>
-                    <button onClick={() => setPlannerFilter('day')} className={`px-4 py-2 rounded-xl font-bold text-sm ${plannerFilter === 'day' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>Day</button>
-                    <button onClick={() => setPlannerFilter('week')} className={`px-4 py-2 rounded-xl font-bold text-sm ${plannerFilter === 'week' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>Week</button>
-                    <button onClick={() => setPlannerFilter('month')} className={`px-4 py-2 rounded-xl font-bold text-sm ${plannerFilter === 'month' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>Month</button>
+                  <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-start sm:items-center">
+                    <button onClick={handleExportPlannerPDF} className="w-full sm:w-auto px-4 py-3 bg-slate-50 text-slate-700 hover:bg-slate-700 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 border border-slate-200">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                      Export PDF
+                    </button>
+
+                    <div className="flex gap-2 bg-[#F4F7FE] p-2 rounded-2xl w-full sm:w-auto overflow-x-auto">
+                      <button onClick={() => setPlannerFilter('calendar')} className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap ${plannerFilter === 'calendar' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>Calendar</button>
+                      <button onClick={() => setPlannerFilter('day')} className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap ${plannerFilter === 'day' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>Day</button>
+                      <button onClick={() => setPlannerFilter('week')} className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap ${plannerFilter === 'week' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>Week</button>
+                      <button onClick={() => setPlannerFilter('month')} className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap ${plannerFilter === 'month' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-500'}`}>Month</button>
+                    </div>
                   </div>
 
                   {plannerFilter === 'calendar' && (
@@ -3664,14 +3747,14 @@ const handleAssignSubmit = async (e) => {
 
                 {/* Calendar View */}
                 {plannerFilter === 'calendar' ? (
-                  <>
+                  <div id="planner-calendar-view" className="bg-white p-2 -mx-2 rounded-xl">
                     <div className="grid grid-cols-7 gap-2 md:gap-4 mb-4">
-                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                         <div key={day} className="text-center font-black text-[#A3AED0] uppercase text-xs tracking-wider">{day}</div>
                       ))}
                     </div>
                     <div className="grid grid-cols-7 gap-2 md:gap-4">
-                      {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                      {Array.from({ length: emptyDays }).map((_, i) => (
                         <div key={`empty-${i}`} className="min-h-[100px] md:min-h-[120px] bg-slate-50/50 rounded-2xl border border-dashed border-slate-200"></div>
                       ))}
                       {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -3709,17 +3792,23 @@ const handleAssignSubmit = async (e) => {
                         );
                       })}
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
                     {generateList().map(session => (
                       <div key={session._id} className="p-5 bg-[#F4F7FE] rounded-2xl flex justify-between items-center border border-slate-100">
                         <div>
                           <p className="text-xs font-bold text-[#A3AED0] mb-1">{new Date(session.startDate).toLocaleDateString()}</p>
-                          <h3 className="font-black text-lg text-[#1B2559] flex items-center gap-2">
-                            {session.studentId && session.studentId !== 'all' && <span className="shrink-0">👤</span>}
-                            <span className="break-words">{session.topic}</span>
-                          </h3>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                            <h3 className="font-black text-lg text-[#1B2559] break-words">
+                              {session.topic || 'Class Session'}
+                            </h3>
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md w-fit bg-indigo-100 text-indigo-700">
+                              {session.studentId && session.studentId !== 'all' 
+                                ? `👤 ${students.find(s => s._id === session.studentId)?.registrationName || students.find(s => s._id === session.studentId)?.name || 'Unknown'}` 
+                                : '📢 Entire Class'}
+                            </span>
+                          </div>
                           <p className="text-sm font-bold text-indigo-500 mt-1">
                             {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - {new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                             {session.isRecurring && <span className="ml-3 bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-[10px] uppercase">Recurring</span>}
