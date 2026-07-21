@@ -760,9 +760,9 @@ const handleAssignSubmit = async (e) => {
       const pastPaperIdx = headers.findIndex(h => h.includes('past paper'));
       const flashcardIdx = headers.findIndex(h => h.includes('flashcard'));
 
-      if (areaIdx === -1 && topicIdx === -1 && gradeIdx === -1) {
+      if (areaIdx === -1 && topicIdx === -1 && gradeIdx === -1 && sparxIdx === -1 && pastPaperIdx === -1 && flashcardIdx === -1) {
         setIsUploadingCSV(false);
-        return showToast("CSV must have at least one recognizable header ('Area', 'Topic', or 'Grade').", "error");
+        return showToast("CSV must contain valid headers (Area, Topic, Grade, Year, Sparx, Past Papers, or Flashcards).", "error");
       }
 
       const topicsToUpload = [];
@@ -4065,7 +4065,7 @@ const handleAssignSubmit = async (e) => {
                           </td>
                         </tr>
                       ) : processedTopics.map((topic, index) => (
-                        <tr key={topic._id} className={`border-b border-slate-100 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-[#F4F7FE]'}`}>
+                        <tr key={topic._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-200'}`}>
                           <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
                           <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
                           <td className="p-4">

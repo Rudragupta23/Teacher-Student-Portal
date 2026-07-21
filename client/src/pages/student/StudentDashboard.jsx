@@ -553,7 +553,7 @@ export default function StudentDashboard() {
               My Tests
             </button>
 
-            <button onClick={() => { navigate('/student-dashboard/scheme'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-violet-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <button onClick={() => { navigate('/student-dashboard/scheme'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all ${activeTab === 'scheme' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
               Lesson Schedule
             </button>
@@ -1328,7 +1328,7 @@ export default function StudentDashboard() {
                       const assignedId = typeof topic.studentId === 'object' ? topic.studentId._id : topic.studentId;
                       return assignedId === userId;
                     }).map((topic, index) => (
-                      <tr key={topic._id} className={`border-b border-slate-100 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-[#F4F7FE]'}`}>
+                      <tr key={topic._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-200'}`}>
                         <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
                         <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
                         <td className="p-4">

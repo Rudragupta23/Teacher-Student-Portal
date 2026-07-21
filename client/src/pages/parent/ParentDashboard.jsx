@@ -955,7 +955,7 @@ export default function ParentDashboard() {
                       const assignedId = typeof topic.studentId === 'object' ? topic.studentId._id : topic.studentId;
                       return assignedId === childData?._id;
                     }).map((topic, index) => (
-                      <tr key={topic._id} className={`border-b border-slate-100 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-[#F4F7FE]'}`}>
+                      <tr key={topic._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-200'}`}>
                         <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
                         <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
                         <td className="p-4">
