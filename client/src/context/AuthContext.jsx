@@ -23,14 +23,16 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', token);
     setUser(userData);
     
-    if (userData.role === 'admin' || userData.role === 'grader') {
-      navigate('/admin-dashboard');
+    if (userData.role === 'admin') {
+      navigate('/admin-dashboard/dashboard');
+    } else if (userData.role === 'grader') {
+      navigate('/grader-dashboard/dashboard');
     } else if (userData.role === 'parent') {
       // Send parents to their new dashboard
-      navigate('/parent-dashboard');
+      navigate('/parent-dashboard/dashboard');
     } else {
       // Send students to the student dashboard
-      navigate('/student-dashboard');
+      navigate('/student-dashboard/dashboard');
     }
   };
 

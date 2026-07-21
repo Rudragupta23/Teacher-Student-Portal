@@ -43,6 +43,23 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          {/* Protected Grader Routes */}
+          <Route 
+            path="/grader-dashboard" 
+            element={
+              <ProtectedRoute allowedRole="grader">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/grader-dashboard/:tab" 
+            element={
+              <ProtectedRoute allowedRole="grader">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
           
           {/* Protected Student Routes */}
           <Route 
