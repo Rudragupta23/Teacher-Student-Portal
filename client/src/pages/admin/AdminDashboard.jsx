@@ -139,6 +139,9 @@ const [testForm, setTestForm] = useState({
   const [editingTopicId, setEditingTopicId] = useState(null);
   const [isUploadingCSV, setIsUploadingCSV] = useState(false);
 
+  const [feedbackForm, setFeedbackForm] = useState({ feature: 'Dashboard', message: '', rating: 5 });
+  const [allFeedback, setAllFeedback] = useState([]);
+
   const fetchPendingStudents = async () => {
     if (user?.role === 'admin') {
       try {
@@ -229,13 +232,14 @@ const [testForm, setTestForm] = useState({
 
     try {
       if (user?.role === 'admin') {
-        const [studentRes, hwRes, annRes, resRes, graderRes, schemeRes, plannerRes] = await Promise.all([
+        const [studentRes, hwRes, annRes, resRes, graderRes, schemeRes, plannerRes, feedbackRes] = await Promise.all([
           api.get('/admin/students'), api.get('/homework/admin'), api.get('/announcements/admin'),
-          api.get('/resources'), api.get('/admin/graders').catch(() => ({ data: [] })), api.get('/scheme'), api.get('/planner')
+          api.get('/resources'), api.get('/admin/graders').catch(() => ({ data: [] })), api.get('/scheme'), api.get('/planner'), api.get('/feedback')
         ]);
         setStudents(processStudents(studentRes.data)); 
         setHomeworks(hwRes.data); setAnnouncements(annRes.data);
         setResources(resRes.data); setGraders(graderRes.data); setSchemes(schemeRes.data); setPlannerSessions(plannerRes.data || []);
+        setAllFeedback(feedbackRes.data);
       } else if (user?.role === 'grader') {
         const [studentRes, hwRes, schemeRes] = await Promise.all([
           api.get('/admin/students'), api.get('/homework/admin'), api.get('/scheme')
@@ -245,6 +249,20 @@ const [testForm, setTestForm] = useState({
       }
     } catch (error) {
       showToast("Error fetching dashboard data.", "error");
+    }
+  };
+  
+
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    if (!feedbackForm.message) return showToast("Feedback message is required", "error");
+    try {
+      await api.post('/feedback', feedbackForm);
+      showToast("Feedback submitted successfully! Thank you.");
+      setFeedbackForm({ feature: 'Dashboard', message: '' });
+      fetchData(); 
+    } catch (err) {
+      showToast("Failed to submit feedback", "error");
     }
   };
   const fetchDriveLinks = async () => {
@@ -379,6 +397,30 @@ const [testForm, setTestForm] = useState({
       fetchData();
     } catch(e) {
       showToast("Failed to delete", "error");
+    }
+  };
+  const handleDeleteFeedback = async (id) => {
+    try {
+      await api.delete(`/feedback/${id}`);
+      showToast("Feedback removed", "error");
+      fetchData();
+    } catch(e) {
+      showToast("Failed to delete feedback", "error");
+    }
+  };
+  const handleMarkFeedbackReviewed = async (fb) => {
+    try {
+      await api.put(`/feedback/${fb._id}/review`);
+      if (fb.user?._id) {
+        await api.post('/messages', { 
+          receiverId: fb.user._id, 
+          content: `Hello! Thank you for contributing to MathCom Mentors. The Admin team has successfully reviewed your feedback regarding "${fb.feature}" (rated ${fb.rating}★). We highly appreciate your input in making the platform better!` 
+        });
+      }
+      showToast("Feedback marked as reviewed & automated thank you message sent!");
+      fetchData(); 
+    } catch(e) {
+      showToast("Failed to mark feedback as reviewed", "error");
     }
   };
   const fetchMessages = async (studentId) => {
@@ -2538,6 +2580,113 @@ const handleAssignSubmit = async (e) => {
                 </div>
               </div>
               )}
+              {/* Admin Feedback */}
+              {user?.role === 'admin' && (
+                <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] flex flex-col xl:col-span-2 mt-8 min-h-[600px]">
+                  <div className="flex items-center gap-3 mb-8 border-b border-indigo-100 pb-6">
+                    <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">All Feedbacks</h2>
+                  </div>
+
+                  <div className="overflow-x-auto w-full max-w-full pb-4 relative custom-scrollbar flex-1">
+                    <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
+                      <thead>
+                        <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10">
+                          <th className="p-5 rounded-tl-2xl">User Details</th>
+                          <th className="p-5">Feature</th>
+                          <th className="p-5">Rating</th>
+                          <th className="p-5 w-[400px]">Message</th>
+                          <th className="p-5">Status / Date</th>
+                          <th className="p-5 rounded-tr-2xl text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allFeedback.map(fb => (
+                          <tr key={fb._id} className={`border-b border-slate-100 transition-colors ${fb.isReviewed ? 'bg-white hover:bg-slate-50' : 'bg-indigo-50/30 hover:bg-indigo-50/60'}`}>
+                            
+                            {/* User Details */}
+                            <td className="p-5">
+                              <p className="font-black text-base text-[#1B2559]">{fb.user?.name || 'Unknown User'}</p>
+                              <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md mt-1 inline-block
+                                ${fb.user?.role === 'parent' ? 'bg-violet-100 text-violet-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                {fb.user?.role || 'N/A'}
+                              </span>
+                            </td>
+
+                            {/* Feature */}
+                            <td className="p-5">
+                              <span className="text-xs font-black text-sky-700 bg-sky-100 px-3 py-1.5 rounded-lg border border-sky-200 shadow-sm whitespace-nowrap">
+                                📂 {fb.feature}
+                              </span>
+                            </td>
+
+                            {/* Rating */}
+                            <td className="p-5">
+                              <div className="flex text-lg drop-shadow-sm">
+                                {[...Array(5)].map((_, i) => (
+                                  <span key={i} className={i < fb.rating ? 'text-amber-400' : 'text-slate-200'}>★</span>
+                                ))}
+                              </div>
+                            </td>
+
+                            {/* Message */}
+                            <td className="p-5 w-[400px] whitespace-normal">
+                              <p className="text-sm font-bold text-slate-600 bg-white p-3 rounded-xl border border-slate-200/60 shadow-inner">
+                                "{fb.message}"
+                              </p>
+                            </td>
+
+                            {/* Status & Date */}
+                            <td className="p-5">
+                              <span className={`text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full block w-fit mb-2 shadow-sm border
+                                ${fb.isReviewed ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'}`}>
+                                {fb.isReviewed ? '✅ Reviewed' : '⏳ Pending'}
+                              </span>
+                              <span className="text-xs font-bold text-slate-400 whitespace-nowrap block mt-1">
+                                {new Date(fb.createdAt).toLocaleDateString()} {new Date(fb.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              </span>
+                            </td>
+
+                            {/* Actions */}
+                            <td className="p-5 text-center">
+                              <div className="flex flex-col items-center gap-2">
+                                {!fb.isReviewed && (
+                                  <button 
+                                    type="button" 
+                                    onClick={() => handleMarkFeedbackReviewed(fb)} 
+                                    className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black transition-transform hover:-translate-y-1 shadow-md text-xs whitespace-nowrap"
+                                    title="Mark as Reviewed & Send automated Thank You"
+                                  >
+                                    ✓ Review & Reply
+                                  </button>
+                                )}
+                                <button 
+                                  type="button" 
+                                  onClick={() => handleDeleteFeedback(fb._id)} 
+                                  className="w-full py-2 px-4 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg font-black transition-colors shadow-sm text-xs border border-rose-200 whitespace-nowrap"
+                                >
+                                  🗑️ Delete
+                                </button>
+                              </div>
+                            </td>
+
+                          </tr>
+                        ))}
+                        {allFeedback.length === 0 && (
+                          <tr>
+                            <td colSpan="6" className="text-center py-20">
+                              <div className="flex flex-col items-center justify-center">
+                                <span className="text-6xl mb-4 opacity-50">📬</span>
+                                <p className="font-bold text-slate-400">No feedback submitted yet.</p>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {/* VIEW 3.5: ANNOUNCEMENTS TAB */}
@@ -2560,7 +2709,7 @@ const handleAssignSubmit = async (e) => {
                   <div className="space-y-2">
                     <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Target Audience</label>
                     <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559] truncate max-w-full" 
-  value={announcementForm.targetAudience} onChange={e => setAnnouncementForm({...announcementForm, targetAudience: e.target.value})}>
+                    value={announcementForm.targetAudience} onChange={e => setAnnouncementForm({...announcementForm, targetAudience: e.target.value})}>
                       <option value="all">📢 Share to Everyone</option>
                       {students.map(s => <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>)}
                     </select>

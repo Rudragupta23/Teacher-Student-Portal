@@ -30,6 +30,24 @@ export default function StudentDashboard() {
   const [userId, setUserId] = useState(null); 
   const [announcements, setAnnouncements] = useState([]);
 
+  // Feedback State & Function
+  const [feedbackForm, setFeedbackForm] = useState({ feature: 'My Homework', message: '', rating: 0 });
+  const [hoveredStar, setHoveredStar] = useState(0);
+
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    if (feedbackForm.rating === 0) return showToast("Please provide a star rating", "error");
+    if (!feedbackForm.message) return showToast("Feedback message is required", "error");
+    try {
+      await api.post('/feedback', feedbackForm);
+      showToast("Feedback submitted successfully! Thank you.");
+      setFeedbackForm({ feature: 'My Homework', message: '', rating: 0 });
+      setHoveredStar(0);
+    } catch (err) {
+      showToast("Failed to submit feedback", "error");
+    }
+  };
+
 // Chat States
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
@@ -611,7 +629,7 @@ export default function StudentDashboard() {
       </aside>
 
       {/* MAIN CONTENT */}
-<div className="flex-1 overflow-y-auto scroll-smooth p-3 sm:p-6 lg:p-10 w-full overflow-x-hidden">
+      <div className="flex-1 overflow-y-auto scroll-smooth p-3 sm:p-6 lg:p-10 w-full overflow-x-hidden">
         <div className="max-w-[1600px] mx-auto">
           <div className="lg:hidden flex items-center justify-between mb-8 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
             <div className="flex items-center gap-3">
@@ -870,6 +888,82 @@ export default function StudentDashboard() {
                     Save Profile Update
                   </button>
                 </div>
+              </div>
+
+              {/* Platform Feedback Submission */}
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] mt-8 relative overflow-hidden">
+                {/* Decorative background element */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-bl-full -z-0"></div>
+                
+                <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6 relative z-10">
+                  <div className="bg-sky-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Rate Your Experience ✨</h2>
+                </div>
+
+                <form onSubmit={handleFeedbackSubmit} className="space-y-6 flex flex-col h-full relative z-10">
+                  <p className="text-sm font-bold text-slate-500">Help us improve the MathCom Mentors platform! Select a specific feature below, give it a star rating, and leave your thoughts.</p>
+
+                  <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-6">
+                    
+                    <div className="flex flex-col sm:flex-row gap-6">
+                      {/* Feature Selector */}
+                      <div className="space-y-2 flex-1">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Which Feature?</label>
+                        <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none font-bold text-[#1B2559] focus:ring-4 focus:ring-sky-500/20 transition-all cursor-pointer shadow-sm"
+                          value={feedbackForm.feature} onChange={e => setFeedbackForm({...feedbackForm, feature: e.target.value})}>
+                          <optgroup label="Student Dashboard Tabs">
+                            <option value="My Homework">📝 My Homework</option>
+                            <option value="My Tests">🎯 My Tests</option>
+                            <option value="Lesson Schedule">📅 Lesson Schedule</option>
+                            <option value="Topics Covered">📚 Topics Covered</option>
+                            <option value="Notice Board">📢 Notice Board</option>
+                            <option value="Calendar">🗓️ Calendar</option>
+                            <option value="Study Materials">🗂️ Study Materials</option>
+                            <option value="Shared Drive">☁️ Shared Drive</option>
+                            <option value="Message Mentor">💬 Message Mentor</option>
+                          </optgroup>
+                          <optgroup label="General Feedback">
+                            <option value="Login & App Access">🔐 Login & App Access</option>
+                            <option value="Kind Words">💖 Kind Words & Praise</option>
+                            <option value="Other / Suggestion">💡 Other / New Idea</option>
+                          </optgroup>
+                        </select>
+                      </div>
+
+                      {/* Star Rating */}
+                      <div className="space-y-2 shrink-0">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide text-center block sm:text-left">Rating</label>
+                        <div 
+                          className="flex gap-2 bg-white px-4 py-3 rounded-2xl border border-slate-200 shadow-sm justify-center"
+                          onMouseLeave={() => setHoveredStar(0)}
+                        >
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              type="button"
+                              key={star}
+                              onClick={() => setFeedbackForm({...feedbackForm, rating: star})}
+                              onMouseEnter={() => setHoveredStar(star)}
+                              className={`text-3xl transition-transform hover:scale-125 focus:outline-none ${(hoveredStar || feedbackForm.rating) >= star ? 'text-amber-400 drop-shadow-sm' : 'text-slate-200'}`}
+                            >
+                              ★
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Your Feedback</label>
+                      <textarea className="w-full p-5 bg-white border border-slate-200 rounded-2xl outline-none font-bold text-[#1B2559] min-h-[140px] focus:ring-4 focus:ring-sky-500/20 transition-all shadow-sm"
+                        placeholder="Tell us what you love or what could be better..." required
+                        value={feedbackForm.message} onChange={e => setFeedbackForm({...feedbackForm, message: e.target.value})} />
+                    </div>
+                  </div>
+
+                  <button type="submit" className="w-full py-5 bg-sky-500 hover:bg-sky-600 text-white font-black text-lg rounded-2xl shadow-lg shadow-sky-500/30 transition-transform hover:-translate-y-1 mt-4 flex items-center justify-center gap-2">
+                    Send Feedback
+                  </button>
+                </form>
               </div>
             </div>
           )}
