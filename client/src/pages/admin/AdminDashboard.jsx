@@ -617,8 +617,24 @@ const handleAssignSubmit = async (e) => {
     e.preventDefault();
     if (isLoading) return; 
 
-    // Only show Grader Instruction if there is at least one grader assigned!
+    let shouldShowGraderBox = false;
+
     if (schemeForm.classStatus === 'Class Taken' && graders.length > 0) {
+      if (schemeForm.studentId === 'all') {
+        shouldShowGraderBox = true; 
+      } else {
+        
+        const isAllocated = graders.some(g => 
+          g.allocatedStudents?.some(s => s._id === schemeForm.studentId || s === schemeForm.studentId)
+        );
+        if (isAllocated) {
+          shouldShowGraderBox = true;
+        }
+      }
+    }
+
+    if (shouldShowGraderBox) {
+      setIsSchemeModalOpen(false); 
       setModal({ type: 'graderInstruction', data: '' });
     } else {
       await executeSchemeSubmitDirect();
@@ -876,7 +892,7 @@ const handleAssignSubmit = async (e) => {
   const handleExportTopicsCSV = () => {
     if (processedTopics.length === 0) return showToast("No topics to export", "error");
 
-    const headers = ["Area Name", "Topic Name", "Grade", "Year Level", "Sparx Code", "Past Papers", "FlashCards", "Dates Covered", "Student Confidence Level"];
+    const headers = ["Area Name", "Topic Name", "Grade", "Year Level", "Sparx Codes", "Past Exam Qs", "Flash Cards", "Dates Covered", "Student Confidence Level"];
     
     const rows = processedTopics.map(topic => {
       const dates = topic.datesCovered
@@ -911,7 +927,7 @@ const handleAssignSubmit = async (e) => {
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-      const tableColumn = ["Area", "Topic", "Grade", "Year", "Sparx", "Past Papers", "FlashCards", "Dates", "Confidence"];
+      const tableColumn = ["Area", "Topic", "Grade", "Year", "Sparx Codes", "Past Exam Qs", "Flash Cards", "Dates", "Confidence"];
       const tableRows = [];
 
       processedTopics.forEach(topic => {
@@ -1221,12 +1237,14 @@ const handleAssignSubmit = async (e) => {
                 <div className="max-h-48 overflow-y-auto bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2 mb-6 custom-scrollbar">
                   {students.filter(s => yearGroupAllocate === 'all' || s.yearGroup === yearGroupAllocate).map(s => {
                     const isInitiallyAllocated = graders.find(g => g._id === modal.graderId)?.allocatedStudents?.some(allocated => allocated._id === s._id || allocated === s._id);
+                    const allocatedToOtherGrader = graders.find(g => g._id !== modal.graderId && g.allocatedStudents?.some(allocated => allocated._id === s._id || allocated === s._id));
                     
                     return (
-                      <label key={s._id} className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${selectedStudentsToAllocate.includes(s._id) ? 'bg-indigo-50/50' : 'hover:bg-slate-200'}`}>
+                      <label key={s._id} className={`flex items-center justify-between p-2 rounded-lg transition-colors ${allocatedToOtherGrader ? 'opacity-50 cursor-not-allowed bg-slate-100' : selectedStudentsToAllocate.includes(s._id) ? 'bg-indigo-50/50 cursor-pointer' : 'hover:bg-slate-200 cursor-pointer'}`}>
                         <div className="flex items-center gap-3">
-                          <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded" 
+                          <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded disabled:opacity-50" 
                             checked={selectedStudentsToAllocate.includes(s._id)}
+                            disabled={!!allocatedToOtherGrader}
                             onChange={(e) => {
                               if (e.target.checked) setSelectedStudentsToAllocate([...selectedStudentsToAllocate, s._id]);
                               else setSelectedStudentsToAllocate(selectedStudentsToAllocate.filter(id => id !== s._id));
@@ -1237,7 +1255,12 @@ const handleAssignSubmit = async (e) => {
                         
                         {isInitiallyAllocated && (
                            <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md shadow-sm">
-                             Already Assigned
+                             Assigned to this Grader
+                           </span>
+                        )}
+                        {allocatedToOtherGrader && (
+                           <span className="text-[10px] font-black bg-amber-100 text-amber-700 px-2 py-1 rounded-md shadow-sm">
+                             Assigned to {allocatedToOtherGrader.name}
                            </span>
                         )}
                       </label>
@@ -1340,39 +1363,61 @@ const handleAssignSubmit = async (e) => {
                 <h3 className="text-2xl font-black text-slate-800 mb-2">Instruction for Grader</h3>
                 <p className="text-slate-500 text-sm mb-4">Optional: Do you want to send any specific instructions to the grader for today's homework?</p>
                 
-                {/* Grader Selection Dropdown (Admin Only) */}
+                {/* Grader Selection (Admin Only) */}
                 {user?.role === 'admin' && graders.length > 0 && (
                   <div className="mb-4 text-left">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Select Target Grader</label>
-                    <select 
-                      className="w-full max-w-full truncate p-4 mt-1 bg-indigo-50/50 border border-indigo-100 rounded-2xl outline-none font-bold text-indigo-900 focus:ring-4 focus:ring-indigo-500/20 transition-all"
-                      value={schemeForm.targetGrader || 'all'}
-                      onChange={e => setSchemeForm({...schemeForm, targetGrader: e.target.value})}
-                    >
-                      <option value="all">📢 General / All Graders</option>
-                      {graders.map(grader => {
-                        const studentsList = grader.allocatedStudents?.length > 0 
-                          ? grader.allocatedStudents.map(s => s.registrationName || s.name)
-                          : [];
-                          
-                        let displayNames = 'No students assigned';
-                        let fullNames = 'No students assigned';
-                        
-                        if (studentsList.length > 0) {
-                          fullNames = studentsList.join(', ');
-                          // Truncate to maximum 2 names to prevent the dropdown from overflowing
-                          displayNames = studentsList.length > 2 
-                            ? `${studentsList.slice(0, 2).join(', ')} + ${studentsList.length - 2} more`
-                            : fullNames;
-                        }
-
-                        return (
-                          <option key={grader._id} value={grader._id} title={fullNames}>
-                            👨‍🏫 {grader.name} ({displayNames})
-                          </option>
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Target Grader</label>
+                    
+                    {(() => {
+                      if (schemeForm.studentId !== 'all') {
+                        const allocatedGrader = graders.find(g => 
+                          g.allocatedStudents?.some(s => s._id === schemeForm.studentId || s === schemeForm.studentId)
                         );
-                      })}
-                    </select>
+                        
+                        if (allocatedGrader) {
+                          return (
+                            <div className="w-full p-4 mt-1 bg-indigo-50/50 border border-indigo-100 rounded-2xl font-bold text-indigo-900 flex items-center gap-3">
+                              <span className="text-xl">👨‍🏫</span>
+                              <span>{allocatedGrader.name}</span>
+                              <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md shadow-sm ml-auto">
+                                Automatically Allocated
+                              </span>
+                            </div>
+                          );
+                        }
+                      }
+                      
+                      return (
+                        <select 
+                          className="w-full max-w-full truncate p-4 mt-1 bg-indigo-50/50 border border-indigo-100 rounded-2xl outline-none font-bold text-indigo-900 focus:ring-4 focus:ring-indigo-500/20 transition-all"
+                          value={schemeForm.targetGrader || 'all'}
+                          onChange={e => setSchemeForm({...schemeForm, targetGrader: e.target.value})}
+                        >
+                          <option value="all">📢 General / All Graders</option>
+                          {graders.map(grader => {
+                            const studentsList = grader.allocatedStudents?.length > 0 
+                              ? grader.allocatedStudents.map(s => s.registrationName || s.name)
+                              : [];
+                              
+                            let displayNames = 'No students assigned';
+                            let fullNames = 'No students assigned';
+                            
+                            if (studentsList.length > 0) {
+                              fullNames = studentsList.join(', ');
+                              displayNames = studentsList.length > 2 
+                                ? `${studentsList.slice(0, 2).join(', ')} + ${studentsList.length - 2} more`
+                                : fullNames;
+                            }
+
+                            return (
+                              <option key={grader._id} value={grader._id} title={fullNames}>
+                                👨‍🏫 {grader.name} ({displayNames})
+                              </option>
+                            );
+                          })}
+                        </select>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -4024,7 +4069,7 @@ const handleAssignSubmit = async (e) => {
                     <label htmlFor={topicSelectedStudent && !isUploadingCSV ? "csv-upload" : ""} 
                       className={`w-full sm:w-auto px-6 py-3 font-black rounded-xl shadow-sm transition-transform flex items-center justify-center gap-2 whitespace-nowrap 
                         ${!topicSelectedStudent ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : isUploadingCSV ? 'bg-emerald-300 text-emerald-800 cursor-wait' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:-translate-y-1 cursor-pointer border border-emerald-200'}`}>
-                      {isUploadingCSV ? '⏳ Uploading...' : '📁 Bulk Upload CSV'}
+                      {isUploadingCSV ? '⏳ Uploading...' : 'Import CSV'}
                     </label>
                   </div>
                 </div>
@@ -4046,10 +4091,10 @@ const handleAssignSubmit = async (e) => {
                           Year<br/>Level {topicSortConfig.key === 'yearLevel' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
                         <th className="p-4 leading-tight cursor-pointer hover:bg-slate-200 transition-colors" onClick={() => handleSortTopics('sparxCode')}>
-                          Sparx<br/>Code {topicSortConfig.key === 'sparxCode' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                          Sparx<br/>Codes {topicSortConfig.key === 'sparxCode' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
-                        <th className="p-4 leading-tight">Past<br/>Papers</th>
-                        <th className="p-4">FlashCards</th>
+                        <th className="p-4 leading-tight text-center">Past Exam<br/>Qs</th>
+                        <th className="p-4 leading-tight">Flash<br/>Cards</th>
                         <th className="p-4 leading-tight">Dates<br/>Covered</th>
                         <th className="p-4 cursor-pointer hover:bg-slate-200 transition-colors leading-tight" onClick={() => handleSortTopics('studentConfidence')}>
                           Student<br/>Confidence {topicSortConfig.key === 'studentConfidence' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
@@ -4067,7 +4112,21 @@ const handleAssignSubmit = async (e) => {
                       ) : processedTopics.map((topic, index) => (
                         <tr key={topic._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-200'}`}>
                           <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
-                          <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
+                          <td className="p-4 font-black text-[#1B2559] whitespace-normal min-w-[160px] leading-snug">
+                            {(() => {
+                              const words = (topic.topicName || '').trim().split(/\s+/);
+                              if (words.length >= 3) {
+                                return (
+                                  <>
+                                    {words.slice(0, 2).join(' ')}
+                                    <br />
+                                    {words.slice(2).join(' ')}
+                                  </>
+                                );
+                              }
+                              return topic.topicName;
+                            })()}
+                          </td>
                           <td className="p-4">
                             {topic.grade && topic.grade !== 'N/A' ? (
                               <span className="bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 px-2 py-1 rounded-md font-black text-xs">

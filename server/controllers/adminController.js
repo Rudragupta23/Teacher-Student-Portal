@@ -190,7 +190,47 @@ exports.getGraders = async (req, res) => {
 // @route   DELETE /api/admin/graders/:id
 exports.deleteGrader = async (req, res) => {
   try {
+    // 1. Find the grader first to get their email and name before deleting
+    const grader = await User.findById(req.params.id);
+    if (!grader) return res.status(404).json({ message: 'Grader not found' });
+
+    const graderEmail = grader.email;
+    const graderName = grader.name;
+
+    // 2. Delete the grader
     await User.findByIdAndDelete(req.params.id);
+
+    // 3. Send an email notifying them of the account removal
+    await sendEmail({
+      email: graderEmail,
+      subject: 'Account Terminated | MathCom Mentors',
+      html: `
+        <div style="font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px; border-radius: 24px; border: 1px solid #e2e8f0;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #0f172a; font-size: 28px; font-weight: 800; margin: 0;">
+              MathCom <span style="color: #4f46e5;">Mentors</span>
+            </h1>
+          </div>
+          
+          <div style="background-color: #ffffff; padding: 32px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); border: 1px solid #f1f5f9; border-top: 4px solid #ef4444;">
+            <h2 style="color: #1e293b; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 16px;">Account Removed</h2>
+            <p style="color: #334155; font-size: 16px; line-height: 24px; margin-bottom: 24px;">
+              Hello ${graderName},
+            </p>
+            <p style="color: #334155; font-size: 16px; line-height: 24px; margin-bottom: 24px;">
+              This is an automated notification to inform you that your Grader access on the MathCom Mentors platform has been revoked by an administrator.
+            </p>
+            <p style="color: #334155; font-size: 16px; line-height: 24px; margin-bottom: 24px;">
+              You will no longer be able to log in to the portal. If you believe this was done in error, please contact the main administrator.
+            </p>
+            <p style="color: #334155; font-size: 16px; line-height: 24px; margin-bottom: 0;">
+              Thank you for your service.
+            </p>
+          </div>
+        </div>
+      `
+    });
+
     res.status(200).json({ message: 'Grader deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
@@ -204,6 +244,13 @@ exports.allocateStudentsToGrader = async (req, res) => {
     const grader = await User.findById(req.params.id);
     if (!grader || grader.role !== 'grader') return res.status(404).json({ message: 'Grader not found' });
     
+    if (studentIds && studentIds.length > 0) {
+      await User.updateMany(
+        { role: 'grader', _id: { $ne: grader._id } },
+        { $pull: { allocatedStudents: { $in: studentIds } } }
+      );
+    }
+
     grader.allocatedStudents = studentIds;
     await grader.save();
     res.status(200).json({ message: 'Students successfully allocated to grader!' });

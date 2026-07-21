@@ -942,9 +942,9 @@ export default function ParentDashboard() {
                         <th className="p-4 leading-tight">Topic<br/>Name</th>
                         <th className="p-4">Grade</th>
                         <th className="p-4 leading-tight">Year<br/>Level</th>
-                        <th className="p-4 leading-tight">Sparx<br/>Code</th>
-                        <th className="p-4 leading-tight">Past<br/>Papers</th>
-                        <th className="p-4">FlashCards</th>
+                        <th className="p-4 leading-tight">Sparx<br/>Codes</th>
+                        <th className="p-4 leading-tight text-center">Past Exam<br/>Qs</th>
+                        <th className="p-4 leading-tight">Flash<br/>Cards</th>
                         <th className="p-4 leading-tight">Dates<br/>Covered</th>
                         <th className="p-4 rounded-tr-2xl leading-tight">Student<br/>Confidence</th>
                       </tr>
@@ -957,7 +957,21 @@ export default function ParentDashboard() {
                     }).map((topic, index) => (
                       <tr key={topic._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-200'}`}>
                         <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
-                        <td className="p-4 font-black text-[#1B2559]">{topic.topicName}</td>
+                        <td className="p-4 font-black text-[#1B2559] whitespace-normal min-w-[160px] leading-snug">
+                          {(() => {
+                            const words = (topic.topicName || '').trim().split(/\s+/);
+                            if (words.length >= 3) {
+                              return (
+                                <>
+                                  {words.slice(0, 2).join(' ')}
+                                  <br />
+                                  {words.slice(2).join(' ')}
+                                </>
+                              );
+                            }
+                            return topic.topicName;
+                          })()}
+                        </td>
                         <td className="p-4">
                           {topic.grade && topic.grade !== 'N/A' ? (
                             <span className="bg-violet-50 text-violet-700 border border-violet-200 px-2 py-1 rounded-md font-black text-xs">

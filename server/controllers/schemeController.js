@@ -25,7 +25,7 @@ exports.createReport = async (req, res) => {
       let emailHtml = '';
 
       if (classStatus === 'Class Taken') {
-        emailSubject = `Class Completed: ${topic || title}`;
+        emailSubject = `Class Completed: ${title}`;
         emailHtml = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
             <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
@@ -38,16 +38,8 @@ exports.createReport = async (req, res) => {
                 
                 <table style="width: 100%; border-collapse: collapse; margin: 25px 0;">
                   <tr>
-                    <td style="padding: 8px; color: #6b7280;"><strong>Title:</strong></td>
+                    <td style="padding: 8px; color: #6b7280;"><strong>Lesson Title:</strong></td>
                     <td style="padding: 8px; font-weight: 600;">${title}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px; color: #6b7280;"><strong>Week:</strong></td>
-                    <td style="padding: 8px; font-weight: 600;">${weekNo || 'N/A'}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px; color: #6b7280;"><strong>Topic:</strong></td>
-                    <td style="padding: 8px; font-weight: 600;">${topic || 'N/A'}</td>
                   </tr>
                 </table>
 
