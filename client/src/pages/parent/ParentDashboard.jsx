@@ -44,6 +44,45 @@ export default function ParentDashboard() {
   const [plannerCurrentDate, setPlannerCurrentDate] = useState(new Date());
   const [topics, setTopics] = useState([]);
 
+  const [topicSearchTerm, setTopicSearchTerm] = useState('');
+  const [topicSortConfig, setTopicSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+
+  const handleSortTopics = (key) => {
+    let direction = 'asc';
+    if (topicSortConfig.key === key && topicSortConfig.direction === 'asc') direction = 'desc';
+    setTopicSortConfig({ key, direction });
+  };
+
+  const processedTopics = topics.filter(topic => {
+    if (topic.studentId && topic.studentId !== 'all') {
+      const assignedId = typeof topic.studentId === 'object' ? topic.studentId._id : topic.studentId;
+      if (assignedId !== childData?._id) return false;
+    }
+    return (topic.topicName || '').toLowerCase().includes(topicSearchTerm.toLowerCase()) || 
+           (topic.areaName || '').toLowerCase().includes(topicSearchTerm.toLowerCase()) ||
+           (topic.grade || '').toLowerCase().includes(topicSearchTerm.toLowerCase());
+  }).sort((a, b) => {
+    if (!topicSortConfig || !topicSortConfig.key) return 0;
+    if (topicSortConfig.key === 'yearLevel') {
+      const numA = parseInt((a.yearLevel || '').toString().replace(/[^0-9]/g, ''), 10) || 0;
+      const numB = parseInt((b.yearLevel || '').toString().replace(/[^0-9]/g, ''), 10) || 0;
+      if (numA < numB) return topicSortConfig.direction === 'asc' ? -1 : 1;
+      if (numA > numB) return topicSortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    }
+    if (topicSortConfig.key === 'sparxCode') {
+      const valA = (a.sparxCode || '').toString();
+      const valB = (b.sparxCode || '').toString();
+      const compareResult = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+      return topicSortConfig.direction === 'asc' ? compareResult : -compareResult;
+    }
+    const valA = (a[topicSortConfig.key] || '').toString().toLowerCase();
+    const valB = (b[topicSortConfig.key] || '').toString().toLowerCase();
+    if (valA < valB) return topicSortConfig.direction === 'asc' ? -1 : 1;
+    if (valA > valB) return topicSortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   // NEW FETCH FUNCTION FOR TOPICS
   const fetchTopics = async () => {
     try {
@@ -1017,9 +1056,16 @@ export default function ParentDashboard() {
           {/* PARENT VIEW: TOPICS COVERED TAB */}
           {activeTab === 'topics' && (
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
-              <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
-                <div className="bg-violet-500 w-2 h-8 rounded-full"></div>
-                <h2 className="text-2xl font-black text-[#1B2559]">Topics Covered 📚</h2>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 border-b border-slate-100 pb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-violet-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Topics Covered 📚</h2>
+                </div>
+                <div className="relative">
+                  <input type="text" placeholder="Search topics, area, or grade..." 
+                    className="w-full sm:w-72 p-3 pl-4 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-4 focus:ring-violet-500/10 font-bold text-[#1B2559]"
+                    value={topicSearchTerm} onChange={e => setTopicSearchTerm(e.target.value)} />
+                </div>
               </div>
               <p className="text-slate-500 font-bold mb-8">Review the curriculum areas and topics your child has completed.</p>
               
@@ -1027,23 +1073,31 @@ export default function ParentDashboard() {
                 <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
                   <thead>
                       <tr className="bg-indigo-600 text-white text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top shadow-sm">
-                        <th className="p-4 rounded-tl-2xl">Area</th>
-                        <th className="p-4 leading-tight">Topic<br/>Name</th>
-                        <th className="p-4">Grade</th>
-                        <th className="p-4 leading-tight">Year<br/>Level</th>
-                        <th className="p-4 leading-tight">Sparx<br/>Codes</th>
+                        <th className="p-4 rounded-tl-2xl cursor-pointer hover:bg-indigo-700 transition-colors" onClick={() => handleSortTopics('areaName')}>
+                          Area {topicSortConfig.key === 'areaName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4 cursor-pointer hover:bg-indigo-700 transition-colors leading-tight" onClick={() => handleSortTopics('topicName')}>
+                          Topic<br/>Name {topicSortConfig.key === 'topicName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4 cursor-pointer hover:bg-indigo-700 transition-colors" onClick={() => handleSortTopics('grade')}>
+                          Grade {topicSortConfig.key === 'grade' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4 cursor-pointer hover:bg-indigo-700 transition-colors leading-tight" onClick={() => handleSortTopics('yearLevel')}>
+                          Year<br/>Level {topicSortConfig.key === 'yearLevel' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4 leading-tight cursor-pointer hover:bg-indigo-700 transition-colors" onClick={() => handleSortTopics('sparxCode')}>
+                          Sparx<br/>Codes {topicSortConfig.key === 'sparxCode' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
                         <th className="p-4 leading-tight text-center">Past Exam<br/>Qs</th>
                         <th className="p-4 leading-tight">Flash<br/>Cards</th>
                         <th className="p-4 leading-tight">Dates<br/>Covered</th>
-                        <th className="p-4 rounded-tr-2xl leading-tight">Student<br/>Confidence</th>
+                        <th className="p-4 rounded-tr-2xl cursor-pointer hover:bg-indigo-700 transition-colors leading-tight" onClick={() => handleSortTopics('studentConfidence')}>
+                          Student<br/>Confidence {topicSortConfig.key === 'studentConfidence' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
                       </tr>
                     </thead>
                   <tbody>
-                    {topics.filter(topic => {
-                      if (!topic.studentId || topic.studentId === 'all') return true;
-                      const assignedId = typeof topic.studentId === 'object' ? topic.studentId._id : topic.studentId;
-                      return assignedId === childData?._id;
-                    }).map((topic, index) => (
+                    {processedTopics.map((topic, index) => (
                       <tr key={topic._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-purple-100'}`}>
                         <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
                         <td className="p-4 font-black text-[#1B2559] whitespace-normal min-w-[160px] leading-snug">
@@ -1071,7 +1125,32 @@ export default function ParentDashboard() {
                           )}
                         </td>
                         <td className="p-4 font-bold text-[#1B2559]">{topic.yearLevel || '-'}</td>
-                        <td className="p-4 font-bold text-slate-500 text-sm">{topic.sparxCode || '-'}</td>
+                        <td className="p-4 font-bold text-slate-500 text-sm">
+                          {(() => {
+                            if (!topic.sparxCode || topic.sparxCode === '-' || topic.sparxCode === 'N/A') return '-';
+                            
+                            // Determine if it's a comma-separated list or a space-separated sentence
+                            const isList = topic.sparxCode.includes(',');
+                            const separator = isList ? ',' : ' ';
+                            const joiner = isList ? ', ' : ' ';
+                            
+                            const items = topic.sparxCode.split(separator).map(item => item.trim()).filter(Boolean);
+                            
+                            if (items.length <= 2) return topic.sparxCode;
+                            
+                            const rows = [];
+                            for (let i = 0; i < items.length; i += 2) {
+                              rows.push(items.slice(i, i + 2).join(joiner));
+                            }
+                            
+                            return rows.map((r, i) => (
+                              <React.Fragment key={i}>
+                                {r}
+                                {i < rows.length - 1 && <br />}
+                              </React.Fragment>
+                            ));
+                          })()}
+                        </td>
                         <td className="p-4">
                           {topic.pastPaperQues ? (
                             <a href={topic.pastPaperQues} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline font-bold text-xs">Click Here</a>
@@ -1106,11 +1185,7 @@ export default function ParentDashboard() {
                         </td>
                       </tr>
                     ))}
-                    {topics.filter(topic => {
-                      if (!topic.studentId || topic.studentId === 'all') return true;
-                      const assignedId = typeof topic.studentId === 'object' ? topic.studentId._id : topic.studentId;
-                      return assignedId === childData?._id;
-                    }).length === 0 && (
+                    {processedTopics.length === 0 && (
                       <tr>
                         <td colSpan="9" className="text-center py-10 text-slate-400 font-bold">No topics recorded for your child yet.</td>
                       </tr>

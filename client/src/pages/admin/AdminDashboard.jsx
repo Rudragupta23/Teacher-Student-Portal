@@ -4318,7 +4318,32 @@ const handleAssignSubmit = async (e) => {
                             )}
                           </td>
                           <td className="p-4 font-bold text-[#1B2559]">{topic.yearLevel || '-'}</td>
-                          <td className="p-4 font-bold text-slate-500 text-sm">{topic.sparxCode || '-'}</td>
+                          <td className="p-4 font-bold text-slate-500 text-sm">
+                          {(() => {
+                            if (!topic.sparxCode || topic.sparxCode === '-' || topic.sparxCode === 'N/A') return '-';
+                            
+                            // Determine if it's a comma-separated list or a space-separated sentence
+                            const isList = topic.sparxCode.includes(',');
+                            const separator = isList ? ',' : ' ';
+                            const joiner = isList ? ', ' : ' ';
+                            
+                            const items = topic.sparxCode.split(separator).map(item => item.trim()).filter(Boolean);
+                            
+                            if (items.length <= 2) return topic.sparxCode;
+                            
+                            const rows = [];
+                            for (let i = 0; i < items.length; i += 2) {
+                              rows.push(items.slice(i, i + 2).join(joiner));
+                            }
+                            
+                            return rows.map((r, i) => (
+                              <React.Fragment key={i}>
+                                {r}
+                                {i < rows.length - 1 && <br />}
+                              </React.Fragment>
+                            ));
+                          })()}
+                        </td>
                           <td className="p-4">
                             {topic.pastPaperQues ? (
                               <a href={topic.pastPaperQues} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline font-bold text-xs">Click Here</a>
