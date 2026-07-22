@@ -141,6 +141,7 @@ const [testForm, setTestForm] = useState({
 
   const [feedbackForm, setFeedbackForm] = useState({ feature: 'Dashboard', message: '', rating: 5 });
   const [allFeedback, setAllFeedback] = useState([]);
+  const [fullScreenImage, setFullScreenImage] = useState(null);
 
   const fetchPendingStudents = async () => {
     if (user?.role === 'admin') {
@@ -1242,6 +1243,26 @@ const handleAssignSubmit = async (e) => {
           {toast.message}
         </div>
 
+      {/* FULL SCREEN IMAGE VIEWER */}
+      {fullScreenImage && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setFullScreenImage(null)}>
+          <div className="relative max-w-2xl max-h-[90vh] w-full flex justify-center items-center">
+            <button 
+              className="absolute -top-4 -right-4 bg-white text-rose-500 hover:bg-rose-500 hover:text-white w-10 h-10 rounded-full flex items-center justify-center text-xl font-black shadow-xl transition-colors z-10"
+              onClick={() => setFullScreenImage(null)}
+            >
+              ✕
+            </button>
+            <img 
+              src={fullScreenImage} 
+              alt="Full Screen Profile" 
+              className="max-w-full max-h-[85vh] rounded-3xl object-contain shadow-2xl border-4 border-white/20"
+              onClick={(e) => e.stopPropagation()} 
+            />
+          </div>
+        </div>
+      )}
+
       {modal.type && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl transform scale-100 animate-slide-up">
@@ -1532,21 +1553,37 @@ const handleAssignSubmit = async (e) => {
 <aside className={`w-72 bg-[#0B1437] text-slate-300 flex flex-col shadow-2xl z-50 fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-300 lg:flex rounded-r-[2rem] my-4 lg:ml-4 overflow-hidden`}>
         
         {/* 1. Header */}
-        <div className="p-8 flex items-center gap-4 border-b border-slate-700/50 shrink-0">
-          {adminProfile?.profilePic ? (
-            <img src={adminProfile.profilePic} alt="Profile" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-indigo-500/30" />
-          ) : (
-            <div className="bg-gradient-to-tr from-indigo-500 to-purple-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-indigo-500/30">
-              M
+        <div 
+          onClick={() => { navigate(user?.role === 'grader' ? '/grader-dashboard/settings' : '/admin-dashboard/settings'); setIsSidebarOpen(false); }}
+          className="p-8 flex items-center gap-4 border-b border-slate-700/50 shrink-0 cursor-pointer group hover:bg-slate-800/50 transition-colors"
+          title="Go to Settings to Upload Profile Picture"
+        >
+          <div className="relative">
+            {adminProfile?.profilePic ? (
+              <img src={adminProfile.profilePic} alt="Profile" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-indigo-500/30 group-hover:opacity-75 transition-opacity" />
+            ) : (
+              <div className="bg-gradient-to-tr from-indigo-500 to-purple-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-indigo-500/30 group-hover:opacity-75 transition-opacity">
+                M
+              </div>
+            )}
+            
+            <div className="absolute inset-0 bg-[#0B1437]/60 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             </div>
-          )}
+            
+            {!adminProfile?.profilePic && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500 border border-[#0B1437]"></span>
+              </span>
+            )}
+          </div>
           <div>
-            <h1 className="text-lg font-black text-white tracking-wide leading-tight">MathCom<br/>Mentors</h1>
-            {/* {user?.role === 'admin' && (
-              <p className="text-xs font-bold text-indigo-300 mt-1.5 tracking-widest uppercase bg-slate-800/80 inline-block px-2 py-1 rounded-md border border-slate-700">
-                Code: MATH_2026
-              </p>
-            )} */}
+            <h1 className="text-lg font-black text-white tracking-wide leading-tight group-hover:text-indigo-400 transition-colors">MathCom<br/>Mentors</h1>
+            
+            {!adminProfile?.profilePic && (
+              <p className="text-[10px] text-indigo-400 font-bold mt-1 group-hover:underline">Click to upload your photo</p>
+            )}
           </div>
         </div>
         
@@ -2362,7 +2399,9 @@ const handleAssignSubmit = async (e) => {
                                 <img 
                                   src={student.profilePic} 
                                   alt={student.name} 
-                                  className="w-12 h-12 rounded-full object-cover shadow-md shrink-0 border-2 border-indigo-100" 
+                                  className="w-12 h-12 rounded-full object-cover shadow-md shrink-0 border-2 border-indigo-100 cursor-pointer hover:opacity-80 transition-opacity" 
+                                  onClick={() => setFullScreenImage(student.profilePic)}
+                                  title="Click to view full image"
                                 />
                               ) : (
                                 <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-black text-xl shadow-md shrink-0">
@@ -2461,20 +2500,26 @@ const handleAssignSubmit = async (e) => {
 
                 <div className="space-y-6 flex flex-col h-full">
                   <div className="flex items-center gap-6">
-                    <div className="relative group">
+                    <div className="relative shrink-0">
                       {settingsForm.profilePic ? (
                         <img src={settingsForm.profilePic} alt="Profile" className="w-24 h-24 rounded-3xl object-cover shadow-md" />
                       ) : (
-                        <div className="w-24 h-24 bg-slate-100 rounded-3xl flex items-center justify-center text-4xl shadow-md">👤</div>
+                        <div className="w-24 h-24 bg-slate-100 text-slate-400 rounded-3xl flex items-center justify-center text-4xl shadow-md border-2 border-dashed border-slate-300">👤</div>
                       )}
-                      <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white rounded-3xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                        <input type="file" accept="image/*" className="hidden" onChange={handleProfilePicUpload} />
-                        <span className="text-xs font-bold">Upload</span>
-                      </label>
                     </div>
-                    <div>
-                      <h3 className="font-black text-[#1B2559]">Profile Picture</h3>
-                      <p className="text-xs font-bold text-[#A3AED0]">JPG, PNG under 2MB</p>
+                    
+                    <div className="flex flex-col items-start gap-2">
+                      <div>
+                        <h3 className="font-black text-[#1B2559] text-lg">Profile Picture</h3>
+                        <p className="text-sm font-bold text-[#A3AED0]">JPG, PNG under 2MB</p>
+                      </div>
+                      
+                      <label className="bg-indigo-50 text-indigo-700 border-2 border-indigo-200 hover:bg-indigo-100 px-4 py-2 rounded-xl text-xs font-black cursor-pointer transition-colors shadow-sm inline-flex items-center gap-2 mt-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <input type="file" accept="image/*" className="hidden" onChange={handleProfilePicUpload} />
+                        Choose Photo
+                      </label>
+
                       {isProfileUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
                     </div>
                   </div>
