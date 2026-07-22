@@ -14,7 +14,7 @@ const schemeSchema = new mongoose.Schema({
   description: { type: String },
   classStatus: { 
     type: String, 
-    enum: ['Class Taken', 'Class Cancelled by Teacher', 'Class Cancelled by Student'], 
+    enum: ['Class Taken', 'Class Cancelled by Teacher', 'Class Cancelled by Student', "Student didn't attend"], 
     default: 'Class Taken' 
   },
   graderInstruction: { type: String },

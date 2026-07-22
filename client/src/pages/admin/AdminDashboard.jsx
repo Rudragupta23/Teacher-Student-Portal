@@ -2845,6 +2845,14 @@ const handleAssignSubmit = async (e) => {
                             className="w-5 h-5 text-rose-600 focus:ring-rose-500 cursor-pointer" />
                           <span className="font-bold text-slate-700 text-sm">❌ Class Cancelled by Student</span>
                         </label>
+
+                        <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
+                          <input type="radio" name="classStatus" value="Student didn't attend" 
+                            checked={schemeForm.classStatus === "Student didn't attend"} 
+                            onChange={e => setSchemeForm({...schemeForm, classStatus: e.target.value, title: "STUDENT DIDN'T ATTEND"})} 
+                            className="w-5 h-5 text-rose-600 focus:ring-rose-500 cursor-pointer" />
+                          <span className="font-bold text-slate-700 text-sm">❌ Student didn't attend</span>
+                        </label>
                       </div>
 
                       <div className="flex flex-col gap-4 mb-6 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
