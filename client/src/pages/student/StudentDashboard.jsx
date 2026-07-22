@@ -582,16 +582,37 @@ export default function StudentDashboard() {
       <aside className={`w-72 bg-[#0B1437] text-slate-300 flex flex-col shadow-2xl z-50 fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-300 lg:flex rounded-r-[2rem] my-4 lg:ml-4 overflow-hidden`}>
         
         {/* 1. Header */}
-        <div className="p-8 flex items-center gap-4 border-b border-slate-700/50 shrink-0">
-          {studentProfile.profilePic ? (
-            <img src={studentProfile.profilePic} alt="Profile" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-emerald-500/30" />
-          ) : (
-            <div className="bg-gradient-to-tr from-emerald-400 to-cyan-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-emerald-500/30">
-              S
+        <div 
+          onClick={() => { navigate('/student-dashboard/settings'); setIsSidebarOpen(false); }}
+          className="p-8 flex items-center gap-4 border-b border-slate-700/50 shrink-0 cursor-pointer group hover:bg-slate-800/50 transition-colors"
+          title="Go to Settings to Upload Profile Picture"
+        >
+          <div className="relative">
+            {studentProfile.profilePic ? (
+              <img src={studentProfile.profilePic} alt="Profile" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-emerald-500/30 group-hover:opacity-75 transition-opacity" />
+            ) : (
+              <div className="bg-gradient-to-tr from-emerald-400 to-cyan-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-emerald-500/30 group-hover:opacity-75 transition-opacity">
+                S
+              </div>
+            )}
+            
+            <div className="absolute inset-0 bg-[#0B1437]/60 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             </div>
-          )}
+            
+            {!studentProfile.profilePic && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500 border border-[#0B1437]"></span>
+              </span>
+            )}
+          </div>
           <div>
-            <h1 className="text-lg font-black text-white tracking-wide leading-tight">MathCom<br/>Mentors</h1>
+            <h1 className="text-lg font-black text-white tracking-wide leading-tight group-hover:text-emerald-400 transition-colors">MathCom<br/>Mentors</h1>
+            
+            {!studentProfile.profilePic && (
+              <p className="text-[10px] text-emerald-400 font-bold mt-1 group-hover:underline">Click to upload your photo</p>
+            )}
           </div>
         </div>
         
@@ -899,20 +920,29 @@ export default function StudentDashboard() {
 
                 <div className="space-y-8">
                   <div className="flex items-center gap-6">
-                    <div className="relative group">
+                    {/* 1. Avatar (Removed the hidden hover overlay) */}
+                    <div className="relative shrink-0">
                       {settingsForm.profilePic ? (
                         <img src={settingsForm.profilePic} alt="Profile" className="w-24 h-24 rounded-3xl object-cover shadow-md" />
                       ) : (
-                        <div className="w-24 h-24 bg-slate-100 text-slate-400 rounded-3xl flex items-center justify-center text-4xl shadow-md">👤</div>
+                        <div className="w-24 h-24 bg-slate-100 text-slate-400 rounded-3xl flex items-center justify-center text-4xl shadow-md border-2 border-dashed border-slate-300">👤</div>
                       )}
-                      <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white rounded-3xl opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                        <input type="file" accept="image/*" className="hidden" onChange={handleProfilePicUpload} />
-                        <span className="text-xs font-bold">Upload</span>
-                      </label>
                     </div>
-                    <div>
-                      <h3 className="font-black text-[#1B2559] text-lg">Profile Picture</h3>
-                      <p className="text-sm font-bold text-[#A3AED0]">JPG, PNG under 2MB</p>
+                    
+                    {/* 2. Text and Explicit Upload Button */}
+                    <div className="flex flex-col items-start gap-2">
+                      <div>
+                        <h3 className="font-black text-[#1B2559] text-lg">Profile Picture</h3>
+                        <p className="text-sm font-bold text-[#A3AED0]">JPG, PNG under 2MB</p>
+                      </div>
+                      
+                      {/* Highly visible Upload button */}
+                      <label className="bg-emerald-50 text-emerald-700 border-2 border-emerald-200 hover:bg-emerald-100 px-4 py-2 rounded-xl text-xs font-black cursor-pointer transition-colors shadow-sm inline-flex items-center gap-2 mt-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <input type="file" accept="image/*" className="hidden" onChange={handleProfilePicUpload} />
+                        Choose Photo
+                      </label>
+
                       {isProfileUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
                     </div>
                   </div>
