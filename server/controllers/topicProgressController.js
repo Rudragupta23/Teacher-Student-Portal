@@ -82,3 +82,12 @@ exports.updateTopic = async (req, res) => {
     res.status(500).json({ message: 'Failed to update topic' });
   }
 };
+
+exports.deleteAllTopics = async (req, res) => {
+  try {
+    await TopicProgress.deleteMany({});
+    res.status(200).json({ message: 'All topics deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete all topics' });
+  }
+};

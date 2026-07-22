@@ -646,6 +646,11 @@ const handleAssignSubmit = async (e) => {
         await api.delete(`/scheme`);
         showToast("All reports have been deleted!", "error");
       }
+      else if (modal.type === 'deleteAllTopics') {
+        await api.delete(`/topics`);
+        showToast("All topics have been deleted!", "error");
+        fetchTopics();
+      }
       
       setModal({ type: null, hwId: null, studentId: null, data: '' });
       setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); 
@@ -879,6 +884,24 @@ const handleAssignSubmit = async (e) => {
     })
     .sort((a, b) => {
       if (!topicSortConfig || !topicSortConfig.key) return 0;
+
+      if (topicSortConfig.key === 'yearLevel') {
+        const numA = parseInt((a.yearLevel || '').toString().replace(/[^0-9]/g, ''), 10) || 0;
+        const numB = parseInt((b.yearLevel || '').toString().replace(/[^0-9]/g, ''), 10) || 0;
+        if (numA < numB) return topicSortConfig.direction === 'asc' ? -1 : 1;
+        if (numA > numB) return topicSortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      }
+
+      if (topicSortConfig.key === 'sparxCode') {
+        const valA = (a.sparxCode || '').toString();
+        const valB = (b.sparxCode || '').toString();
+        
+        const compareResult = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+        
+        return topicSortConfig.direction === 'asc' ? compareResult : -compareResult;
+      }
+
       const valA = (a[topicSortConfig.key] || '').toString().toLowerCase();
       const valB = (b[topicSortConfig.key] || '').toString().toLowerCase();
       if (valA < valB) return topicSortConfig.direction === 'asc' ? -1 : 1;
@@ -1321,7 +1344,7 @@ const handleAssignSubmit = async (e) => {
               </>
             )}
 
-            {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes') && (
+            {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes' || modal.type === 'deleteAllTopics') && (
   <>
     <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mb-4 text-3xl mx-auto">🗑️</div>
     <h3 className="text-2xl font-black text-slate-800 mb-2 text-center">
@@ -1329,12 +1352,14 @@ const handleAssignSubmit = async (e) => {
        modal.type === 'deleteAnsSheet' ? 'Delete Marked/Checked work?' : 
        modal.type === 'deleteGrader' ? 'Delete Grader?' : 
        modal.type === 'deleteAllSchemes' ? 'Delete ALL Reports?' : 
+       modal.type === 'deleteAllTopics' ? 'Delete ALL Topics?' : 
        modal.type === 'deleteScheme' ? 'Delete Report?' : 'Delete Homework?'}
     </h3>
     <p className="text-slate-500 text-sm mb-6 text-center">
       {modal.type === 'deleteAnsSheet' ? 'This will remove your uploaded marked/checked work from this graded homework.' : 
        modal.type === 'deleteGrader' ? `Are you sure you want to permanently delete "${modal.data}"?` :
        modal.type === 'deleteAllSchemes' ? 'Are you sure you want to wipe the ENTIRE lesson schedule? This cannot be undone.' :
+       modal.type === 'deleteAllTopics' ? 'Are you sure you want to wipe ALL Topic Records? This cannot be undone.' :
        'This action is permanent and cannot be undone.'}
     </p>
   </>
@@ -1484,7 +1509,7 @@ const handleAssignSubmit = async (e) => {
   Cancel
 </button> 
                   <button onClick={executeModalAction} className={`flex-1 py-4 font-bold rounded-2xl text-white transition-transform hover:-translate-y-1 shadow-lg
-  ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' :
+  ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes' || modal.type === 'deleteAllTopics') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' :
     modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
     'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}>
   {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader') ? 'Yes, Delete' : 'Confirm'}
@@ -2392,7 +2417,7 @@ const handleAssignSubmit = async (e) => {
                               {pendingTasksCount} Pending
                             </span>
                             <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-1 rounded-lg text-center">
-                              {pendingCount} For Marking
+                              {pendingCount} To Mark
                             </span>
                             <span className="bg-rose-100 text-rose-700 text-[10px] font-black px-2 py-1 rounded-lg text-center">
                               {overdueCount} Overdue
@@ -4071,9 +4096,9 @@ const handleAssignSubmit = async (e) => {
                       </div>
                       
                       <div>
-                        <label className="text-xs font-black text-[#A3AED0] uppercase">Year Level (Optional)</label>
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">Year Level</label>
                         <input type="text" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none focus:ring-4 focus:ring-sky-500/20 text-[#1B2559]" 
-                          placeholder="e.g. Year 8" value={topicForm.yearLevel} onChange={e => setTopicForm({...topicForm, yearLevel: e.target.value})} />
+                          placeholder="e.g. Y8" value={topicForm.yearLevel} onChange={e => setTopicForm({...topicForm, yearLevel: e.target.value})} />
                       </div>
 
                       <div className="space-y-4">
@@ -4213,13 +4238,20 @@ const handleAssignSubmit = async (e) => {
                       ))}
                     </select>
                   </div>
-                  <div className="shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
-                    <input type="file" accept=".csv" id="csv-upload" className="hidden" onChange={handleCSVUpload} />
-                    <label htmlFor={topicSelectedStudent && !isUploadingCSV ? "csv-upload" : ""} 
-                      className={`w-full sm:w-auto px-6 py-3 font-black rounded-xl shadow-sm transition-transform flex items-center justify-center gap-2 whitespace-nowrap 
-                        ${!topicSelectedStudent ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : isUploadingCSV ? 'bg-emerald-300 text-emerald-800 cursor-wait' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:-translate-y-1 cursor-pointer border border-emerald-200'}`}>
-                      {isUploadingCSV ? '⏳ Uploading...' : 'Import CSV'}
-                    </label>
+                  <div className="shrink-0 w-full sm:w-auto mt-2 sm:mt-0 flex gap-3">
+                    {user?.role === 'admin' && topics.length > 0 && (
+                      <button onClick={() => setModal({ type: 'deleteAllTopics', data: '' })} className="px-6 py-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl font-black transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap border border-rose-200 hover:border-transparent">
+                        🗑️ Delete All
+                      </button>
+                    )}
+                    <div>
+                      <input type="file" accept=".csv" id="csv-upload" className="hidden" onChange={handleCSVUpload} />
+                      <label htmlFor={topicSelectedStudent && !isUploadingCSV ? "csv-upload" : ""} 
+                        className={`w-full sm:w-auto px-6 py-3 font-black rounded-xl shadow-sm transition-transform flex items-center justify-center gap-2 whitespace-nowrap 
+                          ${!topicSelectedStudent ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : isUploadingCSV ? 'bg-emerald-300 text-emerald-800 cursor-wait' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:-translate-y-1 cursor-pointer border border-emerald-200'}`}>
+                        {isUploadingCSV ? '⏳ Uploading...' : 'Import CSV'}
+                      </label>
+                    </div>
                   </div>
                 </div>
 
