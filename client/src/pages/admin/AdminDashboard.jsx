@@ -4258,26 +4258,26 @@ const handleAssignSubmit = async (e) => {
                 <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
                   <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
                     <thead>
-                      <tr className="bg-[#F4F7FE] text-[#4F46E5] text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top">
-                        <th className="p-4 rounded-tl-2xl cursor-pointer hover:bg-indigo-50 transition-colors" onClick={() => handleSortTopics('areaName')}>
+                      <tr className="bg-indigo-600 text-white text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top shadow-sm">
+                        <th className="p-4 rounded-tl-2xl cursor-pointer hover:bg-indigo-700 transition-colors" onClick={() => handleSortTopics('areaName')}>
                           Area {topicSortConfig.key === 'areaName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
-                        <th className="p-4 cursor-pointer hover:bg-indigo-50 transition-colors leading-tight" onClick={() => handleSortTopics('topicName')}>
+                        <th className="p-4 cursor-pointer hover:bg-indigo-700 transition-colors leading-tight" onClick={() => handleSortTopics('topicName')}>
                           Topic<br/>Name {topicSortConfig.key === 'topicName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
-                        <th className="p-4 cursor-pointer hover:bg-indigo-50 transition-colors" onClick={() => handleSortTopics('grade')}>
+                        <th className="p-4 cursor-pointer hover:bg-indigo-700 transition-colors" onClick={() => handleSortTopics('grade')}>
                           Grade {topicSortConfig.key === 'grade' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
-                        <th className="p-4 cursor-pointer hover:bg-indigo-50 transition-colors leading-tight" onClick={() => handleSortTopics('yearLevel')}>
+                        <th className="p-4 cursor-pointer hover:bg-indigo-700 transition-colors leading-tight" onClick={() => handleSortTopics('yearLevel')}>
                           Year<br/>Level {topicSortConfig.key === 'yearLevel' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
-                        <th className="p-4 leading-tight cursor-pointer hover:bg-indigo-50 transition-colors" onClick={() => handleSortTopics('sparxCode')}>
+                        <th className="p-4 leading-tight cursor-pointer hover:bg-indigo-700 transition-colors" onClick={() => handleSortTopics('sparxCode')}>
                           Sparx<br/>Codes {topicSortConfig.key === 'sparxCode' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
                         <th className="p-4 leading-tight text-center">Past Exam<br/>Qs</th>
                         <th className="p-4 leading-tight">Flash<br/>Cards</th>
                         <th className="p-4 leading-tight">Dates<br/>Covered</th>
-                        <th className="p-4 cursor-pointer hover:bg-indigo-50 transition-colors leading-tight" onClick={() => handleSortTopics('studentConfidence')}>
+                        <th className="p-4 cursor-pointer hover:bg-indigo-700 transition-colors leading-tight" onClick={() => handleSortTopics('studentConfidence')}>
                           Student<br/>Confidence {topicSortConfig.key === 'studentConfidence' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
                         <th className="p-4 rounded-tr-2xl text-center">Actions</th>
@@ -4291,7 +4291,7 @@ const handleAssignSubmit = async (e) => {
                           </td>
                         </tr>
                       ) : processedTopics.map((topic, index) => (
-                        <tr key={topic._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-100'}`}>
+                        <tr key={topic._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-purple-100'}`}>
                           <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
                           <td className="p-4 font-black text-[#1B2559] whitespace-normal min-w-[160px] leading-snug">
                             {(() => {

@@ -1404,7 +1404,7 @@ export default function StudentDashboard() {
               <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
                 <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
                   <thead>
-                      <tr className="bg-[#F4F7FE] text-[#A3AED0] text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top">
+                      <tr className="bg-indigo-600 text-white text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top shadow-sm">
                         <th className="p-4 rounded-tl-2xl">Area</th>
                         <th className="p-4 leading-tight">Topic<br/>Name</th>
                         <th className="p-4">Grade</th>
@@ -1422,7 +1422,7 @@ export default function StudentDashboard() {
                       const assignedId = typeof topic.studentId === 'object' ? topic.studentId._id : topic.studentId;
                       return assignedId === userId;
                     }).map((topic, index) => (
-                      <tr key={topic._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-200'}`}>
+                      <tr key={topic._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-purple-100'}`}>
                         <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
                         <td className="p-4 font-black text-[#1B2559] whitespace-normal min-w-[160px] leading-snug">
                           {(() => {
