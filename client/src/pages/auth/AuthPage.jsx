@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, User, Phone, Key, ShieldCheck, ArrowLeft, AlertCircle, Send, CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Phone, Key, ShieldCheck, ArrowLeft, AlertCircle, Send, CheckCircle2, Loader2, Eye, EyeOff, School, MapPin, Globe, GraduationCap } from 'lucide-react';
 import api from '../../services/api';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -335,19 +335,19 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
                           className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
                       </motion.div> */}
                       <motion.div variants={itemVariants} className="relative group">
-                        <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <School className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
                         <input type="text" name="schoolName" placeholder="School Name" required onChange={handleChange} value={formData.schoolName}
                           className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
                       </motion.div>
 
                       <motion.div variants={itemVariants} className="relative group">
-                        <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
                         <input type="text" name="city" placeholder="City" required onChange={handleChange} value={formData.city}
                           className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
                       </motion.div>
 
                       <motion.div variants={itemVariants} className="relative group">
-                        <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
                         <select name="country" required onChange={handleChange} value={formData.country}
                           className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all appearance-none cursor-pointer">
                           <option value="United Kingdom">United Kingdom</option>
@@ -355,7 +355,7 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
                         </select>
                       </motion.div>
                       <motion.div variants={itemVariants} className="relative group">
-                        <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <GraduationCap className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
                         <select name="yearGroup" required onChange={handleChange} value={formData.yearGroup}
                           className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all appearance-none cursor-pointer">
                           <option value="" disabled>Select Year Group</option>
