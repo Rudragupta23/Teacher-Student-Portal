@@ -519,79 +519,113 @@ const HomePage = () => {
         </nav>
 
         {/* Hero Section */}
-        <div className="relative pt-32 pb-20 sm:pt-48 sm:pb-32 flex items-center justify-center min-h-screen overflow-hidden">
+        <div className="relative pt-24 pb-16 sm:pt-32 sm:pb-24 lg:min-h-screen flex items-center overflow-hidden">
           
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <motion.div animate={{ x: mousePos.x * 0.05, y: mousePos.y * 0.05 }} className={`absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full blur-[120px] -z-10 mix-blend-screen transition-opacity duration-700 ${isDark ? 'bg-indigo-600/15' : 'bg-indigo-300/30'}`} />
-            <motion.div animate={{ x: mousePos.x * -0.05, y: mousePos.y * -0.05 }} className={`absolute bottom-1/4 right-1/4 w-[600px] h-[600px] rounded-full blur-[120px] -z-10 mix-blend-screen transition-opacity duration-700 ${isDark ? 'bg-cyan-600/15' : 'bg-cyan-300/30'}`} />
-            <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full blur-[150px] -z-10 mix-blend-screen ${isDark ? 'bg-violet-600/10' : 'bg-violet-300/30'}`}></div>
+            <div className={`absolute inset-0 bg-[size:3rem_3rem] [mask-image:linear-gradient(to_bottom,white,transparent)] opacity-20 ${isDark ? 'bg-[linear-gradient(to_right,#ffffff15_1px,transparent_1px),linear-gradient(to_bottom,#ffffff15_1px,transparent_1px)]' : 'bg-[linear-gradient(to_right,#00000010_1px,transparent_1px),linear-gradient(to_bottom,#00000010_1px,transparent_1px)]'}`}></div>
             
-            <motion.div style={{ y: yParallaxFast, rotate: rotateParallax }} className="absolute top-[20%] right-[15%] text-6xl opacity-[0.08] text-indigo-500 font-mono font-bold">∑</motion.div>
-            <motion.div style={{ y: yParallaxSlow, rotate: rotateParallax }} className="absolute bottom-[20%] left-[10%] text-7xl opacity-[0.08] text-cyan-500 font-mono font-bold">∫</motion.div>
-            <motion.div style={{ y: yParallaxFast, rotate: rotateParallax }} className="absolute top-[60%] right-[30%] text-5xl opacity-[0.08] text-violet-500 font-mono font-bold">π</motion.div>
+            <motion.div animate={{ x: mousePos.x * 0.03, y: mousePos.y * 0.03 }} className={`absolute -top-[10%] -right-[5%] w-[600px] h-[600px] rounded-full blur-[120px] -z-10 mix-blend-screen transition-opacity duration-700 ${isDark ? 'bg-indigo-600/30' : 'bg-indigo-300/40'}`} />
+            <motion.div animate={{ x: mousePos.x * -0.03, y: mousePos.y * -0.03 }} className={`absolute -bottom-[10%] -left-[5%] w-[500px] h-[500px] rounded-full blur-[100px] -z-10 mix-blend-screen transition-opacity duration-700 ${isDark ? 'bg-cyan-600/20' : 'bg-cyan-300/40'}`} />
           </div>
 
-          <motion.div 
-            className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10"
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-          >
-            <motion.div variants={fadeUp} className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full border text-sm font-semibold mb-8 backdrop-blur-sm transition-colors ${isDark ? 'bg-slate-900/80 border-slate-700/50 text-indigo-300' : 'bg-white/80 border-indigo-200 text-indigo-700 shadow-sm'}`}>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-              </span>
-              Dr. Goyal Maths Official Learning Portal
-            </motion.div>
-
-            <motion.h1 variants={fadeUp} className={`text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight mb-8 leading-tight transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              Engineer Your <Typewriter words={['Future.', 'Career.', 'Logic.']} /> <br/>
-              With Precision.
-            </motion.h1>
-            
-            <motion.p variants={fadeUp} className={`max-w-3xl mx-auto text-xl md:text-2xl mb-12 leading-relaxed transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Master the core concepts of Engineering Mathematics, Discrete Mathematics, and advanced B.Tech CSE subjects. High-quality education, completely free for those who need it most.
-            </motion.p>
-            
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row justify-center items-center gap-4 flex-wrap">
-              {!isAppInstalled && (
-                <MagneticElement>
-                  <motion.button 
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleInstallClick}
-                    className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-4 rounded-full font-black text-lg transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)] w-full sm:w-auto"
-                  >
-                    <Download className="w-5 h-5" /> Download App
-                  </motion.button>
-                </MagneticElement>
-              )}
-
-              <MagneticElement>
-                <motion.a 
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  href="#featured-video"
-                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:from-indigo-500 hover:to-violet-500 transition-all shadow-[0_0_30px_rgba(79,70,229,0.3)] block w-full sm:w-auto"
-                >
-                  <PlayCircle className="w-5 h-5" /> Watch Sample Lecture
-                </motion.a>
-              </MagneticElement>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full mt-10 lg:mt-0">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
               
-              <MagneticElement>
-                <Link to="/login" className="block w-full sm:w-auto">
-                  <motion.button 
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`flex items-center justify-center gap-2 px-8 py-4 rounded-full font-bold text-lg border backdrop-blur-sm transition-all w-full sm:w-auto ${isDark ? 'bg-slate-900/50 border-slate-700 text-white hover:bg-slate-800' : 'bg-white/80 border-slate-300 text-slate-900 hover:bg-slate-100 shadow-sm'}`}
-                  >
-                    Portal Login <ArrowRight className="w-5 h-5" />
-                  </motion.button>
-                </Link>
-              </MagneticElement>
-            </motion.div>
-          </motion.div>
+              {/* Left Column */}
+              <motion.div 
+                initial="hidden" animate="visible" variants={staggerContainer}
+                className="text-left"
+              >
+                <motion.h1 variants={fadeUp} className={`text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter mb-6 leading-[1.1] ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  Engineer Your <br/>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-cyan-500">
+                    <Typewriter words={['Logic.', 'Future.', 'Career.']} />
+                  </span>
+                  <br/>With Precision.
+                </motion.h1>
+                
+                <motion.p variants={fadeUp} className={`text-lg sm:text-xl mb-10 leading-relaxed font-medium max-w-xl ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Master the core concepts of Engineering Mathematics, Discrete Mathematics, and advanced B.Tech CSE subjects. High-quality education, <strong className={`font-black ${isDark ? 'text-white border-b-2 border-indigo-500' : 'text-slate-900 border-b-2 border-indigo-500'}`}>completely free</strong> for those who need it most.
+                </motion.p>
+                
+                <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center gap-4">
+                  {!isAppInstalled && (
+                    <MagneticElement className="w-full sm:w-auto">
+                      <motion.button 
+                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                        onClick={handleInstallClick}
+                        className={`flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-lg transition-all w-full shadow-xl ${isDark ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                      >
+                        <Download className="w-5 h-5" /> Install App
+                      </motion.button>
+                    </MagneticElement>
+                  )}
+
+                  <MagneticElement className="w-full sm:w-auto">
+                    <Link to="/login" className="block w-full">
+                      <motion.button 
+                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                        className={`flex items-center justify-center px-8 py-4 rounded-2xl font-black text-lg transition-all w-full border-2 ${isDark ? 'border-slate-700 hover:border-slate-500 hover:bg-slate-800 text-white' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-900'}`}
+                      >
+                        Portal Login
+                      </motion.button>
+                    </Link>
+                  </MagneticElement>
+                </motion.div>
+              </motion.div>
+
+              {/* Right Column */}
+              <motion.div 
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 1, delay: 0.2, type: 'spring' }}
+                className="hidden lg:block relative h-full min-h-[500px]"
+              >
+                <motion.div 
+                  animate={{ y: [-10, 10, -10] }} transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                  className={`absolute top-[10%] right-[5%] w-[280px] p-6 rounded-3xl backdrop-blur-xl border border-white/20 shadow-2xl z-20 ${isDark ? 'bg-slate-800/80 text-white' : 'bg-white/90 text-slate-900'}`}
+                >
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                      <Calculator className="w-6 h-6 text-indigo-500" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-lg">Engineering</h3>
+                      <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>Advanced Calculus</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-500 w-[85%] rounded-full"></div>
+                    </div>
+                    <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-cyan-500 w-[60%] rounded-full"></div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div 
+                  animate={{ y: [10, -10, 10] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+                  className={`absolute bottom-[15%] left-[5%] w-[250px] p-6 rounded-3xl backdrop-blur-xl border border-white/20 shadow-2xl z-30 ${isDark ? 'bg-[#0F172A]/90 text-white' : 'bg-slate-50/90 text-slate-900'}`}
+                >
+                  <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center mb-4">
+                    <Cpu className="w-6 h-6 text-cyan-500" />
+                  </div>
+                  <h3 className="font-black text-xl mb-1">Automata</h3>
+                  <p className={`text-sm font-bold ${isDark ? 'text-cyan-400' : 'text-cyan-600'}`}>DFA, NFA & Turing</p>
+                </motion.div>
+
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full border-[2px] border-dashed animate-[spin_20s_linear_infinite] opacity-30 border-indigo-500"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] rounded-full border-[1px] opacity-40 border-fuchsia-500"></div>
+                
+                {/* Floating symbols */}
+                <motion.div style={{ y: yParallaxFast }} className="absolute top-[5%] left-[20%] text-6xl text-indigo-500 font-mono font-black opacity-30">∑</motion.div>
+                <motion.div style={{ y: yParallaxSlow }} className="absolute bottom-[5%] right-[20%] text-7xl text-cyan-500 font-mono font-black opacity-30">∫</motion.div>
+                <motion.div style={{ y: yParallaxFast, rotate: rotateParallax }} className="absolute top-[40%] right-[30%] text-5xl text-fuchsia-500 font-mono font-black opacity-20">π</motion.div>
+
+              </motion.div>
+            </div>
+          </div>
         </div>
 
         {/* Featured Video Section */}
@@ -1020,59 +1054,95 @@ const HomePage = () => {
         </div>
 
         {/* Footer */}
-        <footer className={`pt-20 pb-10 border-t transition-colors duration-500 ${isDark ? 'bg-[#04070D] border-slate-800/50' : 'bg-slate-900 border-slate-800'}`}>
+        <footer className={`pt-16 pb-8 border-t transition-colors duration-500 ${isDark ? 'bg-[#070B14] border-slate-800/50' : 'bg-slate-50 border-slate-200'}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-12 lg:gap-8 mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-8 mb-16">
               
-              <div className="md:col-span-5 lg:col-span-4">
-                <div className="flex items-center gap-3 mb-6">
-                  <img src="/mathcom-logo.png" alt="MathCom Mentors Logo" className="w-10 h-10 object-contain rounded-lg shadow-sm bg-white p-1" />
-                  <span className="font-extrabold text-2xl text-white">MathCom Mentors</span>
+              {/* Brand Col */}
+              <div className="md:col-span-12 lg:col-span-5">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm">
+                    <img src="/mathcom-logo.png" alt="MathCom Mentors Logo" className="w-full h-full object-contain rounded-md" />
+                  </div>
+                  <span className={`font-black text-xl tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>MathCom Mentors</span>
                 </div>
-                <p className="text-slate-400 leading-relaxed mb-6">
+                <p className={`mb-6 font-medium leading-relaxed max-w-sm text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   Empowering B.Tech CSE students with high-quality, accessible education in Mathematics and Computer Science.
                 </p>
-                <motion.div whileHover={{ x: 5 }} className="flex items-center gap-2 text-slate-300 w-max">
-                  <Mail className="w-5 h-5 text-indigo-400" />
-                  <a href="mailto:mathcommentors@gmail.com" className="hover:text-white transition-colors font-medium">mathcommentors@gmail.com</a>
-                </motion.div>
+                <a href="mailto:mathcommentors@gmail.com" className={`inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border font-bold text-sm transition-all ${isDark ? 'bg-slate-800/50 border-slate-700/50 text-indigo-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-indigo-600 hover:bg-slate-100 shadow-sm'}`}>
+                  <Mail className="w-4 h-4" /> mathcommentors@gmail.com
+                </a>
               </div>
 
-              <div className="md:col-span-2 lg:col-span-4"></div>
+              <div className="hidden lg:block lg:col-span-1"></div>
 
-              <div className="md:col-span-5 lg:col-span-4">
-                <h3 className="text-white font-extrabold text-lg mb-6">Connect With Us</h3>
-                <div className="flex flex-col gap-4 w-max">
-                  <motion.a whileHover={{ x: 5, color: '#1877F2' }} href="https://facebook.com/MathComMentors" target="_blank" rel="noreferrer" className="text-slate-400 flex items-center gap-3 font-medium transition-colors">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.891h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>
+              {/* Socials Col */}
+              <div className="md:col-span-6 lg:col-span-3">
+                <h3 className={`font-black text-sm mb-5 uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>Connect</h3>
+                <div className="flex flex-col gap-3">
+                  <motion.a whileHover={{ x: 5 }} href="https://facebook.com/MathComMentors" target="_blank" rel="noreferrer" className={`flex items-center gap-3 text-sm font-medium transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.891h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>
+                    </div>
                     Facebook
                   </motion.a>
                   
-                  <motion.a whileHover={{ x: 5, color: '#0A66C2' }} href="https://linkedin.com/in/mathcom-mentors-6b8a94188" target="_blank" rel="noreferrer" className="text-slate-400 flex items-center gap-3 font-medium transition-colors">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clipRule="evenodd" /></svg>
+                  <motion.a whileHover={{ x: 5 }} href="https://linkedin.com/in/mathcom-mentors-6b8a94188" target="_blank" rel="noreferrer" className={`flex items-center gap-3 text-sm font-medium transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clipRule="evenodd" /></svg>
+                    </div>
                     LinkedIn
                   </motion.a>
                   
-                  <motion.a whileHover={{ x: 5, color: '#ffffff' }} href="https://twitter.com/mathcom_mentors" target="_blank" rel="noreferrer" className="text-slate-400 flex items-center gap-3 font-medium transition-colors">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.005 4.25H5.078z" /></svg>
+                  <motion.a whileHover={{ x: 5 }} href="https://twitter.com/mathcom_mentors" target="_blank" rel="noreferrer" className={`flex items-center gap-3 text-sm font-medium transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.005 4.25H5.078z" /></svg>
+                    </div>
                     Twitter (X)
                   </motion.a>
-                  
-                  <motion.a whileHover={{ x: 5, color: '#E4405F' }} href="https://instagram.com/mathcommentors" target="_blank" rel="noreferrer" className="text-slate-400 flex items-center gap-3 font-medium transition-colors">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clipRule="evenodd" /></svg>
+
+                  <motion.a whileHover={{ x: 5 }} href="https://instagram.com/mathcommentors" target="_blank" rel="noreferrer" className={`flex items-center gap-3 text-sm font-medium transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clipRule="evenodd" /></svg>
+                    </div>
                     Instagram
+                  </motion.a>
+                  
+                  <motion.a whileHover={{ x: 5 }} href="https://www.youtube.com/@MathComMentors" target="_blank" rel="noreferrer" className={`flex items-center gap-3 text-sm font-medium transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+                      <PlayCircle className="w-3.5 h-3.5" />
+                    </div>
+                    YouTube
                   </motion.a>
                 </div>
               </div>
+
+              {/* Developer Col */}
+              <div className="md:col-span-6 lg:col-span-3">
+                <h3 className={`font-black text-sm mb-5 uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>Developer</h3>
+                <p className={`text-xs font-medium mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Designed & Built by</p>
+                <motion.a 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  href="https://github.com/Rudragupta23" 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm transition-all shadow-sm ${isDark ? 'bg-[#0F172A]/50 border-slate-800 hover:border-slate-600 text-white' : 'bg-white border-slate-200 hover:border-slate-300 text-slate-900'}`}
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                  <span className="font-bold">Rudragupta23</span>
+                </motion.a>
+              </div>
+
             </div>
 
-            <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-slate-500 text-sm font-medium">
+            {/* Bottom Bar */}
+            <div className={`pt-6 border-t flex flex-col md:flex-row justify-between items-center gap-4 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+              <p className={`text-xs font-semibold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                 © {new Date().getFullYear()} MathCom Mentors by Dr. Goyal. All rights reserved.
               </p>
-              <div className="flex gap-6 text-sm text-slate-500 font-medium">
-                <motion.a whileHover={{ color: '#ffffff' }} href="/login" className="transition-colors hover:text-indigo-400">Portal Login</motion.a>
-                <motion.a whileHover={{ color: '#ffffff' }} href="https://www.youtube.com/@MathComMentors" target="_blank" rel="noreferrer" className="transition-colors hover:text-indigo-400">YouTube</motion.a>
+              <div className="flex gap-6 text-xs font-black uppercase tracking-widest">
+                <Link to="/login" className={`transition-colors ${isDark ? 'text-slate-500 hover:text-white' : 'text-slate-400 hover:text-slate-900'}`}>Portal Login</Link>
               </div>
             </div>
           </div>
