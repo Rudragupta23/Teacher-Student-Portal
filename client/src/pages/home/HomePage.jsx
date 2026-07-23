@@ -465,7 +465,7 @@ const HomePage = () => {
               </motion.a>
               
               {/* Desktop Links */}
-              <div className="hidden md:flex items-center gap-6 font-medium">
+              <div className="hidden md:flex items-center gap-8 font-medium">
                 <a href="#about" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Mission</a>
                 <a href="#mentor" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Mentor</a>
                 <a href="#subjects" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Curriculum</a>
@@ -474,15 +474,6 @@ const HomePage = () => {
                 <button onClick={handleThemeToggle} className={`p-2 rounded-full transition-colors ${isDark ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}>
                   {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
-
-                {!isAppInstalled && (
-                  <button 
-                    onClick={handleInstallClick}
-                    className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-5 py-2.5 rounded-full font-bold transition-all shadow-sm"
-                  >
-                    <Download className="w-4 h-4" /> Download App
-                  </button>
-                )}
 
                 <MagneticElement>
                   <Link to="/login" className="bg-indigo-600 text-white px-7 py-2.5 rounded-full font-bold hover:bg-indigo-500 transition-colors shadow-md block">Portal Login</Link>
