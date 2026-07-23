@@ -3854,6 +3854,18 @@ const handleAssignSubmit = async (e) => {
               });
             };
 
+            const getSessionStatus = (session) => {
+              const sessionDateStr = new Date(session.startDate).toDateString();
+              const hasReport = schemes.some(report => 
+                new Date(report.date).toDateString() === sessionDateStr && 
+                report.studentId === session.studentId
+              );
+              
+              if (hasReport) return 'logged';
+              if (new Date(session.endDate) < new Date()) return 'missed';
+              return 'upcoming';
+            };
+
             const generateList = () => {
               if (plannerFilter === 'day') {
                 const today = new Date().toLocaleDateString();
@@ -4068,19 +4080,25 @@ const handleAssignSubmit = async (e) => {
                                className="min-h-[100px] md:min-h-[120px] p-2 md:p-3 rounded-2xl border bg-white border-slate-100 hover:border-indigo-300 cursor-pointer transition-all">
                             <div className="text-xs md:text-sm font-black w-7 h-7 flex items-center justify-center rounded-full mb-2 text-[#1B2559]">{day}</div>
                             <div className="space-y-1 overflow-y-auto max-h-[85px] custom-scrollbar">
-                            {daySessions.slice(0, 4).map(session => (
-                            <div key={session._id} onClick={(e) => { e.stopPropagation(); setPlannerForm({ topic: session.topic, weekNo: session.weekNo || '', title: session.title || session.topic, startTime: new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), endTime: new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), isRecurring: session.isRecurring, yearGroupFilter: session.yearGroupFilter || 'all', studentId: session.studentId || 'all' }); setPlannerModal({show: true, selectedDate: dateStr, data: session}); }}
-                              className="text-[10px] leading-tight font-bold px-1 py-0.5 rounded-md bg-indigo-100 text-indigo-700 shadow-sm flex items-center gap-1.5 overflow-hidden whitespace-nowrap cursor-pointer hover:bg-indigo-200" title={session.topic}>
-                              <span className="shrink-0 bg-white text-indigo-900 font-black px-1 rounded shadow-sm">
-                                {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
-                              </span>
-                              <span className="truncate pr-1">
-                                {session.studentId && session.studentId !== 'all' 
-                                ? (students.find(s => s._id === session.studentId)?.name?.split(' ')[0] || 'Unknown') 
-                                : 'All'}
-                              </span>
-                            </div>
-                          ))}
+                            {daySessions.slice(0, 4).map(session => {
+                              const status = getSessionStatus(session);
+                              const colorClass = status === 'logged' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : status === 'missed' ? 'bg-rose-100 text-rose-700 hover:bg-rose-200' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200';
+                              const badgeColor = status === 'logged' ? 'text-emerald-900' : status === 'missed' ? 'text-rose-900' : 'text-indigo-900';
+                              
+                              return (
+                              <div key={session._id} onClick={(e) => { e.stopPropagation(); setPlannerForm({ topic: session.topic, weekNo: session.weekNo || '', title: session.title || session.topic, startTime: new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), endTime: new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), isRecurring: session.isRecurring, yearGroupFilter: session.yearGroupFilter || 'all', studentId: session.studentId || 'all' }); setPlannerModal({show: true, selectedDate: dateStr, data: session}); }}
+                                className={`text-[10px] leading-tight font-bold px-1 py-0.5 rounded-md shadow-sm flex items-center gap-1.5 overflow-hidden whitespace-nowrap cursor-pointer ${colorClass}`} title={session.topic}>
+                                <span className={`shrink-0 bg-white font-black px-1 rounded shadow-sm ${badgeColor}`}>
+                                  {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                                </span>
+                                <span className="truncate pr-1">
+                                  {session.studentId && session.studentId !== 'all' 
+                                  ? (students.find(s => s._id === session.studentId)?.name?.split(' ')[0] || 'Unknown') 
+                                  : 'All'}
+                                </span>
+                              </div>
+                              );
+                            })}
                         {daySessions.length > 4 && (
                         <div className="text-[10px] font-black text-slate-500 text-center bg-slate-100 rounded py-0.5 mt-1">
                           +{daySessions.length - 4} more
@@ -4094,28 +4112,33 @@ const handleAssignSubmit = async (e) => {
                   </div>
                 ) : (
                   <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
-                    {generateList().map(session => (
-                      <div key={session._id} className="p-5 bg-[#F4F7FE] rounded-2xl flex justify-between items-center border border-slate-100">
-                        <div>
-                          <p className="text-xs font-bold text-[#A3AED0] mb-1">{new Date(session.startDate).toLocaleDateString()}</p>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                            <h3 className="font-black text-lg text-[#1B2559] break-words">
-                              {session.topic || 'Class Session'}
-                            </h3>
-                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md w-fit bg-indigo-100 text-indigo-700">
-                              {session.studentId && session.studentId !== 'all' 
-                                ? `👤 ${students.find(s => s._id === session.studentId)?.registrationName || students.find(s => s._id === session.studentId)?.name || 'Unknown'}` 
-                                : '📢 Entire Class'}
-                            </span>
+                    {generateList().map(session => {
+                      const status = getSessionStatus(session);
+                      const badgeClass = status === 'logged' ? 'bg-emerald-100 text-emerald-700' : status === 'missed' ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700';
+                      
+                      return (
+                        <div key={session._id} className="p-5 bg-[#F4F7FE] rounded-2xl flex justify-between items-center border border-slate-100">
+                          <div>
+                            <p className="text-xs font-bold text-[#A3AED0] mb-1">{new Date(session.startDate).toLocaleDateString()}</p>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                              <h3 className="font-black text-lg text-[#1B2559] break-words">
+                                {session.topic || 'Class Session'}
+                              </h3>
+                              <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md w-fit ${badgeClass}`}>
+                                {session.studentId && session.studentId !== 'all' 
+                                  ? `👤 ${students.find(s => s._id === session.studentId)?.registrationName || students.find(s => s._id === session.studentId)?.name || 'Unknown'}` 
+                                  : '📢 Entire Class'}
+                              </span>
+                            </div>
+                            <p className="text-sm font-bold text-indigo-500 mt-1">
+                              {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - {new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                              {session.isRecurring && <span className="ml-3 bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-[10px] uppercase">Recurring</span>}
+                            </p>
                           </div>
-                          <p className="text-sm font-bold text-indigo-500 mt-1">
-                            {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})} - {new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
-                            {session.isRecurring && <span className="ml-3 bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-[10px] uppercase">Recurring</span>}
-                          </p>
+                          <button onClick={() => handlePlannerDelete(session._id, false)} className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white font-bold transition-colors">Delete</button>
                         </div>
-                        <button onClick={() => handlePlannerDelete(session._id, false)} className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white font-bold transition-colors">Delete</button>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {generateList().length === 0 && <p className="text-center font-bold text-slate-400 py-10">No classes scheduled for this view.</p>}
                   </div>
                 )}

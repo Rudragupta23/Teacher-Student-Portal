@@ -915,6 +915,18 @@ export default function ParentDashboard() {
             const firstDayOfMonth = new Date(year, month, 1).getDay();
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+            const getSessionStatus = (session) => {
+              const sessionDateStr = new Date(session.startDate).toDateString();
+              const hasReport = schemes.some(report => 
+                new Date(report.date).toDateString() === sessionDateStr && 
+                report.studentId === session.studentId
+              );
+              
+              if (hasReport) return 'logged';
+              if (new Date(session.endDate) < new Date()) return 'missed';
+              return 'upcoming';
+            };
+
             const getSessionsForDay = (day) => {
               return plannerSessions.filter(session => {
                 let isVisible = false;
@@ -972,14 +984,20 @@ export default function ParentDashboard() {
                       <div key={day} className={`min-h-[100px] md:min-h-[120px] p-2 md:p-3 rounded-2xl border bg-white ${isToday ? 'border-violet-300 bg-violet-50/30' : 'border-slate-100'}`}>
                         <div className={`text-xs md:text-sm font-black w-7 h-7 flex items-center justify-center rounded-full mb-2 ${isToday ? 'bg-violet-500 text-white' : 'text-[#1B2559]'}`}>{day}</div>
                         <div className="space-y-1.5 overflow-y-auto max-h-[70px] custom-scrollbar pr-1">
-                          {getSessionsForDay(day).map(session => (
+                          {/* 1. Map Class Sessions First */}
+                          {getSessionsForDay(day).map(session => {
+                            const status = getSessionStatus(session);
+                            const colorClass = status === 'logged' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : status === 'missed' ? 'bg-rose-100 text-rose-700 border-rose-200' : 'bg-indigo-100 text-indigo-700 border-indigo-200';
+                            
+                            return (
                             <div key={session._id} 
-                              className="text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg bg-indigo-100 text-indigo-700 shadow-sm border border-indigo-200 flex items-center gap-1 overflow-hidden" 
+                              className={`text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg shadow-sm border flex items-center gap-1 overflow-hidden ${colorClass}`} 
                               title={session.topic}>
                               <span className="shrink-0">🎥 {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                               <span className="truncate">- {session.topic}</span>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );
