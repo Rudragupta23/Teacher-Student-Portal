@@ -1017,8 +1017,8 @@ const handleAssignSubmit = async (e) => {
           topic.grade,
           topic.yearLevel || '-',
           topic.sparxCode || '-',
-          topic.pastPaperQues ? 'Link Attached' : '-',
-          topic.flashCards ? 'Link Attached' : '-',
+          topic.pastPaperQues ? { content: 'Link Attached', url: topic.pastPaperQues } : '-',
+          topic.flashCards ? { content: 'Link Attached', url: topic.flashCards } : '-',
           dates,
           topic.studentConfidence || '-'
         ]);
@@ -1030,6 +1030,20 @@ const handleAssignSubmit = async (e) => {
         startY: 40,
         theme: 'grid',
         headStyles: { fillColor: [79, 70, 229] },
+        didParseCell: (data) => {
+          if (data.section === 'body' && (data.column.index === 5 || data.column.index === 6)) {
+            if (data.cell.raw && data.cell.raw.url) {
+              data.cell.styles.textColor = [37, 99, 235]; 
+            }
+          }
+        },
+        didDrawCell: (data) => {
+          if (data.section === 'body' && (data.column.index === 5 || data.column.index === 6)) {
+            if (data.cell.raw && data.cell.raw.url) {
+              doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: data.cell.raw.url });
+            }
+          }
+        }
       });
 
       let fileNameStr = `Topics_Covered_${new Date().toISOString().split('T')[0]}.pdf`;
