@@ -4293,9 +4293,9 @@ const handleAssignSubmit = async (e) => {
                     </select>
                   </div>
                   <div className="shrink-0 w-full sm:w-auto mt-2 sm:mt-0 flex gap-3">
-                    {user?.role === 'admin' && topics.length > 0 && (
+                    {user?.role === 'admin' && topicSelectedStudent && processedTopics.length > 0 && (
                       <button 
-                      onClick={() => setModal({ type: 'deleteAllTopics', data: topicSelectedStudent || '' })} 
+                      onClick={() => setModal({ type: 'deleteAllTopics', data: topicSelectedStudent })} 
                       className="px-6 py-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl font-black transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap border border-rose-200 hover:border-transparent"
                       >
                     🗑️ Delete All
