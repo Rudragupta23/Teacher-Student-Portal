@@ -24,7 +24,9 @@ import {
   Send,
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Download,
+  Smartphone
 } from 'lucide-react';
 
 const MagneticElement = ({ children, className }) => {
@@ -213,6 +215,49 @@ const HomePage = () => {
   const [themeRipple, setThemeRipple] = useState(false); 
   const [contactData, setContactData] = useState({ name: '', email: '', message: '' });
   const [contactStatus, setContactStatus] = useState({ loading: false, message: '', isError: false });
+
+  // PWA Install Prompt States
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      setIsAppInstalled(true);
+    }
+
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsAppInstalled(true);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          setIsAppInstalled(true);
+        }
+        setDeferredPrompt(null);
+      });
+    } else {
+      setShowInstallModal(true);
+    }
+  };
 
   const handleContactSubmit = async (e) => {
     e.preventDefault();
@@ -420,7 +465,7 @@ const HomePage = () => {
               </motion.a>
               
               {/* Desktop Links */}
-              <div className="hidden md:flex items-center gap-8 font-medium">
+              <div className="hidden md:flex items-center gap-6 font-medium">
                 <a href="#about" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Mission</a>
                 <a href="#mentor" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Mentor</a>
                 <a href="#subjects" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Curriculum</a>
@@ -429,6 +474,15 @@ const HomePage = () => {
                 <button onClick={handleThemeToggle} className={`p-2 rounded-full transition-colors ${isDark ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}>
                   {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
+
+                {!isAppInstalled && (
+                  <button 
+                    onClick={handleInstallClick}
+                    className="flex items-center gap-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-5 py-2.5 rounded-full font-bold transition-all shadow-sm"
+                  >
+                    <Download className="w-4 h-4" /> Download App
+                  </button>
+                )}
 
                 <MagneticElement>
                   <Link to="/login" className="bg-indigo-600 text-white px-7 py-2.5 rounded-full font-bold hover:bg-indigo-500 transition-colors shadow-md block">Portal Login</Link>
@@ -509,7 +563,20 @@ const HomePage = () => {
               Master the core concepts of Engineering Mathematics, Discrete Mathematics, and advanced B.Tech CSE subjects. High-quality education, completely free for those who need it most.
             </motion.p>
             
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row justify-center items-center gap-5">
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row justify-center items-center gap-4 flex-wrap">
+              {!isAppInstalled && (
+                <MagneticElement>
+                  <motion.button 
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleInstallClick}
+                    className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-4 rounded-full font-black text-lg transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)] w-full sm:w-auto"
+                  >
+                    <Download className="w-5 h-5" /> Download App
+                  </motion.button>
+                </MagneticElement>
+              )}
+
               <MagneticElement>
                 <motion.a 
                   whileHover={{ scale: 1.05, y: -2 }}
@@ -517,8 +584,7 @@ const HomePage = () => {
                   href="#featured-video"
                   className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:from-indigo-500 hover:to-violet-500 transition-all shadow-[0_0_30px_rgba(79,70,229,0.3)] block w-full sm:w-auto"
                 >
-                  <PlayCircle className="w-5 h-5" />
-                  Watch Sample Lecture
+                  <PlayCircle className="w-5 h-5" /> Watch Sample Lecture
                 </motion.a>
               </MagneticElement>
               
@@ -529,7 +595,7 @@ const HomePage = () => {
                     whileTap={{ scale: 0.95 }}
                     className={`flex items-center justify-center gap-2 px-8 py-4 rounded-full font-bold text-lg border backdrop-blur-sm transition-all w-full sm:w-auto ${isDark ? 'bg-slate-900/50 border-slate-700 text-white hover:bg-slate-800' : 'bg-white/80 border-slate-300 text-slate-900 hover:bg-slate-100 shadow-sm'}`}
                   >
-                    Access Student Portal <ArrowRight className="w-5 h-5" />
+                    Portal Login <ArrowRight className="w-5 h-5" />
                   </motion.button>
                 </Link>
               </MagneticElement>
@@ -1020,6 +1086,67 @@ const HomePage = () => {
             </div>
           </div>
         </footer>
+
+        {/* PWA INSTALL INSTRUCTIONS MODAL */}
+        <AnimatePresence>
+          {showInstallModal && (
+            <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }} 
+                animate={{ opacity: 1, scale: 1 }} 
+                exit={{ opacity: 0, scale: 0.9 }}
+                className={`max-w-md w-full p-8 rounded-3xl border shadow-2xl relative ${isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+              >
+                <button 
+                  onClick={() => setShowInstallModal(false)}
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800/20 flex items-center justify-center font-bold text-slate-400 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+
+                <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-2xl flex items-center justify-center mb-6">
+                  <Smartphone className="w-8 h-8" />
+                </div>
+
+                <h3 className="text-2xl font-black mb-2">How to Install MathCom App</h3>
+                <p className={`text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Follow these quick instructions based on your device:
+                </p>
+
+                <div className="space-y-4 text-left">
+                  <div className={`p-4 rounded-2xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <h4 className="font-bold text-emerald-500 text-sm mb-1">iPhone / iPad (Safari)</h4>
+                    <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                      Tap the <b>Share button</b> (square with an arrow) at the bottom of Safari, then scroll down and tap <b>"Add to Home Screen"</b>.
+                    </p>
+                  </div>
+
+                  <div className={`p-4 rounded-2xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <h4 className="font-bold text-cyan-500 text-sm mb-1">Android (Chrome)</h4>
+                    <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                      Tap the 3 dots in the top-right corner of Chrome and select <b>"Install app"</b> or <b>"Add to Home screen"</b>.
+                    </p>
+                  </div>
+
+                  <div className={`p-4 rounded-2xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <h4 className="font-bold text-indigo-500 text-sm mb-1">Desktop (Chrome / Edge)</h4>
+                    <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                      Click the small <b>Install icon</b> located on the right side of your browser URL address bar.
+                    </p>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setShowInstallModal(false)}
+                  className="w-full mt-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-colors shadow-lg"
+                >
+                  Got It!
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
       </div>
     </>
   );
