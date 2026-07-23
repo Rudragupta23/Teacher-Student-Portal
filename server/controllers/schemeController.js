@@ -4,10 +4,10 @@ const sendEmail = require('../utils/sendEmail');
 
 exports.createReport = async (req, res) => {
   try {
-    const { date, startTime, endTime, title, weekNo, topic, description, classStatus, graderInstruction, yearGroupFilter, studentId } = req.body;
+    const { date, startTime, endTime, title, weekNo, topic, description, classStatus, waitingTime, graderInstruction, yearGroupFilter, studentId } = req.body;
     
     const report = await Scheme.create({
-      date, startTime, endTime, title, weekNo, topic, description, classStatus, graderInstruction, yearGroupFilter, studentId, adminId: req.user._id
+      date, startTime, endTime, title, weekNo, topic, description, classStatus, waitingTime, graderInstruction, yearGroupFilter, studentId, adminId: req.user._id
     });
 
     let graders = [];

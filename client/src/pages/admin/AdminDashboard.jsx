@@ -95,7 +95,7 @@ const [testForm, setTestForm] = useState({
 
   // Scheme of Work States
   const [schemes, setSchemes] = useState([]);
-  const [schemeForm, setSchemeForm] = useState({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' });
+  const [schemeForm, setSchemeForm] = useState({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', waitingTime: '', yearGroupFilter: 'all', studentId: 'all' });
   const [graderInstruction, setGraderInstruction] = useState('');
   const [schemeListYear, setSchemeListYear] = useState('all');
   const [schemeListStudent, setSchemeListStudent] = useState('all');
@@ -2934,11 +2934,11 @@ const handleAssignSubmit = async (e) => {
                         </div>
                       </div>
 
-                      {schemeForm.classStatus === 'Class Taken' && (
+                     {(schemeForm.classStatus === 'Class Taken' || schemeForm.classStatus === "Student didn't attend") && (
                         <div className="animate-fade-in space-y-4">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <label className="text-xs font-black text-[#A3AED0] uppercase">Start Time</label>
+                              <label className="text-xs font-black text-[#A3AED0] uppercase">{schemeForm.classStatus === "Student didn't attend" ? "Wait Start Time" : "Start Time"}</label>
                               <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none" 
                                 value={schemeForm.startTime} 
                                 onChange={e => {
@@ -2952,14 +2952,14 @@ const handleAssignSubmit = async (e) => {
                               />
                             </div>
                             <div>
-                              <label className="text-xs font-black text-[#A3AED0] uppercase">End Time</label>
+                              <label className="text-xs font-black text-[#A3AED0] uppercase">{schemeForm.classStatus === "Student didn't attend" ? "Wait End Time" : "End Time"}</label>
                               <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none" value={schemeForm.endTime} onChange={e => setSchemeForm({...schemeForm, endTime: e.target.value})} />
                             </div>
                           </div>
 
                           {schemeForm.startTime && schemeForm.endTime && (
-                            <div className="text-sm font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 flex justify-center items-center">
-                              ⏱️ Total Duration: {(() => {
+                            <div className={`text-sm font-black px-4 py-2 rounded-xl border flex justify-center items-center ${schemeForm.classStatus === "Student didn't attend" ? "text-rose-600 bg-rose-50 border-rose-100" : "text-indigo-600 bg-indigo-50 border-indigo-100"}`}>
+                              ⏱️ Total {schemeForm.classStatus === "Student didn't attend" ? "Wait Time" : "Duration"}: {(() => {
                                 const [sh, sm] = schemeForm.startTime.split(':').map(Number);
                                 const [eh, em] = schemeForm.endTime.split(':').map(Number);
                                 let diff = (eh * 60 + em) - (sh * 60 + sm);
@@ -3116,13 +3116,13 @@ const handleAssignSubmit = async (e) => {
                             </span>
                           </td>
                           <td className="p-5">
-                            {report.classStatus === 'Class Taken' && report.startTime && report.endTime ? (
+                            {(report.classStatus === 'Class Taken' || report.classStatus === "Student didn't attend") && report.startTime && report.endTime ? (
                               <div>
-                                <p className="text-sm font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md inline-block mb-1 border border-indigo-100">
+                                <p className={`text-sm font-bold px-2 py-1 rounded-md inline-block mb-1 border ${report.classStatus === "Student didn't attend" ? 'text-rose-700 bg-rose-50 border-rose-100' : 'text-indigo-700 bg-indigo-50 border-indigo-100'}`}>
                                   {report.startTime} - {report.endTime}
                                 </p>
                                 <p className="text-xs font-bold text-slate-500 block">
-                                  Duration: {
+                                  {report.classStatus === "Student didn't attend" ? "Waited" : "Duration"}: {
                                     (() => {
                                       const [sh, sm] = report.startTime.split(':').map(Number);
                                       const [eh, em] = report.endTime.split(':').map(Number);
@@ -3150,6 +3150,13 @@ const handleAssignSubmit = async (e) => {
                                   <p className="text-sm text-slate-400 font-medium mb-2">-</p>
                                 )}
                                 
+                                {report.classStatus === "Student didn't attend" && report.waitingTime && (
+                                  <div className="bg-rose-50 border-l-4 border-rose-500 p-2 rounded-r-lg mt-2 mb-2">
+                                    <p className="text-[10px] font-black text-rose-800 uppercase mb-0.5">Waiting Time:</p>
+                                    <p className="text-rose-900 font-medium text-xs">{report.waitingTime}</p>
+                                  </div>
+                                )}
+                                
                                 {(user?.role === 'admin' || user?.role === 'grader') && report.graderInstruction && (
                                   <div className="bg-indigo-50 border-l-4 border-indigo-500 p-2 rounded-r-lg">
                                     <p className="text-[10px] font-black text-indigo-800 uppercase mb-0.5">Grader Instructions:</p>
@@ -3170,6 +3177,7 @@ const handleAssignSubmit = async (e) => {
                                       topic: report.topic || '',
                                       description: report.description || '',
                                       classStatus: report.classStatus || 'Class Taken',
+                                      waitingTime: report.waitingTime || '',
                                       yearGroupFilter: report.yearGroupFilter || 'all',
                                       studentId: report.studentId || 'all'
                                     });

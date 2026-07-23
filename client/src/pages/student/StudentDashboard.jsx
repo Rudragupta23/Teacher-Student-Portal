@@ -1372,13 +1372,13 @@ export default function StudentDashboard() {
                           </span>
                         </td>
                         <td className="p-5">
-                          {report.classStatus === 'Class Taken' && report.startTime && report.endTime ? (
+                          {(report.classStatus === 'Class Taken' || report.classStatus === "Student didn't attend") && report.startTime && report.endTime ? (
                             <div>
-                              <p className="text-sm font-bold text-fuchsia-700 bg-fuchsia-50 px-2 py-1 rounded-md inline-block mb-1 border border-fuchsia-100">
+                              <p className={`text-sm font-bold px-2 py-1 rounded-md inline-block mb-1 border ${report.classStatus === "Student didn't attend" ? 'text-rose-700 bg-rose-50 border-rose-100' : 'text-fuchsia-700 bg-fuchsia-50 border-fuchsia-100'}`}>
                                 {report.startTime} - {report.endTime}
                               </p>
                               <p className="text-xs font-bold text-slate-500 block">
-                                Duration: {
+                                {report.classStatus === "Student didn't attend" ? "Teacher Waited" : "Duration"}: {
                                   (() => {
                                     const [sh, sm] = report.startTime.split(':').map(Number);
                                     const [eh, em] = report.endTime.split(':').map(Number);
@@ -1399,6 +1399,12 @@ export default function StudentDashboard() {
                           <p className="text-sm text-slate-600 font-medium whitespace-pre-wrap" title="Description">
                             {report.description || '-'}
                           </p>
+                          {report.classStatus === "Student didn't attend" && report.waitingTime && (
+                            <div className="bg-rose-50 border-l-4 border-rose-500 p-2 rounded-r-lg mt-2">
+                              <p className="text-[10px] font-black text-rose-800 uppercase mb-0.5">Teacher Waited For:</p>
+                              <p className="text-rose-900 font-medium text-xs">{report.waitingTime}</p>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
