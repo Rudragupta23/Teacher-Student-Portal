@@ -11,6 +11,20 @@ MathCom Mentors is a full-stack MERN educational platform built to centralize th
 
 **🚀 Live Platform:** [https://mathcommentors.com/](https://mathcommentors.com/)
 
+---
+
+## 📱 Download / Install the App (PWA)
+
+MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it directly to your phone or computer for a seamless, native app experience!
+
+**To install the app, go to [mathcommentors.com](https://mathcommentors.com/) and follow these steps:**
+
+*   **For iOS (iPhone/iPad):** Open the site in **Safari**, tap the **Share** icon at the bottom of the screen, and select **"Add to Home Screen"**.
+*   **For Android:** Open the site in **Chrome**. A banner will appear at the bottom—simply tap **"Add MathCom Mentors to Home screen"**. (Alternatively, tap the 3 dots in the top right and select "Install app").
+*   **For Desktop (Windows/Mac):** Open the site in **Chrome or Edge**. Click the small **Install icon** (a computer screen with a downward arrow) located on the far right side of your URL address bar.
+
+---
+
 ## 🌟 Comprehensive Feature Breakdown
 
 | Category | Feature | Description | Accessible Roles |
