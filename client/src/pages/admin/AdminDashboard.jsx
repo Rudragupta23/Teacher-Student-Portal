@@ -648,8 +648,9 @@ const handleAssignSubmit = async (e) => {
         showToast("All reports have been deleted!", "error");
       }
       else if (modal.type === 'deleteAllTopics') {
-        await api.delete(`/topics`);
-        showToast("All topics have been deleted!", "error");
+        const query = modal.data ? `?studentId=${modal.data}` : '';
+        await api.delete(`/topics${query}`);
+        showToast(modal.data ? "Student's topics deleted successfully!" : "All topics have been deleted!", "error");
         fetchTopics();
       }
       
@@ -1373,14 +1374,14 @@ const handleAssignSubmit = async (e) => {
        modal.type === 'deleteAnsSheet' ? 'Delete Marked/Checked work?' : 
        modal.type === 'deleteGrader' ? 'Delete Grader?' : 
        modal.type === 'deleteAllSchemes' ? 'Delete ALL Reports?' : 
-       modal.type === 'deleteAllTopics' ? 'Delete ALL Topics?' : 
+       modal.type === 'deleteAllTopics' ? (modal.data ? "Delete Student's Topics?" : 'Delete ALL Topics?') : 
        modal.type === 'deleteScheme' ? 'Delete Report?' : 'Delete Homework?'}
     </h3>
     <p className="text-slate-500 text-sm mb-6 text-center">
       {modal.type === 'deleteAnsSheet' ? 'This will remove your uploaded marked/checked work from this graded homework.' : 
        modal.type === 'deleteGrader' ? `Are you sure you want to permanently delete "${modal.data}"?` :
        modal.type === 'deleteAllSchemes' ? 'Are you sure you want to wipe the ENTIRE lesson schedule? This cannot be undone.' :
-       modal.type === 'deleteAllTopics' ? 'Are you sure you want to wipe ALL Topic Records? This cannot be undone.' :
+       modal.type === 'deleteAllTopics' ? (modal.data ? 'Are you sure you want to wipe ALL Topic Records for this specific student? This cannot be undone.' : 'Are you sure you want to wipe ALL Topic Records for EVERYONE? This cannot be undone.') :
        'This action is permanent and cannot be undone.'}
     </p>
   </>
@@ -4293,9 +4294,12 @@ const handleAssignSubmit = async (e) => {
                   </div>
                   <div className="shrink-0 w-full sm:w-auto mt-2 sm:mt-0 flex gap-3">
                     {user?.role === 'admin' && topics.length > 0 && (
-                      <button onClick={() => setModal({ type: 'deleteAllTopics', data: '' })} className="px-6 py-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl font-black transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap border border-rose-200 hover:border-transparent">
-                        🗑️ Delete All
-                      </button>
+                      <button 
+                      onClick={() => setModal({ type: 'deleteAllTopics', data: topicSelectedStudent || '' })} 
+                      className="px-6 py-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl font-black transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap border border-rose-200 hover:border-transparent"
+                      >
+                    🗑️ Delete All
+                    </button>
                     )}
                     <div>
                       <input type="file" accept=".csv" id="csv-upload" className="hidden" onChange={handleCSVUpload} />

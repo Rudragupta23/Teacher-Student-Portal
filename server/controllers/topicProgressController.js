@@ -85,9 +85,15 @@ exports.updateTopic = async (req, res) => {
 
 exports.deleteAllTopics = async (req, res) => {
   try {
-    await TopicProgress.deleteMany({});
-    res.status(200).json({ message: 'All topics deleted successfully' });
+    const { studentId } = req.query;
+    const filter = studentId ? { studentId } : {};
+    
+    await TopicProgress.deleteMany(filter);
+    
+    res.status(200).json({ 
+      message: studentId ? "Student's topics deleted successfully" : 'All topics deleted successfully' 
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to delete all topics' });
+    res.status(500).json({ message: 'Failed to delete topics' });
   }
 };
