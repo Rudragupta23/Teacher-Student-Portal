@@ -974,7 +974,16 @@ const handleAssignSubmit = async (e) => {
     
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Topics_Covered_${new Date().toISOString().split('T')[0]}.csv`;
+    let fileNameStr = `Topics_Covered_${new Date().toISOString().split('T')[0]}.csv`;
+    if (topicSelectedStudent) {
+      const st = students.find(s => s._id === topicSelectedStudent);
+      if (st) {
+        const firstName = (st.registrationName || st.name).split(' ')[0];
+        const year = st.yearGroup || 'Year';
+        fileNameStr = `${firstName}-${year}_Topics_${new Date().toISOString().split('T')[0]}.csv`;
+      }
+    }
+    link.download = fileNameStr;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1023,7 +1032,16 @@ const handleAssignSubmit = async (e) => {
         headStyles: { fillColor: [79, 70, 229] },
       });
 
-      doc.save(`Topics_Covered_${new Date().toISOString().split('T')[0]}.pdf`);
+      let fileNameStr = `Topics_Covered_${new Date().toISOString().split('T')[0]}.pdf`;
+      if (topicSelectedStudent) {
+        const st = students.find(s => s._id === topicSelectedStudent);
+        if (st) {
+          const firstName = (st.registrationName || st.name).split(' ')[0];
+          const year = st.yearGroup || 'Year';
+          fileNameStr = `${firstName}-${year}_Topics_${new Date().toISOString().split('T')[0]}.pdf`;
+        }
+      }
+      doc.save(fileNameStr);
       showToast("Topics successfully exported to PDF!");
     } catch (error) {
       console.error("PDF Export Error:", error);
@@ -3048,8 +3066,11 @@ const handleAssignSubmit = async (e) => {
                     <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
                       value={schemeListStudent} onChange={e => setSchemeListStudent(e.target.value)}>
                       <option value="all">All Filtered Students</option>
-                      {students.filter(s => schemeListYear === 'all' || s.yearGroup === schemeListYear).map(s => (
-                        <option key={s._id} value={s._id}>{s.registrationName || s.name}</option>
+                      {students
+                        .filter(s => schemeListYear === 'all' || s.yearGroup === schemeListYear)
+                        .sort((a, b) => (a.registrationName || a.name).localeCompare(b.registrationName || b.name))
+                        .map(s => (
+                        <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
                       ))}
                     </select>
                   </div>
@@ -4318,8 +4339,11 @@ const handleAssignSubmit = async (e) => {
                     <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
                       value={topicSelectedStudent} onChange={e => setTopicSelectedStudent(e.target.value)}>
                       <option value="">-- Choose a Student --</option>
-                      {students.filter(s => topicYearFilter === 'all' || s.yearGroup === topicYearFilter).map(s => (
-                        <option key={s._id} value={s._id}>{s.registrationName || s.name}</option>
+                      {students
+                        .filter(s => topicYearFilter === 'all' || s.yearGroup === topicYearFilter)
+                        .sort((a, b) => (a.registrationName || a.name).localeCompare(b.registrationName || b.name))
+                        .map(s => (
+                        <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
                       ))}
                     </select>
                   </div>
