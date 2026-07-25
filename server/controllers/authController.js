@@ -330,3 +330,86 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Change password for logged in user
+// @route   PUT /api/auth/profile/password
+exports.changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // 1. Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Incorrect current password.' });
+    }
+
+    // 2. Ensure new password is not the same as the old one
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({ message: 'Your new password cannot be the same as your old password.' });
+    }
+
+    // 3. Hash and save new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.status(200).json({ message: 'Password successfully updated!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Resend Verification OTP for Registration
+// @route   POST /api/auth/resend-verification-otp
+exports.resendVerificationOTP = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    
+    if (user.isVerified) {
+      return res.status(400).json({ message: 'Account is already verified. You can log in.' });
+    }
+
+    const otp = generateOTP();
+    user.otp = otp;
+    user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    await user.save();
+
+    // Send the OTP Email again
+    const emailHtml = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 16px;">
+        <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
+          <h2 style="color: #6d28d9; margin-top: 0; font-size: 28px; font-weight: 800;">MathCom Mentors</h2>
+          <h3 style="color: #1e293b; font-size: 22px; margin-bottom: 16px;">Here is your new code! 🎉</h3>
+          <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
+            We generated a fresh verification code for you. Please use the secure code below to complete your registration:
+          </p>
+          <div style="background-color: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+            <strong style="font-size: 42px; letter-spacing: 12px; color: #6d28d9; display: block; margin-left: 12px;">${otp}</strong>
+          </div>
+          <p style="color: #64748b; font-size: 14px; background-color: #fffbeb; padding: 12px; border-radius: 8px; display: inline-block;">
+            ⏳ This code will expire in <strong>10 minutes</strong>.
+          </p>
+          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+          <p style="color: #94a3b8; font-size: 13px; line-height: 1.5;">
+            If you did not request this, you can safely ignore this email.
+          </p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail({
+      email: user.email,
+      subject: 'Your New Verification Code - MathCom Mentors',
+      html: emailHtml
+    });
+
+    res.status(200).json({ message: 'A new verification code has been sent to your email.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};

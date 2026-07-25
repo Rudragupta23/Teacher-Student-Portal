@@ -124,8 +124,15 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
     setIsResending(true);
     setStatusMsg({ type: '', text: '' });
     try {
-      await api.post('/auth/forgot-password', { email: formData.email });
-      setStatusMsg({ type: 'success', text: 'A fresh secure code has been sent to your email.' });
+      if (view === 'otp') {
+        // If they are verifying a new account
+        await api.post('/auth/resend-verification-otp', { email: formData.email });
+        setStatusMsg({ type: 'success', text: 'A new verification code has been sent to your email.' });
+      } else {
+        // If they are resetting a password
+        await api.post('/auth/forgot-password', { email: formData.email });
+        setStatusMsg({ type: 'success', text: 'A fresh secure code has been sent to your email.' });
+      }
       setResendTimer(90); 
     } catch (error) {
       setStatusMsg({ 
@@ -315,6 +322,31 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
                   <ShieldCheck className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={22} />
                   <input type="text" name="otp" value={formData.otp} placeholder="• • • • • •" required maxLength="6" onChange={handleChange}
                     className="w-full pl-12 pr-4 py-4 text-center tracking-[0.5em] font-mono text-2xl font-bold bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all placeholder:tracking-normal placeholder:font-sans placeholder:text-xl placeholder:font-normal placeholder:text-gray-400" />
+                </motion.div>
+              )}
+
+              {/* Show resend button directly under OTP input ONLY for account verification */}
+              {view === 'otp' && (
+                <motion.div variants={itemVariants} className="flex justify-center mt-1 mb-2">
+                  <p className="text-sm text-gray-500 font-medium">
+                    Didn't receive the code?{' '}
+                    <button 
+                      type="button" 
+                      onClick={handleResendCode} 
+                      disabled={resendTimer > 0 || isResending}
+                      className={`font-bold transition-colors outline-none ${
+                        resendTimer > 0 || isResending 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-violet-600 hover:text-violet-800 hover:underline'
+                      }`}
+                    >
+                      {isResending 
+                        ? 'Sending...' 
+                        : resendTimer > 0 
+                          ? `Resend in ${resendTimer}s` 
+                          : 'Send new code'}
+                    </button>
+                  </p>
                 </motion.div>
               )}
 
