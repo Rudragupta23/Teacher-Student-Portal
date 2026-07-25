@@ -282,6 +282,12 @@ exports.resetPassword = async (req, res) => {
     if (user.resetPasswordOtp !== otp) return res.status(400).json({ message: 'Invalid OTP' });
     if (user.resetPasswordExpires < new Date()) return res.status(400).json({ message: 'OTP has expired' });
 
+    // Check if the new password is the same as the old password
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({ message: 'Your new password cannot be the same as your old password.' });
+    }
+
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
     
@@ -294,6 +300,7 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
+
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');

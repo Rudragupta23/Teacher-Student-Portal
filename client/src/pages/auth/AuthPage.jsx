@@ -57,7 +57,7 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
   const { loginUser } = useContext(AuthContext);
   const [isParentMode, setIsParentMode] = useState(defaultParentMode); 
 
-  // This ensures the view changes immediately when the URL changes
+
   useEffect(() => {
     setView(defaultView);
     setIsParentMode(defaultParentMode);
@@ -69,6 +69,7 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
       otp: ''
     }));
   }, [defaultView, defaultParentMode]);
+
   // Password visibility states
   const [showPassword, setShowPassword] = useState(false);
   const [showSetPassword, setShowSetPassword] = useState(false);
@@ -77,9 +78,18 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' }); 
   const [isLoading, setIsLoading] = useState(false); 
 
-  // const [formData, setFormData] = useState({
-  //   name: '', email: '', password: '', phone: '', classCode: '', otp: '', newPassword: '', yearGroup: '', linkedStudentId: '' 
-  // });
+  // Resend Code state & timer
+  const [resendTimer, setResendTimer] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+
+  useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => setResendTimer((prev) => prev - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
+
   const [formData, setFormData] = useState({
     name: '', email: '', password: '', phone: '', otp: '', newPassword: '', yearGroup: '', linkedStudentId: '', schoolName: '', city: '', country: 'United Kingdom'
   });
@@ -107,6 +117,24 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
       return;
     }
     navigate('/forgot-password'); 
+  };
+
+  const handleResendCode = async () => {
+    if (resendTimer > 0) return;
+    setIsResending(true);
+    setStatusMsg({ type: '', text: '' });
+    try {
+      await api.post('/auth/forgot-password', { email: formData.email });
+      setStatusMsg({ type: 'success', text: 'A fresh secure code has been sent to your email.' });
+      setResendTimer(90); 
+    } catch (error) {
+      setStatusMsg({ 
+        type: 'error', 
+        text: error.response?.data?.message || 'Failed to resend code. Please try again.' 
+      });
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -302,14 +330,37 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
               )}
 
               {view === 'reset' && (
-                <motion.div variants={itemVariants} className="relative group">
-                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
-                  <input type={showNewPassword ? "text" : "password"} name="newPassword" value={formData.newPassword} placeholder="Enter New Password" required onChange={handleChange}
-                    className="w-full pl-12 pr-12 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
-                  <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 outline-none">
-                    {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </motion.div>
+                <>
+                  <motion.div variants={itemVariants} className="relative group">
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                    <input type={showNewPassword ? "text" : "password"} name="newPassword" value={formData.newPassword} placeholder="Enter New Password" required onChange={handleChange}
+                      className="w-full pl-12 pr-12 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                    <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 outline-none">
+                      {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </motion.div>
+                  <motion.div variants={itemVariants} className="flex justify-center mt-3">
+                    <p className="text-sm text-gray-500 font-medium">
+                      Didn't receive the code?{' '}
+                      <button 
+                        type="button" 
+                        onClick={handleResendCode} 
+                        disabled={resendTimer > 0 || isResending}
+                        className={`font-bold transition-colors outline-none ${
+                          resendTimer > 0 || isResending 
+                            ? 'text-gray-400 cursor-not-allowed' 
+                            : 'text-violet-600 hover:text-violet-800 hover:underline'
+                        }`}
+                      >
+                        {isResending 
+                          ? 'Sending...' 
+                          : resendTimer > 0 
+                            ? `Resend in ${resendTimer}s` 
+                            : 'Resend it now'}
+                      </button>
+                    </p>
+                  </motion.div>
+                </>
               )}
 
               {view === 'signup' && (
