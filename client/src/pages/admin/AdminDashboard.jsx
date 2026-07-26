@@ -155,6 +155,8 @@ const [testForm, setTestForm] = useState({
   const [topicSelectedStudent, setTopicSelectedStudent] = useState('');
   const [topicSearchTerm, setTopicSearchTerm] = useState('');
   const [topicSortConfig, setTopicSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+  const [topicGradeFilter, setTopicGradeFilter] = useState('all'); 
+  const [topicYearLevelFilter, setTopicYearLevelFilter] = useState('all'); 
   
   // NEW: States for the Topic Modal and Editing
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
@@ -902,7 +904,10 @@ const handleAssignSubmit = async (e) => {
   const processedTopics = !topicSelectedStudent ? [] : (topics || [])
     .filter(t => {
        if (topicSelectedStudent && t.studentId?._id !== topicSelectedStudent) return false;
-       return (t.topicName || '').toLowerCase().includes(topicSearchTerm.toLowerCase()) || 
+       if (topicGradeFilter !== 'all' && t.grade !== topicGradeFilter) return false; 
+       if (topicYearLevelFilter !== 'all' && t.yearLevel !== topicYearLevelFilter) return false; 
+       
+       return (t.topicName || '').toLowerCase().includes(topicSearchTerm.toLowerCase()) ||
               (t.areaName || '').toLowerCase().includes(topicSearchTerm.toLowerCase()) ||
               (t.grade || '').toLowerCase().includes(topicSearchTerm.toLowerCase());
     })
@@ -4416,22 +4421,23 @@ const handleAssignSubmit = async (e) => {
                   </div>
                 </div>
                 
-                {/* Topic Filters Above Table */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:items-end">
-                  <div className="flex-1">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
-                    <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
-                      value={topicYearFilter} onChange={e => { setTopicYearFilter(e.target.value); setTopicSelectedStudent(''); }}>
+                <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:items-end">
+                  
+                  <div className="flex-1 min-w-[110px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={topicYearFilter} onChange={e => { setTopicYearFilter(e.target.value); setTopicSelectedStudent(''); setTopicGradeFilter('all'); setTopicYearLevelFilter('all'); }}>
                       <option value="all">All Years</option>
                       {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
                         <option key={yg} value={yg}>{yg}</option>
                       ))}
                     </select>
                   </div>
-                  <div className="flex-1">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Student</label>
-                    <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
-                      value={topicSelectedStudent} onChange={e => setTopicSelectedStudent(e.target.value)}>
+                  
+                  <div className="flex-[1.5] min-w-[150px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Select Student</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={topicSelectedStudent} onChange={e => { setTopicSelectedStudent(e.target.value); setTopicGradeFilter('all'); setTopicYearLevelFilter('all'); }}>
                       <option value="">-- Choose a Student --</option>
                       {students
                         .filter(s => topicYearFilter === 'all' || s.yearGroup === topicYearFilter)
@@ -4441,11 +4447,34 @@ const handleAssignSubmit = async (e) => {
                       ))}
                     </select>
                   </div>
-                  <div className="shrink-0 w-full sm:w-auto mt-2 sm:mt-0 flex gap-3">
+                  
+                  <div className="flex-1 min-w-[110px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Grade</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm disabled:opacity-50"
+                      value={topicGradeFilter} onChange={e => setTopicGradeFilter(e.target.value)} disabled={!topicSelectedStudent}>
+                      <option value="all">All Grades</option>
+                      {[...new Set(topics.filter(t => t.studentId?._id === topicSelectedStudent).map(t => t.grade).filter(Boolean))].map(g => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex-1 min-w-[110px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Level</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm disabled:opacity-50"
+                      value={topicYearLevelFilter} onChange={e => setTopicYearLevelFilter(e.target.value)} disabled={!topicSelectedStudent}>
+                      <option value="all">All Levels</option>
+                      {[...new Set(topics.filter(t => t.studentId?._id === topicSelectedStudent).map(t => t.yearLevel).filter(Boolean))].map(yl => (
+                        <option key={yl} value={yl}>{yl}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="shrink-0 w-full sm:w-auto mt-2 sm:mt-0 flex gap-2">
                     {user?.role === 'admin' && topicSelectedStudent && processedTopics.length > 0 && (
                       <button 
                       onClick={() => setModal({ type: 'deleteAllTopics', data: topicSelectedStudent })} 
-                      className="px-6 py-3 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl font-black transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap border border-rose-200 hover:border-transparent"
+                      className="px-4 py-2.5 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg font-black transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap border border-rose-200 hover:border-transparent text-sm"
                       >
                     🗑️ Delete All
                     </button>
@@ -4453,7 +4482,7 @@ const handleAssignSubmit = async (e) => {
                     <div>
                       <input type="file" accept=".csv" id="csv-upload" className="hidden" onChange={handleCSVUpload} />
                       <label htmlFor={topicSelectedStudent && !isUploadingCSV ? "csv-upload" : ""} 
-                        className={`w-full sm:w-auto px-6 py-3 font-black rounded-xl shadow-sm transition-transform flex items-center justify-center gap-2 whitespace-nowrap 
+                        className={`w-full sm:w-auto px-4 py-2.5 font-black rounded-lg shadow-sm transition-transform flex items-center justify-center gap-2 whitespace-nowrap text-sm
                           ${!topicSelectedStudent ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : isUploadingCSV ? 'bg-emerald-300 text-emerald-800 cursor-wait' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:-translate-y-1 cursor-pointer border border-emerald-200'}`}>
                         {isUploadingCSV ? '⏳ Uploading...' : 'Import CSV'}
                       </label>
