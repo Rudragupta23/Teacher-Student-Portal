@@ -467,7 +467,6 @@ const HomePage = () => {
               {/* Desktop Links */}
               <div className="hidden md:flex items-center gap-8 font-medium">
                 <a href="#about" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Mission</a>
-                <a href="#mentor" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Mentor</a>
                 <a href="#subjects" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Curriculum</a>
                 <a href="#contact" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Contact Us</a>
                 
@@ -508,7 +507,6 @@ const HomePage = () => {
               >
                 <div className="px-4 pt-2 pb-6 space-y-4 flex flex-col">
                   <a href="#about" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Mission</a>
-                  <a href="#mentor" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Mentor</a>
                   <a href="#subjects" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Curriculum</a>
                   <a href="#contact" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Contact Us</a>
                   <Link to="/login" className="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold text-center mt-4 w-full block shadow-md">Portal Login</Link>
@@ -677,10 +675,20 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* Meet the Mentor Section */}
-        <div id="mentor" className={`py-24 relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#070B14]' : 'bg-slate-50'}`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className={`max-w-5xl mx-auto p-8 md:p-12 rounded-3xl border shadow-xl transition-colors ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200'}`}>
+        {/* Mentor & Mission Sections */}
+        <div className={`py-24 relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#070B14]' : 'bg-slate-50'}`}>
+          <div className={`absolute inset-0 bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30 ${isDark ? 'bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)]' : 'bg-[linear-gradient(to_right,#cbd5e1_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e1_1px,transparent_1px)]'}`}></div>
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col gap-24"> {/* gap-24 creates the large separation */}
+            
+            {/* Mentor Card */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className={`max-w-5xl mx-auto w-full p-8 md:p-12 rounded-3xl border shadow-xl transition-colors ${isDark ? 'bg-slate-900/60 border-slate-700/50' : 'bg-white border-slate-200'}`}
+            >
               <div className="w-full">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 text-indigo-500 text-sm font-bold mb-4">
                   <GraduationCap className="w-4 h-4" /> Chief Mentor & Founder
@@ -689,7 +697,7 @@ const HomePage = () => {
                 <p className={`text-lg mb-6 leading-relaxed transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                   With over a decade of teaching experience in advanced mathematics and computer science, Dr. Goyal has dedicated his career to simplifying complex engineering concepts. His unique approach bridges the gap between theoretical math and practical software engineering.
                 </p>
-                <div className="grid sm:grid-cols-2 gap-4 mb-8">
+                <div className="grid sm:grid-cols-2 gap-4 mb-2">
                   <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                     <h4 className={`font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Teaching Philosophy</h4>
                     <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Logic over memorization. Building foundations that last a lifetime.</p>
@@ -700,60 +708,21 @@ const HomePage = () => {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
+            </motion.div>
 
-        {/* Why Choose Us Section */}
-        <div id="features" className={`py-24 relative transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-white'}`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <TextReveal text="The MathCom Mentors Advantage" className="text-3xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
-              <p className={`text-lg max-w-2xl mx-auto transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>We don't just teach formulas; we build the logical foundation required for top-tier software engineering.</p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                { icon: Zap, title: "Concept Clarity", desc: "Complex mathematical proofs broken down into simple, digestible logical steps.", color: "text-amber-400", bg: "bg-amber-400/10", border: isDark ? "hover:border-amber-500/50" : "hover:border-amber-400" },
-                { icon: Award, title: "Exam Focused", desc: "Targeted preparation for sessionals and semester exams to ensure maximum scoring potential.", color: "text-emerald-400", bg: "bg-emerald-400/10", border: isDark ? "hover:border-emerald-500/50" : "hover:border-emerald-400" },
-                { icon: Users, title: "Community Driven", desc: "Built for students who cannot afford expensive coaching, driven by community support and engagement.", color: "text-blue-400", bg: "bg-blue-400/10", border: isDark ? "hover:border-blue-500/50" : "hover:border-blue-400" }
-              ].map((feature, i) => (
-                <motion.div 
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.2 }}
-                  whileHover={{ y: -5 }}
-                  className={`backdrop-blur-sm p-8 rounded-2xl border transition-all ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200 shadow-sm'} ${feature.border}`}
-                >
-                  <div className={`${feature.bg} w-14 h-14 rounded-xl flex items-center justify-center mb-6`}>
-                    <feature.icon className={`w-7 h-7 ${feature.color}`} />
-                  </div>
-                  <h3 className={`text-xl font-bold mb-3 transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>{feature.title}</h3>
-                  <p className={`leading-relaxed transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{feature.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Mission Section */}
-        <div id="about" className={`py-24 relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#070B14]' : 'bg-indigo-50'}`}>
-          <div className={`absolute inset-0 bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30 ${isDark ? 'bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)]' : 'bg-[linear-gradient(to_right,#cbd5e1_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e1_1px,transparent_1px)]'}`}></div>
-          
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            {/* Mission Card */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+              id="about"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className={`max-w-4xl mx-auto backdrop-blur-md p-10 md:p-16 rounded-3xl border shadow-2xl relative transition-colors ${isDark ? 'bg-slate-900/80 border-slate-700/50 shadow-indigo-900/20' : 'bg-white/90 border-slate-200 shadow-indigo-200/50'}`}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className={`scroll-mt-28 max-w-5xl mx-auto w-full text-center p-8 md:p-12 rounded-3xl border shadow-xl relative transition-colors ${isDark ? 'bg-slate-900/60 border-slate-700/50' : 'bg-white border-slate-200'}`}
             >
-              <div className={`absolute -top-8 left-1/2 -translate-x-1/2 p-4 rounded-full border transition-colors ${isDark ? 'bg-[#0A0F1C] border-slate-700/50' : 'bg-indigo-50 border-indigo-200'}`}>
-                <HeartHandshake className="w-10 h-10 text-indigo-500" />
+              <div className={`absolute -top-8 left-1/2 -translate-x-1/2 p-4 rounded-full border shadow-sm transition-colors ${isDark ? 'bg-[#0b1221] border-slate-700/50' : 'bg-indigo-50 border-indigo-200'}`}>
+                <HeartHandshake className="w-8 h-8 text-indigo-500" />
               </div>
-              
+
               <TextReveal text="Our Core Mission" className="text-3xl md:text-4xl font-extrabold mb-8 mt-4" isDark={isDark} />
               <p className={`text-xl md:text-2xl leading-relaxed italic font-light transition-colors ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 "These Online Classes are started especially for those students who can't come for classes or tuitions & for those who can't afford to go to coaching Classes. All I need is your Support & engagement with us. So I can help you more achieving best in your sessionals & semester exams."
@@ -764,6 +733,7 @@ const HomePage = () => {
                 <div className="h-[1px] w-12 bg-indigo-500/50"></div>
               </div>
             </motion.div>
+
           </div>
         </div>
 
