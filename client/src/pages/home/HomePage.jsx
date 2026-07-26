@@ -184,6 +184,7 @@ const HomePage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showTopBtn, setShowTopBtn] = useState(false);
   const [showAllFaqs, setShowAllFaqs] = useState(false);
+  const [activeSection, setActiveSection] = useState(''); 
   
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 }); 
   const [themeRipple, setThemeRipple] = useState(false); 
@@ -425,70 +426,106 @@ const HomePage = () => {
           )}
         </AnimatePresence>
 
-        {/* Navbar */}
-        <nav className={`fixed w-full z-50 top-0 backdrop-blur-xl border-b transition-colors duration-500 ${isDark ? 'bg-[#070B14]/90 border-slate-800/50 shadow-2xl shadow-black/50' : 'bg-white/80 border-slate-200 shadow-sm'}`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-20">
-              
-              {/* Logo */}
-              <motion.a href="/" whileHover={{ scale: 1.02 }} className="flex items-center gap-3">
-                <img src="/mathcom-logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-xl shadow-lg" />
-                <span className={`font-extrabold text-2xl tracking-tight transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  MathCom <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Mentors</span>
-                </span>
-              </motion.a>
-              
-              {/* Desktop Links */}
-              <div className="hidden md:flex items-center gap-8 font-medium">
-                <a href="#about" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Mission</a>
-                <a href="#subjects" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Curriculum</a>
-                <a href="#contact" className={`transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>Contact Us</a>
+        <div className="fixed top-0 inset-x-0 z-50 flex justify-center pt-4 px-4 pointer-events-none">
+          <motion.nav 
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, type: "spring", stiffness: 100, damping: 20 }}
+            className={`w-full max-w-6xl rounded-full backdrop-blur-2xl border transition-colors duration-500 pointer-events-auto ${isDark ? 'bg-[#0A0F1C]/85 border-slate-700/60 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)]' : 'bg-white/85 border-slate-200/60 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)]'}`}
+          >
+            <div className="px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center h-20">
                 
-                <button onClick={handleThemeToggle} className={`p-2 rounded-full transition-colors ${isDark ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}>
-                  {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                <button onClick={() => window.location.reload()} className="flex items-center gap-3 outline-none group cursor-pointer">
+                  <img src="/mathcom-logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-full shadow-sm border border-indigo-500/20 group-hover:scale-105 transition-transform" />
+                  <span className={`font-extrabold text-lg sm:text-xl tracking-tight transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    MathCom <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-cyan-400">Mentors</span>
+                  </span>
                 </button>
+                
+                {/* Desktop Links */}
+                <div className="hidden md:flex items-center gap-8 font-medium">
+                  <a 
+                    href="#about" 
+                    onClick={() => setActiveSection('about')}
+                    className={`relative group transition-colors py-2 text-sm sm:text-base font-bold ${activeSection === 'about' ? (isDark ? 'text-white' : 'text-indigo-600') : (isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600')}`}
+                  >
+                    Mission
+                    <span className={`absolute bottom-0 left-0 h-[3px] bg-indigo-500 transition-all duration-300 rounded-t-md ${activeSection === 'about' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
+                  </a>
+                  <a 
+                    href="#subjects" 
+                    onClick={() => setActiveSection('subjects')}
+                    className={`relative group transition-colors py-2 text-sm sm:text-base font-bold ${activeSection === 'subjects' ? (isDark ? 'text-white' : 'text-indigo-600') : (isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600')}`}
+                  >
+                    Curriculum
+                    <span className={`absolute bottom-0 left-0 h-[3px] bg-indigo-500 transition-all duration-300 rounded-t-md ${activeSection === 'subjects' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
+                  </a>
+                  <a 
+                    href="#contact" 
+                    onClick={() => setActiveSection('contact')}
+                    className={`relative group transition-colors py-2 text-sm sm:text-base font-bold ${activeSection === 'contact' ? (isDark ? 'text-white' : 'text-indigo-600') : (isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600')}`}
+                  >
+                    Contact Us
+                    <span className={`absolute bottom-0 left-0 h-[3px] bg-indigo-500 transition-all duration-300 rounded-t-md ${activeSection === 'contact' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
+                  </a>
+                  
+                  <div className="flex items-center gap-3 ml-2 pl-6 border-l border-slate-400/30">
+                    <Link to="/login" className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:from-indigo-500 hover:to-violet-500 transition-colors shadow-md">
+                      Portal Login
+                    </Link>
+                    <button 
+                      onClick={handleThemeToggle} 
+                      className={`p-2.5 rounded-full transition-colors outline-none ${isDark ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-slate-100 text-indigo-600 hover:bg-indigo-50 border border-slate-200/60'}`}
+                    >
+                      {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
 
-                <MagneticElement>
-                  <Link to="/login" className="bg-indigo-600 text-white px-7 py-2.5 rounded-full font-bold hover:bg-indigo-500 transition-colors shadow-md block">Portal Login</Link>
-                </MagneticElement>
-              </div>
-
-              <div className="md:hidden flex items-center gap-4">
-                <button onClick={handleThemeToggle} className={`p-2 rounded-full transition-colors ${isDark ? 'bg-slate-800 text-amber-400' : 'bg-indigo-50 text-indigo-600'}`}>
-                  {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                </button>
-                <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={`focus:outline-none ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    {isMobileMenuOpen ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                    )}
-                  </svg>
-                </button>
+                {/* Mobile Links */}
+                <div className="md:hidden flex items-center gap-3">
+                  <Link to="/login" className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-5 py-2 rounded-full font-bold text-xs shadow-md transition-colors hover:from-indigo-500 hover:to-violet-500">
+                    Login
+                  </Link>
+                  <button 
+                    onClick={handleThemeToggle} 
+                    className={`p-2 rounded-full transition-colors outline-none ${isDark ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-slate-100 text-indigo-600 border border-slate-200/60 hover:bg-indigo-50'}`}
+                  >
+                    {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  </button>
+                  <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={`focus:outline-none transition-colors p-1 ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>
+                    <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      {isMobileMenuOpen ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                      )}
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Mobile Dropdown Menu */}
-          <AnimatePresence>
-            {isMobileMenuOpen && (
-              <motion.div 
-                initial={{ height: 0, opacity: 0 }} 
-                animate={{ height: 'auto', opacity: 1 }} 
-                exit={{ height: 0, opacity: 0 }} 
-                className={`md:hidden border-b absolute w-full left-0 top-20 shadow-2xl overflow-hidden ${isDark ? 'bg-[#070B14] border-slate-800' : 'bg-white border-slate-200'}`}
-              >
-                <div className="px-4 pt-2 pb-6 space-y-4 flex flex-col">
-                  <a href="#about" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Mission</a>
-                  <a href="#subjects" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Curriculum</a>
-                  <a href="#contact" onClick={() => setIsMobileMenuOpen(false)} className={`font-medium p-2 block rounded ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}>Contact Us</a>
-                  <Link to="/login" className="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold text-center mt-4 w-full block shadow-md">Portal Login</Link>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </nav>
+            {/* Mobile Dropdown Menu */}
+            <AnimatePresence>
+              {isMobileMenuOpen && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0, y: -10 }} 
+                  animate={{ height: 'auto', opacity: 1, y: 0 }} 
+                  exit={{ height: 0, opacity: 0, y: -10 }} 
+                  className={`md:hidden absolute w-full left-0 top-[110%] shadow-2xl overflow-hidden border rounded-3xl ${isDark ? 'bg-[#0A0F1C]/95 border-slate-700/60 backdrop-blur-xl' : 'bg-white/95 border-slate-200/60 backdrop-blur-xl'}`}
+                >
+                  <div className="px-4 py-4 space-y-2 flex flex-col">
+                    <a href="#about" onClick={() => { setIsMobileMenuOpen(false); setActiveSection('about'); }} className={`font-bold text-base p-3 block rounded-xl transition-colors ${activeSection === 'about' ? (isDark ? 'bg-slate-800 text-white' : 'bg-indigo-50 text-indigo-600') : (isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}>Mission</a>
+                    <a href="#subjects" onClick={() => { setIsMobileMenuOpen(false); setActiveSection('subjects'); }} className={`font-bold text-base p-3 block rounded-xl transition-colors ${activeSection === 'subjects' ? (isDark ? 'bg-slate-800 text-white' : 'bg-indigo-50 text-indigo-600') : (isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}>Curriculum</a>
+                    <a href="#contact" onClick={() => { setIsMobileMenuOpen(false); setActiveSection('contact'); }} className={`font-bold text-base p-3 block rounded-xl transition-colors ${activeSection === 'contact' ? (isDark ? 'bg-slate-800 text-white' : 'bg-indigo-50 text-indigo-600') : (isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}>Contact Us</a>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.nav>
+        </div>
 
         {/* Hero Section */}
         <div className="relative pt-24 pb-16 sm:pt-32 sm:pb-24 lg:min-h-screen flex items-center overflow-hidden">
@@ -520,29 +557,23 @@ const HomePage = () => {
                   Master the core concepts of Engineering Mathematics, Discrete Mathematics, and advanced B.Tech CSE subjects. High-quality education, <strong className={`font-black ${isDark ? 'text-white border-b-2 border-indigo-500' : 'text-slate-900 border-b-2 border-indigo-500'}`}>completely free</strong> for those who need it most.
                 </motion.p>
                 
-                <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center gap-4">
+                <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center gap-4 mt-2">
                   {!isAppInstalled && (
-                    <MagneticElement className="w-full sm:w-auto">
-                      <motion.button 
-                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                        onClick={handleInstallClick}
-                        className={`flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-lg transition-all w-full shadow-xl ${isDark ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
-                      >
-                        <Download className="w-5 h-5" /> Install App
-                      </motion.button>
-                    </MagneticElement>
+                    <button 
+                      onClick={handleInstallClick}
+                      className={`flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-lg transition-colors w-full sm:w-auto shadow-xl ${isDark ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                    >
+                      <Download className="w-5 h-5" /> Install App
+                    </button>
                   )}
 
-                  <MagneticElement className="w-full sm:w-auto">
-                    <Link to="/login" className="block w-full">
-                      <motion.button 
-                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                        className={`flex items-center justify-center px-8 py-4 rounded-2xl font-black text-lg transition-all w-full border-2 ${isDark ? 'border-slate-700 hover:border-slate-500 hover:bg-slate-800 text-white' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-900'}`}
-                      >
-                        Portal Login
-                      </motion.button>
-                    </Link>
-                  </MagneticElement>
+                  <Link to="/login" className="block w-full sm:w-auto">
+                    <button 
+                      className={`flex items-center justify-center px-8 py-4 rounded-2xl font-black text-lg transition-colors w-full border-2 ${isDark ? 'border-slate-700 hover:border-slate-500 hover:bg-slate-800 text-white' : 'border-slate-300 hover:border-indigo-400 hover:bg-white bg-white/50 text-slate-800 shadow-sm'}`}
+                    >
+                      Portal Login
+                    </button>
+                  </Link>
                 </motion.div>
               </motion.div>
 
