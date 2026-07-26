@@ -1,33 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, animate, useInView, useScroll, useSpring, useTransform, AnimatePresence } from 'framer-motion';
-import { 
-  Calculator, 
-  ArrowRight, 
-  BookOpen, 
-  Cpu, 
-  Network, 
-  Video, 
-  Mail, 
-  HeartHandshake,
-  Users,
-  Award,
-  Zap,
-  Star,
-  Moon,
-  Sun,
-  ChevronUp,
-  Plus,
-  Minus,
-  GraduationCap,
-  PlayCircle,
-  Send,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-  Download,
-  Smartphone
-} from 'lucide-react';
+import { Calculator, ArrowRight, BookOpen, Cpu, Network, Video, Mail, HeartHandshake, Users, Award, Zap, Star, StarHalf, Moon, Sun, ChevronUp, Plus, Minus, GraduationCap, PlayCircle, Send, Loader2, CheckCircle, AlertCircle, Download, Smartphone } from 'lucide-react';
 
 const MagneticElement = ({ children, className }) => {
   const ref = useRef(null);
@@ -361,7 +335,7 @@ const HomePage = () => {
   {
     name: "Priya M.",
     role: "Computer Science Major",
-    rating: 4,
+    rating: 4.5,
     text: "The Discrete Math series was a lifesaver. Never thought I would actually enjoy studying Graph Theory. Highly recommended for every engineering student."
   },
   {
@@ -373,7 +347,7 @@ const HomePage = () => {
   {
     name: "Sneha R.",
     role: "B.Tech IT",
-    rating: 4,
+    rating: 4.5,
     text: "I was struggling with Data Structures, but the way concepts are visualized and explained here made everything crystal clear. Best mentor ever!"
   },
   {
@@ -822,13 +796,16 @@ const HomePage = () => {
                 <div key={index} className={`w-[350px] sm:w-[420px] backdrop-blur-md p-8 rounded-3xl border flex flex-col justify-between flex-shrink-0 transition-colors ${isDark ? 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60' : 'bg-white border-slate-200 hover:border-indigo-200 shadow-sm'}`}>
                   <div>
                     <div className="flex mb-4 gap-1">
-  {[...Array(t.rating)].map((_, i) => (
-    <Star
-      key={i}
-      className="w-5 h-5 text-amber-400 fill-amber-400"
-    />
-  ))}
-</div>
+                      {[...Array(5)].map((_, i) => {
+                        if (t.rating >= i + 1) {
+                          return <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />;
+                        } else if (t.rating >= i + 0.5) {
+                          return <StarHalf key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />;
+                        } else {
+                          return <Star key={i} className={`w-5 h-5 ${isDark ? 'text-slate-700' : 'text-slate-200'}`} />;
+                        }
+                      })}
+                    </div>
                     <p className={`leading-relaxed mb-6 italic transition-colors ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>"{t.text}"</p>
                   </div>
                   <div className={`flex items-center gap-4 border-t pt-5 transition-colors ${isDark ? 'border-slate-800/80' : 'border-slate-100'}`}>
