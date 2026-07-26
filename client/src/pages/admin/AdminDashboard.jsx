@@ -2427,7 +2427,13 @@ const handleAssignSubmit = async (e) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {students.map(student => {
+                    {[...students]
+                      .sort((a, b) => {
+                        const nameA = a.registrationName || a.name || '';
+                        const nameB = b.registrationName || b.name || '';
+                        return nameA.localeCompare(nameB);
+                      })
+                      .map(student => {
                       const studentHw = homeworks.filter(h => h.studentId?._id === student._id);
                       const completedCount = studentHw.filter(h => h.status === 'Graded').length;
                       const pendingCount = studentHw.filter(h => h.status === 'Submitted').length;
