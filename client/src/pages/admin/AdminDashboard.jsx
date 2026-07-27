@@ -157,6 +157,8 @@ const [testForm, setTestForm] = useState({
   const [topicSortConfig, setTopicSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
   const [topicGradeFilter, setTopicGradeFilter] = useState('all'); 
   const [topicYearLevelFilter, setTopicYearLevelFilter] = useState('all'); 
+  const [selectedTopicIds, setSelectedTopicIds] = useState([]); 
+  const [bulkDate, setBulkDate] = useState(new Date().toISOString().split('T')[0]); 
   
   // NEW: States for the Topic Modal and Editing
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
@@ -781,6 +783,7 @@ const handleAssignSubmit = async (e) => {
   };
 
   const handleEditTopic = (topic) => {
+    const todayStr = new Date().toISOString().split('T')[0];
     setTopicForm({
       topicName: topic.topicName,
       areaName: topic.areaName,
@@ -790,7 +793,7 @@ const handleAssignSubmit = async (e) => {
       pastPaperQues: topic.pastPaperQues || '',
       flashCards: topic.flashCards || '',
       studentConfidence: topic.studentConfidence || '',
-      datesCovered: topic.datesCovered.length > 0 ? topic.datesCovered : ['']
+      datesCovered: topic.datesCovered.length > 0 ? topic.datesCovered : [todayStr]
     });
     setTopicSelectedStudent(topic.studentId ? (topic.studentId._id || topic.studentId) : '');
     setEditingTopicId(topic._id);
@@ -4411,7 +4414,8 @@ const handleAssignSubmit = async (e) => {
                     </button>
 
                     <button disabled={!topicSelectedStudent} onClick={() => {
-                      setTopicForm({ topicName: '', areaName: '', grade: '', yearLevel: '', studentConfidence: '', datesCovered: [''] });
+                      const todayStr = new Date().toISOString().split('T')[0];
+                      setTopicForm({ topicName: '', areaName: '', grade: '', yearLevel: '', studentConfidence: '', datesCovered: [todayStr] });
                       setEditingTopicId(null);
                       setIsTopicModalOpen(true);
                     }} className={`px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap
@@ -4453,8 +4457,10 @@ const handleAssignSubmit = async (e) => {
                     <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm disabled:opacity-50"
                       value={topicGradeFilter} onChange={e => setTopicGradeFilter(e.target.value)} disabled={!topicSelectedStudent}>
                       <option value="all">All Grades</option>
-                      {[...new Set(topics.filter(t => t.studentId?._id === topicSelectedStudent).map(t => t.grade).filter(Boolean))].map(g => (
-                        <option key={g} value={g}>{g}</option>
+                      {[...new Set(topics.filter(t => t.studentId?._id === topicSelectedStudent).map(t => t.grade).filter(Boolean))]
+                        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
+                        .map(g => (
+                          <option key={g} value={g}>{g}</option>
                       ))}
                     </select>
                   </div>
@@ -4490,11 +4496,76 @@ const handleAssignSubmit = async (e) => {
                   </div>
                 </div>
 
+                {/* BULK DATE */}
+                {topicSelectedStudent && processedTopics.length > 0 && (
+                  <div className="mb-6 p-5 bg-white border-2 border-indigo-50 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] animate-fade-in relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500"></div>
+                    
+                    <div className="flex items-center gap-4 pl-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Selected</span>
+                        <span className={`text-xs font-black px-2.5 py-1 rounded-lg transition-colors ${selectedTopicIds.length > 0 ? 'bg-indigo-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500'}`}>
+                          {selectedTopicIds.length}
+                        </span>
+                      </div>
+                      
+                      <div className="w-px h-5 bg-slate-200"></div>
+                      
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          if (selectedTopicIds.length === processedTopics.length && processedTopics.length > 0) setSelectedTopicIds([]);
+                          else setSelectedTopicIds(processedTopics.map(t => t._id));
+                        }}
+                        className="text-xs font-bold text-indigo-500 hover:text-indigo-700 transition-colors flex items-center gap-1.5 outline-none"
+                      >
+                        {selectedTopicIds.length === processedTopics.length && processedTopics.length > 0 ? '⨯ Deselect All' : '✓ Select All'}
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                      <div className="flex items-center gap-3 w-full sm:w-auto bg-[#F4F7FE] p-1.5 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide pl-3 hidden sm:block">Assign Date</span>
+                        <input 
+                          type="date" 
+                          value={bulkDate} 
+                          onChange={e => setBulkDate(e.target.value)} 
+                          className="py-2.5 px-4 bg-white border border-slate-200 rounded-lg font-bold text-sm text-[#1B2559] outline-none focus:ring-2 focus:ring-indigo-500 flex-1 sm:flex-none cursor-pointer" 
+                        />
+                      </div>
+                      <button 
+                        type="button"
+                        disabled={selectedTopicIds.length === 0}
+                        onClick={async () => {
+                          if (selectedTopicIds.length === 0) return;
+                          try {
+                            await api.post('/topics/bulk-date', { topicIds: selectedTopicIds, date: bulkDate });
+                            showToast(`Date assigned to ${selectedTopicIds.length} topics successfully!`);
+                            setSelectedTopicIds([]);
+                            fetchTopics();
+                          } catch (err) {
+                            showToast("Failed to assign dates", "error");
+                          }
+                        }}
+                        className={`w-full sm:w-auto px-6 py-3.5 font-black rounded-xl text-sm transition-all flex items-center justify-center gap-2 whitespace-nowrap
+                          ${selectedTopicIds.length === 0 
+                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' 
+                            : 'bg-[#1B2559] hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 transform hover:-translate-y-1'}`}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                        Apply to {selectedTopicIds.length}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
                   <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
                     <thead>
                       <tr className="bg-indigo-600 text-white text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top shadow-sm">
-                        <th className="p-4 rounded-tl-2xl cursor-pointer hover:bg-indigo-700 transition-colors" onClick={() => handleSortTopics('areaName')}>
+                        <th className="p-4 rounded-tl-2xl w-14 text-center">
+                        </th>
+                        <th className="p-4 cursor-pointer hover:bg-indigo-700 transition-colors" onClick={() => handleSortTopics('areaName')}>
                           Area {topicSortConfig.key === 'areaName' ? (topicSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                         </th>
                         <th className="p-4 cursor-pointer hover:bg-indigo-700 transition-colors leading-tight" onClick={() => handleSortTopics('topicName')}>
@@ -4521,12 +4592,25 @@ const handleAssignSubmit = async (e) => {
                     <tbody>
                       {!topicSelectedStudent ? (
                         <tr>
-                          <td colSpan="10" className="text-center py-10 text-slate-500 font-black">
+                          <td colSpan="11" className="text-center py-10 text-slate-500 font-black">
                             Please select a student from the dropdown above to view their topics.
                           </td>
                         </tr>
                       ) : processedTopics.map((topic, index) => (
                         <tr key={topic._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-purple-100'}`}>
+                          <td className="p-4">
+                            <div className="flex items-center justify-center">
+                              <input 
+                                type="checkbox" 
+                                className="w-5 h-5 rounded cursor-pointer accent-indigo-600 hover:scale-110 transition-transform drop-shadow-sm"
+                                checked={selectedTopicIds.includes(topic._id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedTopicIds([...selectedTopicIds, topic._id]);
+                                  else setSelectedTopicIds(selectedTopicIds.filter(id => id !== topic._id));
+                                }}
+                              />
+                            </div>
+                          </td>
                           <td className="p-4 font-bold text-slate-600">{topic.areaName}</td>
                           <td className="p-4 font-black text-[#1B2559] whitespace-normal min-w-[160px] leading-snug">
                             {(() => {
@@ -4557,7 +4641,6 @@ const handleAssignSubmit = async (e) => {
                           {(() => {
                             if (!topic.sparxCode || topic.sparxCode === '-' || topic.sparxCode === 'N/A') return '-';
                             
-                            // Determine if it's a comma-separated list or a space-separated sentence
                             const isList = topic.sparxCode.includes(',');
                             const separator = isList ? ',' : ' ';
                             const joiner = isList ? ', ' : ' ';
@@ -4625,7 +4708,7 @@ const handleAssignSubmit = async (e) => {
                       ))}
                       {topicSelectedStudent && processedTopics.length === 0 && (
                     <tr>
-                      <td colSpan="10" className="text-center py-10 text-slate-400 font-bold">No topic records found for the selected student.</td>
+                      <td colSpan="11" className="text-center py-10 text-slate-400 font-bold">No topic records found for the selected student.</td>
                     </tr>
                       )}
                     </tbody>

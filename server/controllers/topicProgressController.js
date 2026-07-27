@@ -97,3 +97,19 @@ exports.deleteAllTopics = async (req, res) => {
     res.status(500).json({ message: 'Failed to delete topics' });
   }
 };
+
+exports.bulkUpdateTopicDates = async (req, res) => {
+  try {
+    const { topicIds, date } = req.body;
+    if (!topicIds || !Array.isArray(topicIds) || !date) {
+      return res.status(400).json({ message: 'Invalid data format' });
+    }
+    await TopicProgress.updateMany(
+      { _id: { $in: topicIds } },
+      { $addToSet: { datesCovered: date } }
+    );
+    res.status(200).json({ message: `Date applied to ${topicIds.length} topics successfully!` });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update topic dates' });
+  }
+};
