@@ -2661,7 +2661,7 @@ const handleAssignSubmit = async (e) => {
                 </div>
 
                 <div className="space-y-6 flex flex-col h-full">
-                  <p className="text-sm font-bold text-slate-500">Modify a student's profile. These changes are only visible to Admins. The student will still see their original details.</p>
+                  <p className="text-sm font-bold text-slate-500">Modify a student's profile. These changes are visible to Admins and Students.</p>
 
                   <div className="space-y-2">
                     <label className="text-xs font-black text-amber-500 uppercase tracking-wide">Select a Student to Edit</label>
