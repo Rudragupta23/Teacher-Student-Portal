@@ -3804,17 +3804,27 @@ const handleAssignSubmit = async (e) => {
                             {hw.status}
                           </span>
                           {hw.submission?.submittedAt && new Date(hw.submission.submittedAt) > new Date(hw.dueDate) && (
-  <span className="text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider bg-rose-100 text-rose-700 shadow-sm border border-rose-200 animate-pulse">
-    LATE BY {getOverdueTime(hw.dueDate, hw.submission.submittedAt)}
-  </span>
-)}
+                          <span className="text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider bg-rose-100 text-rose-700 shadow-sm border border-rose-200 animate-pulse">
+                            LATE BY {getOverdueTime(hw.dueDate, hw.submission.submittedAt)}
+                          </span>
+                        )}
                         </div>
                         <p className="text-sm text-[#A3AED0] font-bold mb-2">
                           Student: <span className="font-black text-[#1B2559]">{hw.studentId ? `${hw.studentId.registrationName || hw.studentId.name} ${hw.studentId.yearGroup ? `- ${hw.studentId.yearGroup}` : ''}` : "Unknown"}</span>
                         </p>
-                        {hw.grading?.gradedBy && user?.role === 'admin' && (
-                           <p className="text-xs text-emerald-600 bg-emerald-50 inline-block px-2 py-1 rounded-md font-black">✅ Marked by a Grader</p>
-                        )}
+                        {hw.grading?.gradedBy && user?.role === 'admin' && (() => {
+                          const graderId = String(hw.grading.gradedBy?._id || hw.grading.gradedBy);
+                          const matchedGrader = graders.find(g => String(g._id) === graderId);
+                          
+                          if (matchedGrader) {
+                            return (
+                              <p className="text-xs text-emerald-600 bg-emerald-50 inline-block px-2 py-1 rounded-md font-black">
+                                ✅ Marked by {matchedGrader.name}
+                              </p>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3">
