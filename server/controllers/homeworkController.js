@@ -174,8 +174,16 @@ exports.submitHomework = async (req, res) => {
   const { answerText, answerFileUrl, mcqAnswers } = req.body;
   
   try {
-    const homework = await Homework.findOne({ _id: id, studentId: req.user._id });
+    let homework;
+    if (req.user.role === 'admin' || req.user.role === 'grader') {
+      homework = await Homework.findById(id);
+    } else {
+      homework = await Homework.findOne({ _id: id, studentId: req.user._id });
+    }
+    
     if (!homework) return res.status(404).json({ message: 'Homework not found' });
+
+    const student = await User.findById(homework.studentId);
 
     const notifyAdmins = async (studentName) => {
       const admins = await User.find({ role: 'admin' });
@@ -207,8 +215,6 @@ exports.submitHomework = async (req, res) => {
         }
       });
     };
-
-    const student = await User.findById(req.user._id);
 
     if (homework.type === 'MCQ') {
       let correctCount = 0;
@@ -423,7 +429,7 @@ exports.gradeHomework = async (req, res) => {
           });
         }
 
-        // 2. NOTIFY THE PARENT(S)
+        // 2. NOTIFY THE PARENT
         const parents = await User.find({
           role: 'parent',
           $or: [

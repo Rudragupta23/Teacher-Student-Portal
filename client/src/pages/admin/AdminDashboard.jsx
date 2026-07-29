@@ -53,7 +53,6 @@ export default function AdminDashboard() {
   const [yearGroupAllocate, setYearGroupAllocate] = useState('all');
   const [selectedStudentsToAllocate, setSelectedStudentsToAllocate] = useState([]);
 
-  // REPLACE line 46-53 with:
 const [assignForm, setAssignForm] = useState({
   title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Medium', 
   dueDate: '', fileUrl: '', content: '', studentInstructions: '',
@@ -72,6 +71,8 @@ const [testForm, setTestForm] = useState({
 
   // State for optional answer sheet upload
   const [answerSheet, setAnswerSheet] = useState({ fileUrl: '', fileName: '', isUploading: false });
+  const [adminSubmitForm, setAdminSubmitForm] = useState({ answerText: '', answerFileUrl: '' });
+  const [adminSubmitFile, setAdminSubmitFile] = useState({ fileName: '', isUploading: false });
 
   // Custom UI States
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -529,7 +530,20 @@ const [testForm, setTestForm] = useState({
     }
   };
 
-  // REPLACE line 301-310 (handleAssignSubmit) with:
+  const handleAdminSubmitFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5000000) return showToast("File is too large! Please keep it under 5MB.", "error");
+      setAdminSubmitFile({ ...adminSubmitFile, fileName: file.name, isUploading: true });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAdminSubmitForm({ ...adminSubmitForm, answerFileUrl: reader.result });
+        setAdminSubmitFile({ ...adminSubmitFile, fileName: file.name, isUploading: false });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
 const handleAssignSubmit = async (e) => {
   e.preventDefault();
   if (!assignForm.dueDate) return showToast("Please assign a valid Due Date!", "error");
@@ -694,6 +708,15 @@ const handleAssignSubmit = async (e) => {
         await api.delete(`/topics${query}`);
         showToast(modal.data ? "Student's topics deleted successfully!" : "All topics have been deleted!", "error");
         fetchTopics();
+      }
+      else if (modal.type === 'adminSubmit') {
+        await api.post(`/homework/${modal.hwId}/submit`, {
+          answerText: adminSubmitForm.answerText,
+          answerFileUrl: adminSubmitForm.answerFileUrl
+        });
+        showToast("Homework submitted successfully on behalf of the student!");
+        setAdminSubmitForm({ answerText: '', answerFileUrl: '' });
+        setAdminSubmitFile({ fileName: '', isUploading: false });
       }
       
       setModal({ type: null, hwId: null, studentId: null, data: '' });
@@ -1577,6 +1600,33 @@ const handleAssignSubmit = async (e) => {
               </>
             )}
 
+            {modal.type === 'adminSubmit' && (
+              <>
+                <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                  <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
+                  <h3 className="text-2xl font-black text-[#1B2559]">Submit on Behalf of Student</h3>
+                </div>
+                <p className="text-slate-500 text-sm mb-6">Upload the student's work file or enter their text answer manually to mark this task as Submitted.</p>
+                
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Written Answer (Optional)</label>
+                    <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-medium text-[#1B2559] min-h-[100px]" 
+                      placeholder="Enter text answer..." 
+                      value={adminSubmitForm.answerText} onChange={e => setAdminSubmitForm({...adminSubmitForm, answerText: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Attach Student's File</label>
+                    <div className="relative border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-2xl p-4 text-center hover:bg-indigo-50 transition-colors cursor-pointer group">
+                      <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAdminSubmitFileUpload} />
+                      <p className="font-bold text-indigo-800 text-sm truncate px-2">{adminSubmitFile.fileName ? `📎 ${adminSubmitFile.fileName}` : 'Upload PDF/Image'}</p>
+                      {adminSubmitFile.isUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
             {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes' || modal.type === 'deleteAllTopics') && (
   <>
     <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mb-4 text-3xl mx-auto">🗑️</div>
@@ -1750,10 +1800,12 @@ const handleAssignSubmit = async (e) => {
   setModal({ type: null, hwId: null, studentId: null, data: '' }); 
   setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); 
   setGraderInstruction(''); 
+  setAdminSubmitForm({ answerText: '', answerFileUrl: '' }); 
+  setAdminSubmitFile({ fileName: '', isUploading: false }); 
   setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' }); 
 }} className="flex-1 py-4 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-2xl transition-colors">
   Cancel
-</button> 
+</button>
                   <button onClick={executeModalAction} className={`flex-1 py-4 font-bold rounded-2xl text-white transition-transform hover:-translate-y-1 shadow-lg
   ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes' || modal.type === 'deleteAllTopics') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' :
     modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
@@ -2305,10 +2357,15 @@ const handleAssignSubmit = async (e) => {
                             <td className="p-4">
                                <div className="flex flex-row flex-nowrap items-center justify-center gap-2 w-max mx-auto">
                                   {hw.status === 'Pending' && (
-                                    <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: '' })} className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-600 font-black rounded-lg hover:bg-indigo-50 transition-all shadow-sm text-xs">
-                                      Extend
-                                    </button>
-                                  )}
+  <>
+    <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: '' })} className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-600 font-black rounded-lg hover:bg-indigo-50 transition-all shadow-sm text-xs">
+      Extend
+    </button>
+    <button onClick={() => setModal({ type: 'adminSubmit', hwId: hw._id, data: hw })} className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-600 font-black rounded-lg hover:bg-indigo-100 transition-all shadow-sm text-xs">
+      Submit Work
+    </button>
+  </>
+)}
                                   
                                   {hw.status === 'Submitted' && (
                                     <>
@@ -2699,10 +2756,15 @@ const handleAssignSubmit = async (e) => {
                             <td className="p-4">
                                <div className="flex flex-row flex-nowrap items-center justify-center gap-2 w-max mx-auto">
                                   {hw.status === 'Pending' && (
-                                    <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: '' })} className="px-3 py-1.5 bg-white border border-rose-200 text-rose-600 font-black rounded-lg hover:bg-rose-50 transition-all shadow-sm text-xs">
-                                      Extend
-                                    </button>
-                                  )}
+  <>
+    <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: '' })} className="px-3 py-1.5 bg-white border border-rose-200 text-rose-600 font-black rounded-lg hover:bg-rose-50 transition-all shadow-sm text-xs">
+      Extend
+    </button>
+    <button onClick={() => setModal({ type: 'adminSubmit', hwId: hw._id, data: hw })} className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 font-black rounded-lg hover:bg-rose-100 transition-all shadow-sm text-xs">
+      Submit Work
+    </button>
+  </>
+)}
                                   
                                   {hw.status === 'Submitted' && (
                                     <>
