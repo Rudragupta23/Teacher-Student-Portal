@@ -1012,10 +1012,49 @@ const handleAssignSubmit = async (e) => {
   
   const filteredTests = homeworks.filter(hw => {
     if (!hw.isTest) return false;
+    if (hwYearFilter !== 'all') {
+      const stuYear = hw.studentId?.yearGroup || '';
+      if (stuYear !== hwYearFilter) return false;
+    }
+    if (hwStudentFilter !== 'all') {
+      const stuId = hw.studentId?._id || hw.studentId;
+      if (String(stuId) !== String(hwStudentFilter)) return false;
+    }
+    if (hwStatusFilter !== 'all') {
+      if (hw.status !== hwStatusFilter) return false;
+    }
     const searchLower = (searchTerm || '').toLowerCase();
     const titleMatch = (hw.title || '').toLowerCase().includes(searchLower);
     const nameMatch = (hw.studentId?.name || '').toLowerCase().includes(searchLower);
-    return titleMatch || nameMatch;
+    const regNameMatch = (hw.studentId?.registrationName || '').toLowerCase().includes(searchLower);
+    
+    return titleMatch || nameMatch || regNameMatch;
+  }).sort((a, b) => {
+    if (!hwSortConfig || !hwSortConfig.key) return 0;
+    
+    let valA = '';
+    let valB = '';
+
+    if (hwSortConfig.key === 'title') {
+      valA = (a.title || '').toLowerCase();
+      valB = (b.title || '').toLowerCase();
+    } else if (hwSortConfig.key === 'student') {
+      valA = (a.studentId?.registrationName || a.studentId?.name || '').toLowerCase();
+      valB = (b.studentId?.registrationName || b.studentId?.name || '').toLowerCase();
+    } else if (hwSortConfig.key === 'dueDate') {
+      valA = new Date(a.startDate || 0).getTime();
+      valB = new Date(b.startDate || 0).getTime();
+    } else if (hwSortConfig.key === 'status') {
+      valA = (a.status || '').toLowerCase();
+      valB = (b.status || '').toLowerCase();
+    } else if (hwSortConfig.key === 'difficulty') {
+      valA = (a.difficulty || '').toLowerCase();
+      valB = (b.difficulty || '').toLowerCase();
+    }
+
+    if (valA < valB) return hwSortConfig.direction === 'asc' ? -1 : 1;
+    if (valA > valB) return hwSortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
   });
 
   const handleProfilePicUpload = (e) => {
@@ -2339,226 +2378,393 @@ const handleAssignSubmit = async (e) => {
 
           {/* SCHEDULE TESTS */}
           {activeTab === 'tests' && (
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
-              <div className="xl:col-span-4 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="bg-rose-500 w-2 h-8 rounded-full"></div>
-                  <h2 className="text-2xl font-black text-[#1B2559]">Schedule Test</h2>
-                </div>
-                
-                <form onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!testForm.startDate || !testForm.dueDate) return showToast("Assign Start & Due Dates!", "error");
-                  if (new Date(testForm.startDate) >= new Date(testForm.dueDate)) return showToast("Due date must be after Start date!", "error");
-                  try {
-                    await api.post('/homework/assign', { 
-                      ...testForm, 
-                      isTest: true
-                    });
-                    showToast('🎉 Test scheduled successfully!');
-                    fetchData(); 
-                    setTestForm({ ...testForm, title: '', startDate: '', dueDate: '', fileUrl: '', content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
-                    setTestFileName(''); 
-                  } catch (err) { showToast('Error scheduling test.', "error"); }
-                }} className="space-y-6">
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-  <div className="space-y-1">
-    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Week No</label>
-    <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold focus:ring-4 focus:ring-rose-500/20 text-[#1B2559]" 
-      placeholder="e.g. 5" 
-      value={testForm.weekNo} onChange={e => {
-        const newWeek = e.target.value;
-        setTestForm({
-          ...testForm, 
-          weekNo: newWeek, 
-          title: `WEEK ${newWeek} TEST - ${testForm.topic}`.toUpperCase()
-        });
-      }} />
-  </div>
-  <div className="space-y-1">
-    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Topic</label>
-    <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold focus:ring-4 focus:ring-rose-500/20 text-[#1B2559]" 
-      placeholder="e.g. Algebra" 
-      value={testForm.topic} onChange={e => {
-        const newTopic = e.target.value;
-        setTestForm({
-          ...testForm, 
-          topic: newTopic, 
-          title: `WEEK ${testForm.weekNo} TEST - ${newTopic}`.toUpperCase()
-        });
-      }} />
-  </div>
-</div>
-
-<div className="space-y-1">
-  <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Test Title (Auto-Generated)</label>
-  <input className="w-full p-4 bg-[#E2E8F0] border-none rounded-2xl focus:ring-4 focus:ring-rose-500/20 text-[#1B2559] outline-none font-bold opacity-70 cursor-not-allowed" 
-    placeholder="WEEK X TEST - TOPIC" required value={testForm.title} readOnly />
-</div>
-
-                  {/* FILTER BY YEAR, STUDENT, AND DIFFICULTY */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Filter by Year</label>
-                      <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
-    value={testYearGroupAssign} onChange={e => setTestYearGroupAssign(e.target.value)}>
-                        <option value="all">All Years</option>
-                        {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
-                          <option key={yg} value={yg}>{yg}</option>
-                        ))}
-                      </select>
+            <div className="animate-fade-in relative">
+              
+              {isAssignModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
+                  <div className="bg-white rounded-[2rem] p-8 w-full max-w-2xl shadow-2xl transform scale-100 animate-slide-up max-h-[90vh] overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                      <div className="bg-rose-500 w-2 h-8 rounded-full"></div>
+                      <h2 className="text-2xl font-black text-[#1B2559]">Schedule New Test</h2>
                     </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Difficulty</label>
-                      <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
-                        onChange={e => setTestForm({...testForm, difficulty: e.target.value})} value={testForm.difficulty}>
-                        <option value="Easy">Easy 🟢</option>
-                        <option value="Medium">Medium 🟡</option>
-                        <option value="Hard">Hard 🔴</option>
-                      </select>
-                    </div>
-
-                    <div className="md:col-span-2 space-y-1">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Select Student</label>
-                      <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
-    onChange={e => setTestForm({...testForm, studentId: e.target.value})} value={testForm.studentId}>
-                        <option value="all">All Filtered Students</option>
-                        {students.filter(s => testYearGroupAssign === 'all' || s.yearGroup === testYearGroupAssign).map(s => (
-                          <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* CALENDAR PICKERS */}
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-black text-rose-500 uppercase tracking-wide ml-1">Start Date & Time (Unlocks)</label>
-                      <input type="datetime-local" required min={minDateTime} className="w-full max-w-full p-4 bg-rose-50 text-rose-800 rounded-2xl outline-none cursor-pointer font-bold" 
-  value={testForm.startDate} onChange={e => setTestForm({...testForm, startDate: e.target.value})} />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-black text-rose-500 uppercase tracking-wide ml-1">Deadline Date & Time</label>
-                      <input type="datetime-local" required min={testForm.startDate || minDateTime} className="w-full max-w-full p-4 bg-rose-50 text-rose-800 rounded-2xl outline-none cursor-pointer font-bold" 
-  value={testForm.dueDate} onChange={e => setTestForm({...testForm, dueDate: e.target.value})} />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 mt-4">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Instructions for Student (Optional)</label>
-                    <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl focus:ring-4 focus:ring-rose-500/20 text-[#1B2559] outline-none font-bold" 
-                      placeholder="e.g. Calculators are not allowed..." 
-                      value={testForm.studentInstructions} onChange={e => setTestForm({...testForm, studentInstructions: e.target.value})} />
-                  </div>
-
-                  {/* FORMAT TYPE & BUILDER */}
-                  <div className="space-y-1 pt-4 border-t border-slate-100">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Test Format Type</label>
-                    <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl font-bold text-[#1B2559] outline-none mb-4 cursor-pointer" 
-                      value={testForm.type} onChange={e => setTestForm({...testForm, type: e.target.value})}>
-                      <option value="MCQ">Build Quiz (MCQ)</option>
-                      <option value="File">Upload File (PDF/Image)</option>
-                      <option value="Text">Write Question</option>
-                    </select>
-
-                    <div className="animate-fade-in">
-                      {testForm.type === 'File' && (
-                        <div className="relative border-2 border-dashed border-rose-300 bg-[#F4F7FE] rounded-3xl p-10 text-center hover:bg-rose-50 transition-colors cursor-pointer group">
-                          <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleTestFileUpload} />
-                          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
-                          <p className="font-black text-[#1B2559]">Drag & Drop or Click</p>
-                          <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG up to 5MB</p>
-                          {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file...</p>}
-                          {testFileName && !isUploading && <p className="mt-3 inline-block bg-white text-rose-800 px-4 py-2 rounded-full text-xs font-bold shadow-sm">{testFileName}</p>}
+                    
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!testForm.startDate || !testForm.dueDate) return showToast("Assign Start & Due Dates!", "error");
+                      if (new Date(testForm.startDate) >= new Date(testForm.dueDate)) return showToast("Due date must be after Start date!", "error");
+                      try {
+                        await api.post('/homework/assign', { 
+                          ...testForm, 
+                          isTest: true
+                        });
+                        showToast('🎉 Test scheduled successfully!');
+                        fetchData(); 
+                        setTestForm({ ...testForm, title: '', startDate: '', dueDate: '', fileUrl: '', content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
+                        setTestFileName(''); 
+                        setIsAssignModalOpen(false);
+                      } catch (err) { showToast('Error scheduling test.', "error"); }
+                    }} className="space-y-6">
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                        <div className="space-y-1">
+                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Week No</label>
+                          <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold focus:ring-4 focus:ring-rose-500/20 text-[#1B2559]" 
+                            placeholder="e.g. 5" 
+                            value={testForm.weekNo} onChange={e => {
+                              const newWeek = e.target.value;
+                              setTestForm({
+                                ...testForm, 
+                                weekNo: newWeek, 
+                                title: `WEEK ${newWeek} TEST - ${testForm.topic}`.toUpperCase()
+                              });
+                            }} />
                         </div>
-                      )}
+                        <div className="space-y-1">
+                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Topic</label>
+                          <input type="text" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold focus:ring-4 focus:ring-rose-500/20 text-[#1B2559]" 
+                            placeholder="e.g. Algebra" 
+                            value={testForm.topic} onChange={e => {
+                              const newTopic = e.target.value;
+                              setTestForm({
+                                ...testForm, 
+                                topic: newTopic, 
+                                title: `WEEK ${testForm.weekNo} TEST - ${newTopic}`.toUpperCase()
+                              });
+                            }} />
+                        </div>
+                      </div>
 
-                      {testForm.type === 'Text' && (
-                        <textarea className="w-full p-5 bg-[#F4F7FE] border-none rounded-3xl outline-none focus:ring-4 focus:ring-rose-500/20 text-[#1B2559] font-medium min-h-[160px]" 
-                          placeholder="Type test instructions or complete text here..." 
-                          value={testForm.content} onChange={e => setTestForm({...testForm, content: e.target.value})} />
-                      )}
+                      <div className="space-y-1">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Test Title (Auto-Generated)</label>
+                        <input className="w-full p-4 bg-[#E2E8F0] border-none rounded-2xl focus:ring-4 focus:ring-rose-500/20 text-[#1B2559] outline-none font-bold opacity-70 cursor-not-allowed" 
+                          placeholder="WEEK X TEST - TOPIC" required value={testForm.title} readOnly />
+                      </div>
 
-                      {testForm.type === 'MCQ' && (
-                        <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
-                          {testForm.mcqs.map((mcq, qIndex) => (
-                            <div key={qIndex} className="p-5 bg-[#F4F7FE] rounded-3xl">
-                              <input className="w-full p-2 mb-3 font-black border-b-2 border-slate-200 bg-transparent outline-none focus:border-rose-500 text-[#1B2559]" 
-                                placeholder={`Question ${qIndex + 1}`} value={mcq.question} 
-                                onChange={(e) => updateTestMcq(qIndex, 'question', e.target.value)} />
-                              <div className="grid grid-cols-2 gap-3 mb-4">
-                                {mcq.options.map((opt, oIndex) => (
-                                  <input key={oIndex} className="p-3 text-sm border-none rounded-xl bg-white outline-none focus:ring-2 focus:ring-rose-400 font-bold" 
-                                    placeholder={`Option ${oIndex + 1}`} value={opt} 
-                                    onChange={(e) => updateTestMcq(qIndex, 'options', e.target.value, oIndex)} />
-                                ))}
-                              </div>
-                              <div className="flex items-center justify-between mt-2">
-                                <div className="flex items-center gap-3">
-                                  <label className="text-xs font-black text-[#A3AED0] uppercase">Correct Answer:</label>
-                                  <select className="p-2 text-sm font-black border-none rounded-xl bg-emerald-100 text-emerald-800 outline-none cursor-pointer" 
-                                    value={mcq.correctOption} onChange={(e) => updateTestMcq(qIndex, 'correctOption', parseInt(e.target.value))}>
-                                    <option value={0}>Option 1</option><option value={1}>Option 2</option><option value={2}>Option 3</option><option value={3}>Option 4</option>
-                                  </select>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Filter by Year</label>
+                          <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
+                            value={testYearGroupAssign} onChange={e => setTestYearGroupAssign(e.target.value)}>
+                            <option value="all">All Years</option>
+                            {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                              <option key={yg} value={yg}>{yg}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Difficulty</label>
+                          <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+                            onChange={e => setTestForm({...testForm, difficulty: e.target.value})} value={testForm.difficulty}>
+                            <option value="Easy">Easy 🟢</option>
+                            <option value="Medium">Medium 🟡</option>
+                            <option value="Hard">Hard 🔴</option>
+                          </select>
+                        </div>
+
+                        <div className="md:col-span-2 space-y-1">
+                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Select Student</label>
+                          <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+                            onChange={e => setTestForm({...testForm, studentId: e.target.value})} value={testForm.studentId}>
+                            <option value="all">All Filtered Students</option>
+                            {students.filter(s => testYearGroupAssign === 'all' || s.yearGroup === testYearGroupAssign).map(s => (
+                              <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-black text-rose-500 uppercase tracking-wide ml-1">Start Date & Time (Unlocks)</label>
+                          <input type="datetime-local" required min={minDateTime} className="w-full max-w-full p-4 bg-rose-50 text-rose-800 rounded-2xl outline-none cursor-pointer font-bold" 
+                            value={testForm.startDate} onChange={e => setTestForm({...testForm, startDate: e.target.value})} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-black text-rose-500 uppercase tracking-wide ml-1">Deadline Date & Time</label>
+                          <input type="datetime-local" required min={testForm.startDate || minDateTime} className="w-full max-w-full p-4 bg-rose-50 text-rose-800 rounded-2xl outline-none cursor-pointer font-bold" 
+                            value={testForm.dueDate} onChange={e => setTestForm({...testForm, dueDate: e.target.value})} />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1 mt-4">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Instructions for Student (Optional)</label>
+                        <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl focus:ring-4 focus:ring-rose-500/20 text-[#1B2559] outline-none font-bold" 
+                          placeholder="e.g. Calculators are not allowed..." 
+                          value={testForm.studentInstructions} onChange={e => setTestForm({...testForm, studentInstructions: e.target.value})} />
+                      </div>
+
+                      <div className="space-y-1 pt-4 border-t border-slate-100">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Test Format Type</label>
+                        <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl font-bold text-[#1B2559] outline-none mb-4 cursor-pointer" 
+                          value={testForm.type} onChange={e => setTestForm({...testForm, type: e.target.value})}>
+                          <option value="MCQ">Build Quiz (MCQ)</option>
+                          <option value="File">Upload File (PDF/Image)</option>
+                          <option value="Text">Write Question</option>
+                        </select>
+
+                        <div className="animate-fade-in">
+                          {testForm.type === 'File' && (
+                            <div className="relative border-2 border-dashed border-rose-300 bg-[#F4F7FE] rounded-3xl p-10 text-center hover:bg-rose-50 transition-colors cursor-pointer group">
+                              <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleTestFileUpload} />
+                              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
+                              <p className="font-black text-[#1B2559]">Drag & Drop or Click</p>
+                              <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG up to 5MB</p>
+                              {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file...</p>}
+                              {testFileName && !isUploading && <p className="mt-3 inline-block bg-white text-rose-800 px-4 py-2 rounded-full text-xs font-bold shadow-sm">{testFileName}</p>}
+                            </div>
+                          )}
+
+                          {testForm.type === 'Text' && (
+                            <textarea className="w-full p-5 bg-[#F4F7FE] border-none rounded-3xl outline-none focus:ring-4 focus:ring-rose-500/20 text-[#1B2559] font-medium min-h-[160px]" 
+                              placeholder="Type test instructions or complete text here..." 
+                              value={testForm.content} onChange={e => setTestForm({...testForm, content: e.target.value})} />
+                          )}
+
+                          {testForm.type === 'MCQ' && (
+                            <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                              {testForm.mcqs.map((mcq, qIndex) => (
+                                <div key={qIndex} className="p-5 bg-[#F4F7FE] rounded-3xl">
+                                  <input className="w-full p-2 mb-3 font-black border-b-2 border-slate-200 bg-transparent outline-none focus:border-rose-500 text-[#1B2559]" 
+                                    placeholder={`Question ${qIndex + 1}`} value={mcq.question} 
+                                    onChange={(e) => updateTestMcq(qIndex, 'question', e.target.value)} />
+                                  <div className="grid grid-cols-2 gap-3 mb-4">
+                                    {mcq.options.map((opt, oIndex) => (
+                                      <input key={oIndex} className="p-3 text-sm border-none rounded-xl bg-white outline-none focus:ring-2 focus:ring-rose-400 font-bold" 
+                                        placeholder={`Option ${oIndex + 1}`} value={opt} 
+                                        onChange={(e) => updateTestMcq(qIndex, 'options', e.target.value, oIndex)} />
+                                    ))}
+                                  </div>
+                                  <div className="flex items-center justify-between mt-2">
+                                    <div className="flex items-center gap-3">
+                                      <label className="text-xs font-black text-[#A3AED0] uppercase">Correct Answer:</label>
+                                      <select className="p-2 text-sm font-black border-none rounded-xl bg-emerald-100 text-emerald-800 outline-none cursor-pointer" 
+                                        value={mcq.correctOption} onChange={(e) => updateTestMcq(qIndex, 'correctOption', parseInt(e.target.value))}>
+                                        <option value={0}>Option 1</option><option value={1}>Option 2</option><option value={2}>Option 3</option><option value={3}>Option 4</option>
+                                      </select>
+                                    </div>
+                                    
+                                    {testForm.mcqs.length > 1 && (
+                                      <button type="button" onClick={() => {
+                                        const filteredMcqs = testForm.mcqs.filter((_, i) => i !== qIndex);
+                                        setTestForm({...testForm, mcqs: filteredMcqs});
+                                      }} className="text-xs font-bold text-rose-500 bg-rose-50 px-3 py-2 rounded-lg hover:bg-rose-500 hover:text-white transition-colors">
+                                        🗑️ Remove
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
-                                
-                                {testForm.mcqs.length > 1 && (
-                                  <button type="button" onClick={() => {
-                                    const filteredMcqs = testForm.mcqs.filter((_, i) => i !== qIndex);
-                                    setTestForm({...testForm, mcqs: filteredMcqs});
-                                  }} className="text-xs font-bold text-rose-500 bg-rose-50 px-3 py-2 rounded-lg hover:bg-rose-500 hover:text-white transition-colors">
-                                    🗑️ Remove
-                                  </button>
+                              ))}
+                              <button type="button" onClick={addTestMcq} className="w-full py-4 border-2 border-dashed border-rose-300 text-rose-500 rounded-3xl font-black hover:bg-rose-50 transition-colors">
+                                + Add Next Question
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 mt-6">
+                        <button type="button" onClick={() => setIsAssignModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-200 transition-colors">
+                          Cancel
+                        </button>
+                        <button type="submit" className="flex-1 bg-[#1B2559] hover:bg-rose-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg transform hover:-translate-y-1">
+                          Schedule Test
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* TESTS TRACKER BOARD (TABLE VIEW) */}
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-slate-100 pb-6 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-rose-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Scheduled Tests</h2>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto flex-wrap justify-end">
+                    <div className="relative">
+                      <svg className="w-5 h-5 absolute left-4 top-3 text-[#A3AED0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                      <input type="text" placeholder="Search tests..." 
+                        className="w-full sm:w-72 p-3 pl-12 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-4 focus:ring-rose-500/10 font-bold text-[#1B2559]"
+                        value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    </div>
+
+                    <button onClick={() => setIsAssignModalOpen(true)} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-rose-500 hover:bg-rose-600 text-white hover:-translate-y-1">
+                      <span>+</span> Schedule New Test
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:items-end">
+                  <div className="flex-1 min-w-[110px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={hwYearFilter} onChange={e => { setHwYearFilter(e.target.value); setHwStudentFilter('all'); }}>
+                      <option value="all">All Years</option>
+                      {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                        <option key={yg} value={yg}>{yg}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="flex-[1.5] min-w-[150px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Student</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={hwStudentFilter} onChange={e => setHwStudentFilter(e.target.value)}>
+                      <option value="all">All Filtered Students</option>
+                      {students
+                        .filter(s => hwYearFilter === 'all' || s.yearGroup === hwYearFilter)
+                        .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
+                        .map(s => (
+                        <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="flex-1 min-w-[110px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Status</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={hwStatusFilter} onChange={e => setHwStatusFilter(e.target.value)}>
+                      <option value="all">All Status</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Submitted">Submitted (Review)</option>
+                      <option value="Graded">Graded</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
+                  <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
+                    <thead>
+                      <tr className="bg-rose-500 text-white text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top shadow-sm">
+                        <th className="p-4 rounded-tl-2xl cursor-pointer hover:bg-rose-600 transition-colors" onClick={() => handleSortHomework('title')}>
+                          Test Details {hwSortConfig.key === 'title' ? (hwSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4 cursor-pointer hover:bg-rose-600 transition-colors" onClick={() => handleSortHomework('student')}>
+                          Assigned To {hwSortConfig.key === 'student' ? (hwSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4 text-center cursor-pointer hover:bg-rose-600 transition-colors" onClick={() => handleSortHomework('difficulty')}>
+                          Difficulty {hwSortConfig.key === 'difficulty' ? (hwSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4 cursor-pointer hover:bg-rose-600 transition-colors" onClick={() => handleSortHomework('dueDate')}>
+                          Schedule {hwSortConfig.key === 'dueDate' ? (hwSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4 cursor-pointer hover:bg-rose-600 transition-colors" onClick={() => handleSortHomework('status')}>
+                          Status {hwSortConfig.key === 'status' ? (hwSortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                        </th>
+                        <th className="p-4 rounded-tr-2xl text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTests.map((hw, index) => {
+                        const isLate = new Date() > new Date(hw.dueDate);
+                        
+                        return (
+                          <tr key={hw._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-rose-50/30'}`}>
+                            <td className="p-4 whitespace-normal min-w-[200px] leading-snug">
+                              <h3 className="font-black text-[#1B2559]">{hw.title}</h3>
+                              <p className="text-xs font-bold text-slate-500 mt-1">Format: {hw.type}</p>
+                            </td>
+                            <td className="p-4 font-black text-[#1B2559]">
+                              {hw.studentId ? `${hw.studentId.registrationName || hw.studentId.name} ${hw.studentId.yearGroup ? `(${hw.studentId.yearGroup})` : ''}` : "All Students"}
+                            </td>
+                            <td className="p-4 text-center">
+                              <span className={`text-[10px] px-2 py-1 rounded-md font-black uppercase tracking-wider bg-white border ${hw.difficulty === 'Easy' ? 'text-emerald-500 border-emerald-200' : hw.difficulty === 'Medium' ? 'text-amber-500 border-amber-200' : 'text-rose-500 border-rose-200'}`}>
+                                {hw.difficulty || 'Medium'}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex flex-col gap-1 text-xs font-black">
+                                <span className="text-emerald-600">Opens: {new Date(hw.startDate).toLocaleString()}</span>
+                                <span className="text-rose-500">Closes: {new Date(hw.dueDate).toLocaleString()}</span>
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex flex-col items-start gap-1.5">
+                                <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider
+                                  ${hw.status === 'Pending' ? 'bg-slate-100 text-slate-500' : 
+                                    hw.status === 'Submitted' ? 'bg-amber-100 text-amber-700 animate-pulse' : 'bg-emerald-100 text-emerald-700'}`}>
+                                  {hw.status}
+                                </span>
+                                {isLate && hw.status === 'Pending' && (
+                                  <span className="bg-rose-100 text-rose-600 px-2 py-1 rounded-md text-[10px] font-black">
+                                    Overdue by {getOverdueTime(hw.dueDate)}
+                                  </span>
                                 )}
                               </div>
-                            </div>
-                          ))}
-                          <button type="button" onClick={addTestMcq} className="w-full py-4 border-2 border-dashed border-rose-300 text-rose-500 rounded-3xl font-black hover:bg-rose-50 transition-colors">
-                            + Add Next Question
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                            </td>
+                            <td className="p-4">
+                               <div className="flex flex-row flex-nowrap items-center justify-center gap-2 w-max mx-auto">
+                                  {hw.status === 'Pending' && (
+                                    <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: '' })} className="px-3 py-1.5 bg-white border border-rose-200 text-rose-600 font-black rounded-lg hover:bg-rose-50 transition-all shadow-sm text-xs">
+                                      Extend
+                                    </button>
+                                  )}
+                                  
+                                  {hw.status === 'Submitted' && (
+                                    <>
+                                      {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText) && (
+                                        <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs">
+                                          View Work
+                                        </button>
+                                      )}
+                                      <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
+                                        Grade
+                                      </button>
+                                    </>
+                                  )}
+                                  
+                                  {hw.status === 'Graded' && (
+                                    <div className="flex items-center gap-2">
+                                      {user?.role === 'admin' ? (
+                                          <button 
+                                            onClick={() => {
+                                              setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
+                                              if (hw.grading?.adminAnswerSheetUrl) {
+                                                setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl, fileName: 'Existing Marked/Checked work Attached', isUploading: false });
+                                              } else {
+                                                setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false });
+                                              }
+                                            }}
+                                            className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-black border border-emerald-200 text-xs transition-colors shadow-sm"
+                                          >
+                                            {hw.grading?.score != null ? `${hw.grading.score}/${hw.grading.totalScore} ✏️` : 'Edit'}
+                                          </button>
+                                      ) : (
+                                        <div className="px-3 py-1.5 bg-slate-50 text-slate-500 rounded-lg font-black border border-slate-200 text-xs shadow-sm cursor-not-allowed">
+                                          {hw.grading?.score != null ? `${hw.grading.score}/${hw.grading.totalScore} 🔒` : 'Marked 🔒'}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
 
-                  <button type="submit" className="w-full bg-[#1B2559] hover:bg-rose-600 text-white font-black py-5 rounded-2xl transition-all shadow-lg">Schedule Test</button>
-                </form>
-              </div>
-
-              {/* TESTS TRACKER BOARD */}
-              <div className="xl:col-span-8 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
-                <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
-                  <div className="bg-rose-500 w-2 h-8 rounded-full"></div>
-                  <h2 className="text-2xl font-black text-[#1B2559]">Scheduled Tests</h2>
-                </div>
-                
-                <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
-                  {filteredTests.map(hw => (
-                    <div key={hw._id} className="p-6 bg-white border border-slate-100 hover:bg-rose-50 rounded-3xl flex justify-between items-center transition-all shadow-sm">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-black text-xl text-[#1B2559]">{hw.title}</h3>
-                          <span className="text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider bg-rose-100 text-rose-700">TEST</span>
-                        </div>
-                        <p className="text-sm font-bold text-[#A3AED0] mb-2">Assigned to: {hw.studentId?.name || "All Students"}</p>
-                        <div className="flex flex-col gap-1 text-xs font-black text-slate-500">
-                           <p>🗓️ Opens: {new Date(hw.startDate).toLocaleString()}</p>
-                           <p>⏰ Closes: {new Date(hw.dueDate).toLocaleString()}</p>
-                        </div>
-                      </div>
+                                  {user?.role === 'admin' && (
+                                    <button onClick={() => setModal({ type: 'delete', hwId: hw._id, data: '' })} className="p-1.5 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-colors shadow-sm" title="Delete">
+                                      🗑️
+                                    </button>
+                                  )}
+                               </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                       
-                      <div className="flex items-center gap-2">
-                         {user?.role === 'admin' && (
-                          <button onClick={() => setModal({ type: 'delete', hwId: hw._id, data: '' })} className="p-3 bg-rose-100 text-rose-500 hover:bg-rose-500 hover:text-white rounded-2xl transition-colors shadow-sm ml-2 text-xl" title="Delete">
-                            🗑️
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {filteredTests.length === 0 && <p className="text-center font-bold text-slate-400 py-10">No tests scheduled.</p>}
+                      {filteredTests.length === 0 && (
+                        <tr>
+                          <td colSpan="6" className="text-center py-20">
+                            <div className="flex flex-col items-center justify-center">
+                              <div className="text-6xl mb-4 opacity-50">📋</div>
+                              <p className="text-[#1B2559] font-black text-xl mb-1">No tests scheduled!</p>
+                              <p className="text-[#A3AED0] font-bold">Create a new test using the button above.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -3073,86 +3279,205 @@ const handleAssignSubmit = async (e) => {
               )}
             </div>
           )}
-          {/* VIEW 3.5: ANNOUNCEMENTS TAB */}
+          
+          {/* ANNOUNCEMENTS TAB */}
           {activeTab === 'announcements' && (
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
-              <div className="xl:col-span-5 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="bg-amber-500 w-2 h-8 rounded-full"></div>
-                  <h2 className="text-2xl font-black text-[#1B2559]">Post Announcement</h2>
-                </div>
-                
-                <form onSubmit={handleAnnouncementSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Message Content</label>
-                    <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559] min-h-[140px]" 
-                      placeholder="e.g., Tomorrow's class is rescheduled..." required value={announcementForm.content}
-                      onChange={e => setAnnouncementForm({...announcementForm, content: e.target.value})} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Target Audience</label>
-                    <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559] truncate max-w-full" 
-                    value={announcementForm.targetAudience} onChange={e => setAnnouncementForm({...announcementForm, targetAudience: e.target.value})}>
-                      <option value="all">📢 Share to Everyone</option>
-                      {students.map(s => <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Attach Image (Optional)</label>
-                    <div className="relative border-2 border-dashed border-slate-300 bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer group">
-                      <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAnnounceImageUpload} />
-                      <p className="font-bold text-slate-600 text-sm">{announcementForm.imageUrl ? '✅ Image Attached' : 'Click to upload Image'}</p>
-                      {isAnnounceUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
+            <div className="animate-fade-in relative">
+              
+              {isAssignModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
+                  <div className="bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl transform scale-100 animate-slide-up max-h-[90vh] overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                      <div className="bg-amber-500 w-2 h-8 rounded-full"></div>
+                      <h2 className="text-2xl font-black text-[#1B2559]">Post Announcement</h2>
                     </div>
-                  </div>
-
-                  <button className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-4 rounded-2xl transition-transform hover:-translate-y-1 shadow-lg text-lg">
-                    Broadcast Message
-                  </button>
-                </form>
-              </div>
-
-              {/* History & Read Receipts */}
-              <div className="xl:col-span-7 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
-                <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
-                  <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
-                  <h2 className="text-2xl font-black text-[#1B2559]">Notice Board History</h2>
-                </div>
-                
-                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                  {announcements.map(ann => (
-                    <div key={ann._id} className="p-6 bg-[#F4F7FE] rounded-3xl relative group border border-transparent hover:border-indigo-100 transition-colors">
-                      <button type="button" onClick={() => handleDeleteAnnouncement(ann._id)} className="absolute top-4 right-4 w-8 h-8 bg-white text-rose-500 hover:bg-rose-500 hover:text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-sm">🗑️</button>
-                      
-                      <div className="flex gap-2 mb-3">
-                        <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                          {ann.targetAudience === 'all' ? 'Everyone' : 'Specific Student'}
-                        </span>
-                        <span className="text-xs font-bold text-[#A3AED0] flex items-center">{new Date(ann.createdAt).toLocaleString()}</span>
+                    
+                    <form onSubmit={async (e) => {
+                      await handleAnnouncementSubmit(e);
+                      setIsAssignModalOpen(false);
+                    }} className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Message Content</label>
+                        <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/20 font-bold text-[#1B2559] min-h-[140px]" 
+                          placeholder="e.g., Tomorrow's class is rescheduled..." required value={announcementForm.content}
+                          onChange={e => setAnnouncementForm({...announcementForm, content: e.target.value})} />
                       </div>
-                      
-                      <p className="text-[#1B2559] font-bold whitespace-pre-wrap mb-4 text-lg">{ann.content}</p>
-                      
-                      {ann.imageUrl && (
-                        <img src={ann.imageUrl} alt="Announcement" className="w-full max-w-sm rounded-xl mb-4 border-4 border-white shadow-sm" />
-                      )}
-                      
-                      <div className="pt-4 border-t border-slate-200">
-                        <p className="text-xs font-black text-emerald-600 mb-2">Read by {ann.readBy.length} student(s):</p>
-                        <div className="flex flex-wrap gap-2">
-                          {ann.readBy.map(student => (
-                            <span key={student._id} className="bg-white text-slate-700 text-xs px-2 py-1 rounded-md font-bold shadow-sm">
-                              {student.registrationName || student.name} {student.yearGroup ? `- ${student.yearGroup}` : ''}
-                            </span>
-                          ))}
-                          {ann.readBy.length === 0 && <span className="text-slate-400 text-xs font-bold">No reads yet</span>}
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Target Audience</label>
+                        <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559] truncate max-w-full" 
+                        value={announcementForm.targetAudience} onChange={e => setAnnouncementForm({...announcementForm, targetAudience: e.target.value})}>
+                          <option value="all">📢 Share to Everyone</option>
+                          {students.map(s => <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>)}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Attach Image (Optional)</label>
+                        <div className="relative border-2 border-dashed border-slate-300 bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer group">
+                          <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAnnounceImageUpload} />
+                          <p className="font-bold text-slate-600 text-sm">{announcementForm.imageUrl ? '✅ Image Attached' : 'Click to upload Image'}</p>
+                          {isAnnounceUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
                         </div>
                       </div>
+
+                      <div className="flex gap-3 mt-6">
+                        <button type="button" onClick={() => setIsAssignModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-200 transition-colors">
+                          Cancel
+                        </button>
+                        <button type="submit" className="flex-1 bg-[#1B2559] hover:bg-amber-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg transform hover:-translate-y-1">
+                          Broadcast Message
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* ANNOUNCEMENTS TRACKER BOARD */}
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] flex flex-col">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-slate-100 pb-6 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-amber-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Notice Board History</h2>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto flex-wrap justify-end">
+                    <div className="relative">
+                      <svg className="w-5 h-5 absolute left-4 top-3 text-[#A3AED0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                      <input type="text" placeholder="Search announcements..." 
+                        className="w-full sm:w-64 p-3 pl-12 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-4 focus:ring-amber-500/10 font-bold text-[#1B2559]"
+                        value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                     </div>
-                  ))}
-                  {announcements.length === 0 && <p className="text-center text-[#A3AED0] font-bold py-10">No announcements posted yet.</p>}
+
+                    <button onClick={() => {
+                      setAnnouncementForm({ content: '', targetAudience: 'all', imageUrl: '' });
+                      setIsAssignModalOpen(true);
+                    }} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white hover:-translate-y-1">
+                      <span>+</span> Post Announcement
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:items-end">
+                  <div className="flex-1 min-w-[110px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={hwYearFilter} onChange={e => { setHwYearFilter(e.target.value); setHwStudentFilter('all'); }}>
+                      <option value="all">All Years</option>
+                      {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                        <option key={yg} value={yg}>{yg}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="flex-[1.5] min-w-[150px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Student</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={hwStudentFilter} onChange={e => setHwStudentFilter(e.target.value)}>
+                      <option value="all">All Filtered Students</option>
+                      {students
+                        .filter(s => hwYearFilter === 'all' || s.yearGroup === hwYearFilter)
+                        .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
+                        .map(s => (
+                        <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto w-full max-w-full pb-4 relative flex-1 custom-scrollbar">
+                  <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
+                    <thead>
+                      <tr className="bg-amber-500 text-white text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top shadow-sm">
+                        <th className="p-4 rounded-tl-2xl">Message Content</th>
+                        <th className="p-4">Target Audience</th>
+                        <th className="p-4">Date Posted</th>
+                        <th className="p-4">Read Receipts</th>
+                        <th className="p-4 rounded-tr-2xl text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {announcements
+                        .filter(ann => {
+                          const searchLower = (searchTerm || '').toLowerCase();
+                          const matchesSearch = ann.content?.toLowerCase().includes(searchLower) || 
+                                              (ann.targetAudience !== 'all' && students.find(s => s._id === ann.targetAudience)?.name.toLowerCase().includes(searchLower));
+                          
+                          if (!matchesSearch) return false;
+                          
+                          if (hwStudentFilter !== 'all') {
+                            if (ann.targetAudience !== 'all' && String(ann.targetAudience) !== String(hwStudentFilter)) return false;
+                          } else if (hwYearFilter !== 'all') {
+                            if (ann.targetAudience !== 'all') {
+                              const targetStudent = students.find(s => s._id === ann.targetAudience);
+                              if (!targetStudent || targetStudent.yearGroup !== hwYearFilter) return false;
+                            }
+                          }
+                          return true;
+                        })
+                        .map((ann, index) => {
+                        return (
+                          <tr key={ann._id} className={`border-b border-slate-200 hover:bg-slate-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-amber-50/20'}`}>
+                            <td className="p-4 whitespace-normal min-w-[300px] leading-snug">
+                              <p className="font-bold text-[#1B2559] text-sm whitespace-pre-wrap">{ann.content}</p>
+                              {ann.imageUrl && (
+                                <img src={ann.imageUrl} alt="Announcement" className="mt-3 w-32 h-auto rounded-lg border-2 border-slate-100 shadow-sm cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setFullScreenImage(ann.imageUrl)} title="Click to view full image" />
+                              )}
+                            </td>
+                            <td className="p-4 font-black text-[#1B2559]">
+                              {ann.targetAudience === 'all' 
+                                ? (
+                                  <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider bg-indigo-100 text-indigo-700 inline-block">
+                                    📢 Everyone
+                                  </span>
+                                )
+                                : (() => {
+                                    const st = students.find(s => s._id === ann.targetAudience);
+                                    return st ? (
+                                      <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider bg-amber-100 text-amber-700 inline-block">
+                                        👤 {st.registrationName || st.name} {st.yearGroup ? `(${st.yearGroup})` : ''}
+                                      </span>
+                                    ) : 'Specific Student';
+                                  })()
+                              }
+                            </td>
+                            <td className="p-4">
+                              <span className="text-xs font-bold text-slate-500">{new Date(ann.createdAt).toLocaleString()}</span>
+                            </td>
+                            <td className="p-4 whitespace-normal min-w-[200px]">
+                              <p className="text-xs font-black text-emerald-600 mb-1.5">Read by {ann.readBy?.length || 0} student(s)</p>
+                              <div className="flex flex-wrap gap-1">
+                                {ann.readBy?.map(student => (
+                                  <span key={student._id} className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-2 py-0.5 rounded font-bold shadow-sm">
+                                    {student.registrationName || student.name}
+                                  </span>
+                                ))}
+                                {(!ann.readBy || ann.readBy.length === 0) && <span className="text-slate-400 text-xs font-bold">-</span>}
+                              </div>
+                            </td>
+                            <td className="p-4 text-center">
+                              <button onClick={() => handleDeleteAnnouncement(ann._id)} className="p-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-colors shadow-sm" title="Delete Announcement">
+                                🗑️
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      
+                      {announcements.length === 0 && (
+                        <tr>
+                          <td colSpan="5" className="text-center py-20">
+                            <div className="flex flex-col items-center justify-center">
+                              <div className="text-6xl mb-4 opacity-50">📢</div>
+                              <p className="text-[#1B2559] font-black text-xl mb-1">No Announcements Found!</p>
+                              <p className="text-[#A3AED0] font-bold">Post a new message to your students using the button above.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -4167,103 +4492,215 @@ const handleAssignSubmit = async (e) => {
             </div>
           )}
 
-          {/* VIEW 7: SHARED DRIVE */}
+          {/* SHARED DRIVE */}
           {activeTab === 'drive' && (
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
+            <div className="animate-fade-in relative">
               
-              {/* Left Side: Upload Form */}
-              <div className="xl:col-span-4 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="bg-blue-500 w-2 h-8 rounded-full"></div>
-                  <h2 className="text-2xl font-black text-[#1B2559]">Share Drive Link</h2>
-                </div>
-                
-                <form onSubmit={handleDriveSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Title / Description</label>
-                    <input type="text" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/20 font-bold text-[#1B2559]" 
-                      placeholder="e.g. Graded Midterms Folder" value={driveForm.title} onChange={e => setDriveForm({...driveForm, title: e.target.value})} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Google Drive Link</label>
-                    <input type="url" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/20 font-bold text-[#1B2559]" 
-                      placeholder="https://drive.google.com/..." value={driveForm.url} onChange={e => setDriveForm({...driveForm, url: e.target.value})} />
-                  </div>
-
-                  <div className="space-y-2 pt-4 border-t border-slate-100">
-  <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
-  <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
-  value={driveForm.yearGroupFilter} onChange={e => {
-      const selectedYear = e.target.value;
-      const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
-      setDriveForm({
-        ...driveForm, 
-        yearGroupFilter: selectedYear, 
-        targetAudience: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
-      });
-    }}>
-    <option value="all">All Years</option>
-    {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
-      <option key={yg} value={yg}>{yg}</option>
-    ))}
-  </select>
-</div>
-
-<div className="space-y-2">
-  <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Recipient</label>
-  <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
-  value={driveForm.targetAudience} onChange={e => setDriveForm({...driveForm, targetAudience: e.target.value})}>
-    
-    {driveForm.yearGroupFilter === 'all' && (
-      <option value="all">📢 Share to Everyone</option>
-    )}
-    
-    {students.filter(s => driveForm.yearGroupFilter === 'all' || s.yearGroup === driveForm.yearGroupFilter).map(s => (
-      <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
-    ))}
-  </select>
-</div>
-
-                  <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-4 rounded-2xl transition-transform hover:-translate-y-1 shadow-lg text-lg">
-                    Post Link
-                  </button>
-                </form>
-              </div>
-
-              {/* Right Side: Drive Links List */}
-              <div className="xl:col-span-8 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
-                <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
-                  <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
-                  <h2 className="text-2xl font-black text-[#1B2559]">Shared Drive Links</h2>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                  {driveLinks.map(link => (
-                    <div key={link._id} className="p-6 bg-[#F4F7FE] rounded-3xl relative group border border-transparent hover:border-blue-200 transition-colors flex flex-col justify-between">
-                      {user?.role === 'admin' && (
-                        <button type="button" onClick={() => handleDeleteDriveLink(link._id)} className="absolute top-4 right-4 w-8 h-8 bg-white text-rose-500 hover:bg-rose-500 hover:text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-sm">🗑️</button>
-                      )}
-                      
-                      <div>
-                        <div className="flex gap-2 mb-3">
-                          <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider bg-blue-100 text-blue-700">
-                            ☁️ Google Drive
-                          </span>
-                          <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider bg-indigo-100 text-indigo-700">
-                            {link.targetAudience === 'all' ? 'All Students' : 'Private'}
-                          </span>
-                        </div>
-                        <h3 className="text-[#1B2559] font-black text-xl mb-4">{link.title}</h3>
-                      </div>
-                      
-                      <button onClick={() => window.open(link.url, "_blank")} 
-                        className="mt-4 w-full py-3 bg-white text-[#1B2559] hover:bg-blue-500 hover:text-white font-black rounded-xl transition-all shadow-sm border border-slate-200 hover:border-transparent flex justify-center items-center gap-2">
-                        🔗 Open Drive Link
-                      </button>
+              {isAssignModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
+                  <div className="bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl transform scale-100 animate-slide-up max-h-[90vh] overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                      <div className="bg-blue-500 w-2 h-8 rounded-full"></div>
+                      <h2 className="text-2xl font-black text-[#1B2559]">Share Drive Link</h2>
                     </div>
-                  ))}
-                  {driveLinks.length === 0 && <div className="col-span-full text-center text-[#A3AED0] font-bold py-10">No Drive links have been shared yet.</div>}
+                    
+                    <form onSubmit={async (e) => {
+                      await handleDriveSubmit(e);
+                      setIsAssignModalOpen(false);
+                    }} className="space-y-6">
+                      
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Title / Description</label>
+                        <input type="text" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/20 font-bold text-[#1B2559]" 
+                          placeholder="e.g. Graded Midterms Folder" value={driveForm.title} onChange={e => setDriveForm({...driveForm, title: e.target.value})} />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Google Drive Link</label>
+                        <input type="url" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/20 font-bold text-[#1B2559]" 
+                          placeholder="https://drive.google.com/..." value={driveForm.url} onChange={e => setDriveForm({...driveForm, url: e.target.value})} />
+                      </div>
+
+                      <div className="space-y-2 pt-4 border-t border-slate-100">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
+                        <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
+                          value={driveForm.yearGroupFilter} onChange={e => {
+                            const selectedYear = e.target.value;
+                            const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
+                            setDriveForm({
+                              ...driveForm, 
+                              yearGroupFilter: selectedYear, 
+                              targetAudience: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
+                            });
+                          }}>
+                          <option value="all">All Years</option>
+                          {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                            <option key={yg} value={yg}>{yg}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Recipient</label>
+                        <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+                          value={driveForm.targetAudience} onChange={e => setDriveForm({...driveForm, targetAudience: e.target.value})}>
+                          
+                          {driveForm.yearGroupFilter === 'all' && (
+                            <option value="all">📢 Share to Everyone</option>
+                          )}
+                          
+                          {students.filter(s => driveForm.yearGroupFilter === 'all' || s.yearGroup === driveForm.yearGroupFilter).map(s => (
+                            <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex gap-3 mt-6">
+                        <button type="button" onClick={() => setIsAssignModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-200 transition-colors">
+                          Cancel
+                        </button>
+                        <button type="submit" className="flex-1 bg-[#1B2559] hover:bg-blue-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg transform hover:-translate-y-1">
+                          Post Link
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* SHARED DRIVE BOARD */}
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] flex flex-col">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-slate-100 pb-6 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Shared Drive Links</h2>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto flex-wrap justify-end">
+                    <div className="relative">
+                      <svg className="w-5 h-5 absolute left-4 top-3 text-[#A3AED0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                      <input type="text" placeholder="Search links..." 
+                        className="w-full sm:w-64 p-3 pl-12 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 font-bold text-[#1B2559]"
+                        value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    </div>
+
+                    <button onClick={() => {
+                      setDriveForm({ title: '', url: '', targetAudience: 'all', yearGroupFilter: 'all' });
+                      setIsAssignModalOpen(true);
+                    }} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-blue-500 hover:bg-blue-600 text-white hover:-translate-y-1">
+                      <span>+</span> Share New Link
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:items-end">
+                  <div className="flex-1 min-w-[110px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={hwYearFilter} onChange={e => { setHwYearFilter(e.target.value); setHwStudentFilter('all'); }}>
+                      <option value="all">All Years</option>
+                      {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                        <option key={yg} value={yg}>{yg}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="flex-[1.5] min-w-[150px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Student</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={hwStudentFilter} onChange={e => setHwStudentFilter(e.target.value)}>
+                      <option value="all">All Filtered Students</option>
+                      {students
+                        .filter(s => hwYearFilter === 'all' || s.yearGroup === hwYearFilter)
+                        .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
+                        .map(s => (
+                        <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto w-full max-w-full pb-4 relative flex-1 custom-scrollbar">
+                  <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
+                    <thead>
+                      <tr className="bg-blue-500 text-white text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top shadow-sm">
+                        <th className="p-4 rounded-tl-2xl">Title & Description</th>
+                        <th className="p-4">Assigned To</th>
+                        <th className="p-4">Type</th>
+                        <th className="p-4 rounded-tr-2xl text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {driveLinks
+                        .filter(link => {
+                          const searchLower = (searchTerm || '').toLowerCase();
+                          const matchesSearch = link.title?.toLowerCase().includes(searchLower) || 
+                                              (link.targetAudience !== 'all' && students.find(s => s._id === link.targetAudience)?.name.toLowerCase().includes(searchLower));
+                          
+                          if (!matchesSearch) return false;
+                          
+                          if (hwStudentFilter !== 'all') {
+                            if (link.targetAudience !== 'all' && String(link.targetAudience) !== String(hwStudentFilter)) return false;
+                          } else if (hwYearFilter !== 'all') {
+                            if (link.targetAudience !== 'all') {
+                              const targetStudent = students.find(s => s._id === link.targetAudience);
+                              if (!targetStudent || targetStudent.yearGroup !== hwYearFilter) return false;
+                            }
+                          }
+                          return true;
+                        })
+                        .map((link, index) => {
+                        return (
+                          <tr key={link._id} className={`border-b border-slate-200 hover:bg-slate-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-blue-50/20'}`}>
+                            <td className="p-4 whitespace-normal min-w-[200px] leading-snug">
+                              <h3 className="font-black text-[#1B2559] text-lg">{link.title}</h3>
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-100 text-blue-700 mt-1 inline-block">
+                                ☁️ Google Drive
+                              </span>
+                            </td>
+                            <td className="p-4 font-black text-[#1B2559]">
+                              {link.targetAudience === 'all' 
+                                ? "All Students" 
+                                : (() => {
+                                    const st = students.find(s => s._id === link.targetAudience);
+                                    return st ? `${st.registrationName || st.name} ${st.yearGroup ? `(${st.yearGroup})` : ''}` : 'Specific Student';
+                                  })()
+                              }
+                            </td>
+                            <td className="p-4">
+                              <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider bg-indigo-100 text-indigo-700`}>
+                                {link.targetAudience === 'all' ? 'Public' : 'Private'}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                               <div className="flex flex-row flex-nowrap items-center justify-center gap-2 w-max mx-auto">
+                                  <button onClick={() => window.open(link.url, "_blank")} className="px-4 py-2 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs">
+                                    🔗 Open Link
+                                  </button>
+                                  {user?.role === 'admin' && (
+                                    <button onClick={() => handleDeleteDriveLink(link._id)} className="p-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-colors shadow-sm" title="Delete">
+                                      🗑️
+                                    </button>
+                                  )}
+                               </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      
+                      {driveLinks.length === 0 && (
+                        <tr>
+                          <td colSpan="4" className="text-center py-20">
+                            <div className="flex flex-col items-center justify-center">
+                              <div className="text-6xl mb-4 opacity-50">☁️</div>
+                              <p className="text-[#1B2559] font-black text-xl mb-1">No Drive Links Found!</p>
+                              <p className="text-[#A3AED0] font-bold">Share a new folder or file link using the form.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
