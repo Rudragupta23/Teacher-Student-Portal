@@ -1466,17 +1466,17 @@ const handleAssignSubmit = async (e) => {
       {/* IMAGE VIEWER */}
       {fullScreenImage && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setFullScreenImage(null)}>
-          <div className="relative max-w-2xl max-h-[90vh] w-full flex justify-center items-center">
+          <div className="relative inline-flex justify-center items-center">
             <button 
               className="absolute -top-4 -right-4 bg-white text-rose-500 hover:bg-rose-500 hover:text-white w-10 h-10 rounded-full flex items-center justify-center text-xl font-black shadow-xl transition-colors z-10"
-              onClick={() => setFullScreenImage(null)}
+              onClick={(e) => { e.stopPropagation(); setFullScreenImage(null); }}
             >
               ✕
             </button>
             <img 
               src={fullScreenImage} 
               alt="Full Screen Profile" 
-              className="max-w-full max-h-[85vh] rounded-3xl object-contain shadow-2xl border-4 border-white/20"
+              className="max-w-[90vw] max-h-[85vh] rounded-3xl object-contain shadow-2xl border-4 border-white/20"
               onClick={(e) => e.stopPropagation()} 
             />
           </div>
@@ -1638,7 +1638,7 @@ const handleAssignSubmit = async (e) => {
                 
                 <div className="space-y-4 mb-6">
                   <div>
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Written Answer (Optional)</label>
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Comments (Optional)</label>
                     <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-medium text-[#1B2559] min-h-[100px]" 
                       placeholder="Enter text answer..." 
                       value={adminSubmitForm.answerText} onChange={e => setAdminSubmitForm({...adminSubmitForm, answerText: e.target.value})} />
