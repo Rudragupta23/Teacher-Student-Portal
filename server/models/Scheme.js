@@ -2,22 +2,27 @@ const mongoose = require('mongoose');
 
 const schemeSchema = new mongoose.Schema({
   date: { type: Date, required: true, default: Date.now },
-  startTime: {
-        type: String
-    },
-    endTime: {
-        type: String
-    },
+  startTime: { type: String },
+  endTime: { type: String },
   title: { type: String, default: 'Class Taken' },
   weekNo: { type: String },
   topic: { type: String },
   description: { type: String },
   classStatus: { 
     type: String, 
-    enum: ['Class Taken', 'Class Cancelled by Teacher', 'Class Cancelled by Student', "Student didn't attend"], 
+    enum: [
+      'Class Taken', 
+      'Class Cancelled by Teacher', 
+      'Class Cancelled by Student', 
+      "Student didn't attend",
+      'Class Rescheduled'
+    ], 
     default: 'Class Taken' 
   },
   waitingTime: { type: String, default: '' },
+  rescheduledDate: { type: Date },
+  rescheduledStartTime: { type: String, default: '' },
+  rescheduledEndTime: { type: String, default: '' },
   graderInstruction: { type: String },
   yearGroupFilter: { type: String, default: 'all' },
   studentId: { type: String, default: 'all' },

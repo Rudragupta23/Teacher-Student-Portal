@@ -119,7 +119,22 @@ const [testForm, setTestForm] = useState({
 
   // Scheme of Work States
   const [schemes, setSchemes] = useState([]);
-  const [schemeForm, setSchemeForm] = useState({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', waitingTime: '', yearGroupFilter: 'all', studentId: 'all' });
+  const [schemeForm, setSchemeForm] = useState({ 
+    date: new Date().toISOString().split('T')[0], 
+    startTime: '', 
+    endTime: '', 
+    title: '', 
+    weekNo: '', 
+    topic: '', 
+    description: '', 
+    classStatus: 'Class Taken', 
+    waitingTime: '', 
+    rescheduledDate: '',
+    rescheduledStartTime: '',
+    rescheduledEndTime: '',
+    yearGroupFilter: 'all', 
+    studentId: 'all' 
+  });
   const [graderInstruction, setGraderInstruction] = useState('');
   const [schemeListYear, setSchemeListYear] = useState('all');
   const [schemeListStudent, setSchemeListStudent] = useState('all');
@@ -344,22 +359,35 @@ const [testForm, setTestForm] = useState({
     const endDateTime = new Date(`${plannerModal.selectedDate}T${plannerForm.endTime}`);
 
     try {
-      await api.post('/planner', {
-        topic: 'Class Session', 
-        weekNo: '',
-        title: 'Class Session',
-        startDate: startDateTime,
-        endDate: endDateTime,
-        isRecurring: plannerForm.isRecurring,
-        yearGroupFilter: plannerForm.yearGroupFilter,
-        studentId: plannerForm.studentId
-      });
-      showToast('Class scheduled successfully!');
+      if (plannerModal.data) {
+        await api.put(`/planner/${plannerModal.data._id}`, {
+          topic: plannerForm.topic || 'Class Session',
+          weekNo: plannerForm.weekNo || '',
+          title: plannerForm.title || 'Class Session',
+          startDate: startDateTime,
+          endDate: endDateTime,
+          yearGroupFilter: plannerForm.yearGroupFilter,
+          studentId: plannerForm.studentId
+        });
+        showToast('Class updated successfully!');
+      } else {
+        await api.post('/planner', {
+          topic: 'Class Session', 
+          weekNo: '',
+          title: 'Class Session',
+          startDate: startDateTime,
+          endDate: endDateTime,
+          isRecurring: plannerForm.isRecurring,
+          yearGroupFilter: plannerForm.yearGroupFilter,
+          studentId: plannerForm.studentId
+        });
+        showToast('Class scheduled successfully!');
+      }
       setPlannerModal({ show: false, selectedDate: null, data: null });
       setPlannerForm({ topic: '', weekNo: '', title: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: 'all' });
       fetchData();
     } catch (err) {
-      showToast('Error scheduling class.', "error");
+      showToast(err.response?.data?.message || 'Error scheduling class.', "error");
     }
   };
 
@@ -3599,6 +3627,14 @@ const handleAssignSubmit = async (e) => {
                             className="w-5 h-5 text-rose-600 focus:ring-rose-500 cursor-pointer" />
                           <span className="font-bold text-slate-700 text-sm">❌ Student didn't attend</span>
                         </label>
+
+                        <label className="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition-colors">
+                          <input type="radio" name="classStatus" value="Class Rescheduled" 
+                            checked={schemeForm.classStatus === "Class Rescheduled"} 
+                            onChange={e => setSchemeForm({...schemeForm, classStatus: e.target.value, title: "CLASS RESCHEDULED"})} 
+                            className="w-5 h-5 text-amber-600 focus:ring-amber-500 cursor-pointer" />
+                          <span className="font-bold text-slate-700 text-sm">🔄 Class Rescheduled</span>
+                        </label>
                       </div>
 
                       <div className="flex flex-col gap-4 mb-6 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
@@ -3634,39 +3670,77 @@ const handleAssignSubmit = async (e) => {
                         </div>
                       </div>
 
-                     {(schemeForm.classStatus === 'Class Taken' || schemeForm.classStatus === "Student didn't attend") && (
+                     {(schemeForm.classStatus === 'Class Taken' || schemeForm.classStatus === "Student didn't attend" || schemeForm.classStatus === 'Class Rescheduled') && (
                         <div className="animate-fade-in space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-xs font-black text-[#A3AED0] uppercase">{schemeForm.classStatus === "Student didn't attend" ? "Wait Start Time" : "Start Time"}</label>
-                              <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none" 
-                                value={schemeForm.startTime} 
-                                onChange={e => {
-                                  const newStart = e.target.value;
-                                  setSchemeForm({
-                                    ...schemeForm, 
-                                    startTime: newStart, 
-                                    endTime: calculateEndTime(newStart) 
-                                  });
-                                }} 
-                              />
+                          
+                          {schemeForm.classStatus !== 'Class Rescheduled' && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-xs font-black text-[#A3AED0] uppercase">{schemeForm.classStatus === "Student didn't attend" ? "Wait Start Time" : "Start Time"}</label>
+                                <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none" 
+                                  value={schemeForm.startTime} 
+                                  onChange={e => {
+                                    const newStart = e.target.value;
+                                    setSchemeForm({
+                                      ...schemeForm, 
+                                      startTime: newStart, 
+                                      endTime: calculateEndTime(newStart) 
+                                    });
+                                  }} 
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs font-black text-[#A3AED0] uppercase">{schemeForm.classStatus === "Student didn't attend" ? "Wait End Time" : "End Time"}</label>
+                                <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none" value={schemeForm.endTime} onChange={e => setSchemeForm({...schemeForm, endTime: e.target.value})} />
+                              </div>
                             </div>
-                            <div>
-                              <label className="text-xs font-black text-[#A3AED0] uppercase">{schemeForm.classStatus === "Student didn't attend" ? "Wait End Time" : "End Time"}</label>
-                              <input type="time" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-xl font-bold text-[#1B2559] outline-none" value={schemeForm.endTime} onChange={e => setSchemeForm({...schemeForm, endTime: e.target.value})} />
-                            </div>
-                          </div>
+                          )}
 
-                          {schemeForm.startTime && schemeForm.endTime && (
-                            <div className={`text-sm font-black px-4 py-2 rounded-xl border flex justify-center items-center ${schemeForm.classStatus === "Student didn't attend" ? "text-rose-600 bg-rose-50 border-rose-100" : "text-indigo-600 bg-indigo-50 border-indigo-100"}`}>
+                          {schemeForm.classStatus === 'Class Rescheduled' && (
+                            <div className="space-y-4 bg-amber-50/50 p-4 rounded-xl border border-amber-200">
+                              <div>
+                                <label className="text-xs font-black text-amber-800 uppercase block mb-1">New Rescheduled Date</label>
+                                <input type="date" required className="w-full p-4 bg-white border border-amber-200 rounded-xl font-bold text-[#1B2559] outline-none" 
+                                  value={schemeForm.rescheduledDate ? new Date(schemeForm.rescheduledDate).toISOString().split('T')[0] : ''} 
+                                  onChange={e => setSchemeForm({...schemeForm, rescheduledDate: e.target.value})} />
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                                <div className="flex flex-col justify-end">
+                                  <label className="text-xs font-black text-amber-800 uppercase block mb-1 truncate" title="Rescheduled Start Time">Start Time</label>
+                                  <input type="time" required className="w-full p-4 bg-white border border-amber-200 rounded-xl font-bold text-[#1B2559] outline-none" 
+                                    value={schemeForm.rescheduledStartTime} 
+                                    onChange={e => {
+                                      const newStart = e.target.value;
+                                      setSchemeForm({
+                                        ...schemeForm, 
+                                        rescheduledStartTime: newStart, 
+                                        rescheduledEndTime: calculateEndTime(newStart)
+                                      });
+                                    }} />
+                                </div>
+                                <div className="flex flex-col justify-end">
+                                  <label className="text-xs font-black text-amber-800 uppercase block mb-1 truncate" title="Rescheduled End Time">End Time</label>
+                                  <input type="time" required className="w-full p-4 bg-white border border-amber-200 rounded-xl font-bold text-[#1B2559] outline-none" 
+                                    value={schemeForm.rescheduledEndTime} 
+                                    onChange={e => setSchemeForm({...schemeForm, rescheduledEndTime: e.target.value})} />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {((schemeForm.classStatus === 'Class Rescheduled' && schemeForm.rescheduledStartTime && schemeForm.rescheduledEndTime) || 
+                            (schemeForm.classStatus !== 'Class Rescheduled' && schemeForm.startTime && schemeForm.endTime)) && (
+                            <div className={`text-sm font-black px-4 py-2 rounded-xl border flex justify-center items-center ${schemeForm.classStatus === "Student didn't attend" ? "text-rose-600 bg-rose-50 border-rose-100" : schemeForm.classStatus === 'Class Rescheduled' ? "text-amber-800 bg-amber-50 border-amber-200" : "text-indigo-600 bg-indigo-50 border-indigo-100"}`}>
                               ⏱️ Total {schemeForm.classStatus === "Student didn't attend" ? "Wait Time" : "Duration"}: {(() => {
-                                const [sh, sm] = schemeForm.startTime.split(':').map(Number);
-                                const [eh, em] = schemeForm.endTime.split(':').map(Number);
+                                const start = schemeForm.classStatus === 'Class Rescheduled' ? schemeForm.rescheduledStartTime : schemeForm.startTime;
+                                const end = schemeForm.classStatus === 'Class Rescheduled' ? schemeForm.rescheduledEndTime : schemeForm.endTime;
+                                const [sh, sm] = start.split(':').map(Number);
+                                const [eh, em] = end.split(':').map(Number);
                                 let diff = (eh * 60 + em) - (sh * 60 + sm);
                                 if(diff < 0) diff += 24 * 60;
                                 const h = Math.floor(diff/60);
                                 const m = diff % 60;
-                                return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`;
+                                return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`.trim();
                               })()}
                             </div>
                           )}
@@ -3814,12 +3888,37 @@ const handleAssignSubmit = async (e) => {
                             )}
                           </td>
                           <td className="p-5">
-                            <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                              {report.classStatus === 'Class Taken' ? '✅ Class Taken' : `❌ ${report.classStatus}`}
+                            <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider shadow-sm ${
+                              report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 
+                              report.classStatus === 'Class Rescheduled' ? 'bg-amber-100 text-amber-800' :
+                              'bg-rose-100 text-rose-700'
+                            }`}>
+                              {report.classStatus === 'Class Taken' ? '✅ Class Taken' : 
+                               report.classStatus === 'Class Rescheduled' ? '🔄 Rescheduled' : 
+                               `❌ ${report.classStatus}`}
                             </span>
                           </td>
                           <td className="p-5">
-                            {(report.classStatus === 'Class Taken' || report.classStatus === "Student didn't attend") && report.startTime && report.endTime ? (
+                            {report.classStatus === 'Class Rescheduled' && report.rescheduledStartTime && report.rescheduledEndTime ? (
+                              <div>
+                                <p className="text-sm font-bold px-2 py-1 rounded-md inline-block mb-1 border text-amber-800 bg-amber-50 border-amber-200">
+                                  {report.rescheduledStartTime} - {report.rescheduledEndTime}
+                                </p>
+                                <p className="text-xs font-bold text-amber-700 block">
+                                  Duration: {
+                                    (() => {
+                                      const [sh, sm] = report.rescheduledStartTime.split(':').map(Number);
+                                      const [eh, em] = report.rescheduledEndTime.split(':').map(Number);
+                                      let diff = (eh * 60 + em) - (sh * 60 + sm);
+                                      if(diff < 0) diff += 24 * 60;
+                                      const h = Math.floor(diff/60);
+                                      const m = diff % 60;
+                                      return `${h > 0 ? h + ' hr ' : ''}${m > 0 ? m + ' min' : ''}`.trim();
+                                    })()
+                                  }
+                                </p>
+                              </div>
+                            ) : (report.classStatus === 'Class Taken' || report.classStatus === "Student didn't attend") && report.startTime && report.endTime ? (
                               <div>
                                 <p className={`text-sm font-bold px-2 py-1 rounded-md inline-block mb-1 border ${report.classStatus === "Student didn't attend" ? 'text-rose-700 bg-rose-50 border-rose-100' : 'text-indigo-700 bg-indigo-50 border-indigo-100'}`}>
                                   {report.startTime} - {report.endTime}
@@ -4842,14 +4941,12 @@ const handleAssignSubmit = async (e) => {
                                   startTime: newStart, 
                                   endTime: calculateEndTime(newStart)
                                 });
-                              }}
-                              readOnly={!!plannerModal.data} />
+                              }} />
                           </div>
                           <div>
                             <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">End Time</label>
                             <input type="time" required className="w-full p-3 sm:p-4 bg-[#F4F7FE] border-none rounded-xl font-bold outline-none text-[#1B2559]" 
-                              value={plannerForm.endTime} onChange={e => setPlannerForm({...plannerForm, endTime: e.target.value})}
-                              readOnly={!!plannerModal.data} />
+                              value={plannerForm.endTime} onChange={e => setPlannerForm({...plannerForm, endTime: e.target.value})} />
                           </div>
                         </div>
 
@@ -4914,11 +5011,14 @@ const handleAssignSubmit = async (e) => {
                           </>
                         )}
 
-                        {/* THE NEW BUTTON TO LOG DIRECTLY TO LESSON SCHEDULE */}
+                        {/* LOG DIRECTLY TO LESSON SCHEDULE */}
                         {plannerModal.data && (
                           <button type="button" onClick={() => {
+                            const d = new Date(plannerModal.data.startDate);
+                            const localDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
                             setSchemeForm({
-                              date: new Date(plannerModal.data.startDate).toISOString().split('T')[0],
+                              date: localDateStr,
                               startTime: new Date(plannerModal.data.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}),
                               endTime: new Date(plannerModal.data.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}),
                               title: 'Class Taken',
@@ -4937,25 +5037,38 @@ const handleAssignSubmit = async (e) => {
                           </button>
                         )}
 
-                        <div className={`flex gap-3 sm:gap-4 ${!plannerModal.data ? 'mt-4 sm:mt-6' : ''}`}>
-                          <button type="button" onClick={() => setPlannerModal({show: false})} className="flex-1 py-3 sm:py-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 text-sm sm:text-base">Cancel</button>
-                          {!plannerModal.data ? (
-                            <button type="submit" className="flex-1 py-3 sm:py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 text-sm sm:text-base">Save Class</button>
-                          ) : (
-                            <>
-                              <button type="button" onClick={() => handlePlannerDelete(plannerModal.data._id, false)} className="flex-1 py-3 sm:py-4 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 text-sm sm:text-base">Delete One</button>
-                              {plannerModal.data.isRecurring && (
-                                <button type="button" onClick={() => handlePlannerDelete(plannerModal.data._id, true)} className="flex-1 py-3 sm:py-4 bg-red-700 text-white font-bold rounded-xl hover:bg-red-800 text-xs sm:text-sm">Delete Series</button>
-                              )}
-                            </>
-                          )}
-                        </div>
+                        {!plannerModal.data ? (
+                          <div className="flex gap-3 sm:gap-4 mt-4 sm:mt-6">
+                            <button type="button" onClick={() => setPlannerModal({show: false})} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 text-sm sm:text-base transition-colors">
+                              Cancel
+                            </button>
+                            <button type="submit" className="flex-1 py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 text-sm sm:text-base transition-colors shadow-sm">
+                              Save Class
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-2">
+                            <button type="button" onClick={() => setPlannerModal({show: false})} className="w-full py-3.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 text-sm sm:text-base transition-colors">
+                              Cancel
+                            </button>
+                            <button type="submit" className="w-full py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 text-sm sm:text-base transition-colors shadow-sm">
+                              Save Class
+                            </button>
+                            <button type="button" onClick={() => handlePlannerDelete(plannerModal.data._id, false)} className={`w-full py-3.5 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 text-sm sm:text-base transition-colors shadow-sm ${!plannerModal.data.isRecurring ? 'col-span-2' : ''}`}>
+                              Delete One
+                            </button>
+                            {plannerModal.data.isRecurring && (
+                              <button type="button" onClick={() => handlePlannerDelete(plannerModal.data._id, true)} className="w-full py-3.5 bg-red-700 text-white font-bold rounded-xl hover:bg-red-800 text-sm sm:text-base transition-colors shadow-sm">
+                                Delete Series
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </form>
                     </div>
                   </div>
                 )}
 
-                {/* Filters */}
                 <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 border-b border-slate-100 pb-6 gap-4">
                   <div className="flex items-center gap-3">
                     <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>

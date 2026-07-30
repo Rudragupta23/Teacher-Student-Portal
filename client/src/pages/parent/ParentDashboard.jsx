@@ -930,12 +930,27 @@ export default function ParentDashboard() {
                           {report.topic && <p className="text-xs font-bold text-slate-500 mt-1">Topic: {report.topic}</p>}
                         </td>
                         <td className="p-5">
-                          <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider shadow-sm ${report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                            {report.classStatus === 'Class Taken' ? '✅ Class Taken' : `❌ ${report.classStatus}`}
+                          <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider shadow-sm ${
+                            report.classStatus === 'Class Taken' ? 'bg-emerald-100 text-emerald-700' : 
+                            report.classStatus === 'Class Rescheduled' ? 'bg-amber-100 text-amber-800' :
+                            'bg-rose-100 text-rose-700'
+                          }`}>
+                            {report.classStatus === 'Class Taken' ? '✅ Class Taken' : 
+                             report.classStatus === 'Class Rescheduled' ? '🔄 Rescheduled' : 
+                             `❌ ${report.classStatus}`}
                           </span>
                         </td>
                         <td className="p-5">
-                          {(report.classStatus === 'Class Taken' || report.classStatus === "Student didn't attend") && report.startTime && report.endTime ? (
+                          {report.classStatus === 'Class Rescheduled' && report.rescheduledDate ? (
+                            <div>
+                              <p className="text-sm font-bold px-2 py-1 rounded-md inline-block mb-1 border text-amber-800 bg-amber-50 border-amber-200">
+                                {report.rescheduledStartTime} - {report.rescheduledEndTime}
+                              </p>
+                              <p className="text-xs font-bold text-amber-700 block">
+                                New Date: {new Date(report.rescheduledDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </p>
+                            </div>
+                          ) : (report.classStatus === 'Class Taken' || report.classStatus === "Student didn't attend") && report.startTime && report.endTime ? (
                             <div>
                               <p className={`text-sm font-bold px-2 py-1 rounded-md inline-block mb-1 border ${report.classStatus === "Student didn't attend" ? 'text-rose-700 bg-rose-50 border-rose-100' : 'text-violet-700 bg-violet-50 border-violet-100'}`}>
                                 {report.startTime} - {report.endTime}

@@ -1,13 +1,72 @@
 const Scheme = require('../models/Scheme');
 const User = require('../models/User');
+const ClassPlanner = require('../models/ClassPlanner');
 const sendEmail = require('../utils/sendEmail');
 
 exports.createReport = async (req, res) => {
   try {
-    const { date, startTime, endTime, title, weekNo, topic, description, classStatus, waitingTime, graderInstruction, yearGroupFilter, studentId } = req.body;
+    const { 
+      date, startTime, endTime, title, weekNo, topic, description, 
+      classStatus, waitingTime, graderInstruction, yearGroupFilter, studentId,
+      rescheduledDate, rescheduledStartTime, rescheduledEndTime 
+    } = req.body;
     
+    if (classStatus === 'Class Rescheduled' && rescheduledDate && rescheduledStartTime && rescheduledEndTime) {
+      const newStartDateTime = new Date(`${rescheduledDate.split('T')[0]}T${rescheduledStartTime}`);
+      const newEndDateTime = new Date(`${rescheduledDate.split('T')[0]}T${rescheduledEndTime}`);
+
+      const conflictQuery = {
+        $or: [
+          { startDate: { $lt: newEndDateTime }, endDate: { $gt: newStartDateTime } }
+        ]
+      };
+
+      const oldDateObj = new Date(date);
+      const startOfDay = new Date(oldDateObj.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(oldDateObj.setHours(23, 59, 59, 999));
+
+      const existingSession = await ClassPlanner.findOne({
+        studentId: studentId || 'all',
+        startDate: { $gte: startOfDay, $lte: endOfDay }
+      });
+
+      if (existingSession) {
+        conflictQuery._id = { $ne: existingSession._id };
+      }
+
+      const conflict = await ClassPlanner.findOne(conflictQuery);
+      if (conflict) {
+        return res.status(400).json({ 
+          message: 'rescheduled other time as there is already class of this particular student' 
+        });
+      }
+
+      if (existingSession) {
+        existingSession.startDate = newStartDateTime;
+        existingSession.endDate = newEndDateTime;
+        await existingSession.save();
+      }
+    }
+
+    const reportDate = (classStatus === 'Class Rescheduled' && rescheduledDate) ? rescheduledDate : date;
+
     const report = await Scheme.create({
-      date, startTime, endTime, title, weekNo, topic, description, classStatus, waitingTime, graderInstruction, yearGroupFilter, studentId, adminId: req.user._id
+      date: reportDate, 
+      startTime, 
+      endTime, 
+      title, 
+      weekNo, 
+      topic, 
+      description, 
+      classStatus, 
+      waitingTime, 
+      rescheduledDate,
+      rescheduledStartTime,
+      rescheduledEndTime,
+      graderInstruction, 
+      yearGroupFilter, 
+      studentId, 
+      adminId: req.user._id
     });
 
     let graders = [];
