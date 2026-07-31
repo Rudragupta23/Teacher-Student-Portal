@@ -4115,7 +4115,7 @@ const handleAssignSubmit = async (e) => {
 
           {/* VIEW 5: MESSAGES TAB */}
           {activeTab === 'messages' && (
-            <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] flex flex-col lg:flex-row overflow-hidden animate-fade-in gap-6">
+            <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-[85vh] md:h-[800px] flex flex-col lg:flex-row overflow-hidden animate-fade-in gap-6">
               
               {/* Left Side: Contact List */}
               <div className="w-full lg:w-1/3 border-b lg:border-b-0 lg:border-r border-slate-100 pb-4 lg:pb-0 lg:pr-4 flex flex-col">
@@ -4904,7 +4904,7 @@ const handleAssignSubmit = async (e) => {
                       setDriveForm({ title: '', url: '', targetAudience: 'all', yearGroupFilter: 'all' });
                       setIsAssignModalOpen(true);
                     }} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-blue-500 hover:bg-blue-600 text-white hover:-translate-y-1">
-                      <span>+</span> Share New Link
+                      <span>+</span> Add Drive Link
                     </button>
                   </div>
                 </div>
