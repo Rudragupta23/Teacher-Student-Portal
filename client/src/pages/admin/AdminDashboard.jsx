@@ -111,6 +111,8 @@ const [testForm, setTestForm] = useState({
   const [messages, setMessages] = useState([]);
   const [selectedStudentForChat, setSelectedStudentForChat] = useState(null);
   const [chatInput, setChatInput] = useState('');
+  const [parentStatuses, setParentStatuses] = useState({}); 
+  const [isCheckingParents, setIsCheckingParents] = useState(false);
 
   // Study Library States
   const [resources, setResources] = useState([]);
@@ -501,6 +503,31 @@ const [testForm, setTestForm] = useState({
       setMessages(res.data);
     } catch (e) { console.error("Error fetching messages"); }
   };
+
+  useEffect(() => {
+    if (activeTab === 'messages' && user?.role === 'admin') {
+      const checkAllParents = async () => {
+        if (isCheckingParents || students.length === 0) return;
+        setIsCheckingParents(true);
+        const statuses = { ...parentStatuses };
+        const unchecked = students.filter(s => statuses[s._id] === undefined);
+        
+        for (let i = 0; i < unchecked.length; i += 5) {
+          const batch = unchecked.slice(i, i + 5);
+          await Promise.all(batch.map(async (student) => {
+            try {
+              const res = await api.get(`/admin/student/${student._id}/parent`);
+              statuses[student._id] = !!res.data;
+            } catch (err) {
+              statuses[student._id] = false;
+            }
+          }));
+          setParentStatuses({ ...statuses }); 
+        }
+      };
+      checkAllParents();
+    }
+  }, [activeTab, students]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -4118,16 +4145,16 @@ const handleAssignSubmit = async (e) => {
             <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-[85vh] md:h-[800px] flex flex-col lg:flex-row overflow-hidden animate-fade-in gap-6">
               
               {/* Left Side: Contact List */}
-              <div className="w-full lg:w-1/3 border-b lg:border-b-0 lg:border-r border-slate-100 pb-4 lg:pb-0 lg:pr-4 flex flex-col">
-                <h2 className="text-xl font-black text-[#1B2559] mb-6">Conversations</h2>
+              <div className="w-full lg:w-1/3 border-b lg:border-b-0 lg:border-r border-slate-100 pb-4 lg:pb-0 lg:pr-4 flex flex-col min-h-0">
+                <h2 className="text-xl font-black text-[#1B2559] mb-6 shrink-0">Conversations</h2>
                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-2">
                   
-                  {/* GLOBAL CHAT BUTTON (ADMIN ONLY) */}
+                  {/* GLOBAL CHAT BUTTON */}
                   {user?.role === 'admin' && (
                     <button 
                       onClick={() => { setSelectedStudentForChat({ _id: 'all', name: 'Entire Class', registrationName: 'Entire Class', yearGroup: '' }); fetchMessages('all'); }}
                       className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 mb-4 border-2 ${selectedStudentForChat?._id === 'all' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'border-transparent text-slate-600 hover:bg-slate-50'}`}>
-                      <div className="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-500 text-white rounded-full flex items-center justify-center font-black text-xl">🌍</div>
+                      <div className="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-500 text-white rounded-full flex items-center justify-center font-black text-xl shrink-0">🌍</div>
                       <div className="truncate">
                         <p className="flex items-center gap-2 text-[#1B2559]">Global Class Chat</p>
                         <p className="text-xs text-indigo-400 font-medium truncate">Message everyone</p>
@@ -4144,7 +4171,7 @@ const handleAssignSubmit = async (e) => {
                         fetchMessages('admin'); 
                       }}
                       className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 border-2 ${selectedStudentForChat?.role === 'admin' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'border-transparent text-slate-600 hover:bg-slate-50'}`}>
-                      <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black text-xl">👨‍🏫</div>
+                      <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black text-xl shrink-0">👨‍🏫</div>
                       <div className="truncate">
                         <p className="flex items-center gap-2 text-[#1B2559]">Main Admin</p>
                         <p className="text-xs text-indigo-400 font-medium truncate">Mentor / Manager</p>
@@ -4165,11 +4192,11 @@ const handleAssignSubmit = async (e) => {
                             fetchMessages(grader._id); 
                           }}
                           className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 ${selectedStudentForChat?._id === grader._id ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}>
-                          <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-black">{(grader.name).charAt(0)}</div>
+                          <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-black shrink-0">{(grader.name).charAt(0)}</div>
                           <div className="truncate">
                             <p className="flex items-center gap-2">
-                              {grader.name}
-                              <span className="text-[10px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded-md">Grader</span>
+                              <span className="truncate">{grader.name}</span>
+                              <span className="shrink-0 text-[10px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded-md">Grader</span>
                             </p>
                             <p className="text-xs text-slate-400 font-medium truncate">{grader.email}</p>
                           </div>
@@ -4191,13 +4218,18 @@ const handleAssignSubmit = async (e) => {
                             fetchMessages(student._id); 
                           }}
                           className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 ${selectedStudentForChat?._id === student._id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}>
-                          <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black">{(student.registrationName || student.name).charAt(0)}</div>
-                          <div className="truncate">
+                          <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black shrink-0">{(student.registrationName || student.name).charAt(0)}</div>
+                          <div className="truncate w-full">
                             <p className="flex items-center gap-2">
-                              {student.registrationName || student.name}
-                              {student.yearGroup && <span className="text-[10px] bg-indigo-200/50 text-indigo-700 px-1.5 py-0.5 rounded-md">{student.yearGroup}</span>}
+                              <span className="truncate">{student.registrationName || student.name}</span>
+                              {student.yearGroup && <span className="shrink-0 text-[10px] bg-indigo-200/50 text-indigo-700 px-1.5 py-0.5 rounded-md">{student.yearGroup}</span>}
                             </p>
-                            <p className="text-xs text-slate-400 font-medium truncate">{student.email}</p>
+                            <div className="flex items-center justify-between mt-0.5 w-full pr-2">
+                              <p className="text-xs text-slate-400 font-medium truncate">{student.email}</p>
+                              {parentStatuses[student._id] === true && (
+                                <span className="shrink-0 text-[9px] font-black bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded shadow-sm ml-2">👨‍👩‍👦 Linked</span>
+                              )}
+                            </div>
                           </div>
                         </button>
                       ))}
@@ -4207,7 +4239,7 @@ const handleAssignSubmit = async (e) => {
               </div>
 
               {/* Right Side: Chat Window */}
-              <div className="w-full lg:w-2/3 flex flex-col bg-[#F4F7FE]/50 rounded-3xl overflow-hidden relative">
+              <div className="w-full lg:w-2/3 flex flex-col bg-[#F4F7FE]/50 rounded-3xl overflow-hidden relative min-h-0">
                 {selectedStudentForChat ? (
                   <>
                     <div className="bg-white p-4 border-b border-slate-100 font-black text-[#1B2559] flex items-center justify-between shadow-sm z-10">
@@ -4234,19 +4266,26 @@ const handleAssignSubmit = async (e) => {
                             👨‍🎓 Chat with Student
                           </button>
                           <button 
-                            onClick={async () => {
-                              try {
-                                const res = await api.get(`/admin/student/${selectedStudentForChat._id}/parent`);
-                                setSelectedParent(res.data);
-                                setChatTarget('parent');
-                                fetchMessages(res.data._id); 
-                              } catch (err) {
-                                showToast("No parent account is linked to this student yet.", "error");
-                              }
-                            }} 
-                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${chatTarget === 'parent' ? 'bg-violet-500 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>
-                            👨‍👩‍👦 Chat with Parent
-                          </button>
+                          disabled={parentStatuses[selectedStudentForChat._id] === false}
+                          onClick={async () => {
+                          try {
+                            const res = await api.get(`/admin/student/${selectedStudentForChat._id}/parent`);
+                            setSelectedParent(res.data);
+                            setChatTarget('parent');
+                            fetchMessages(res.data._id); 
+                            } catch (err) {
+                            showToast("No parent account is linked to this student yet.", "error");
+                         }
+                        }} 
+                          className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                          parentStatuses[selectedStudentForChat._id] === false 
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                          : chatTarget === 'parent' 
+                          ? 'bg-violet-500 text-white shadow-md' 
+                          : 'text-slate-500 hover:bg-slate-50'
+                        }`}>
+                        {parentStatuses[selectedStudentForChat._id] === false ? '🚫 No Parent Linked' : '👨‍👩‍👦 Chat with Parent'}
+                        </button>
                         </div>
                         
                         {chatTarget === 'parent' && selectedParent && (
