@@ -4334,7 +4334,7 @@ const handleAssignSubmit = async (e) => {
                       </div>
                       <span className="hidden sm:flex text-[10px] font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200 shadow-sm items-center gap-1.5 shrink-0 ml-2">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        Delete 24hrs
+                        Chats delete within 24hrs
                       </span>
                     </div>
 
