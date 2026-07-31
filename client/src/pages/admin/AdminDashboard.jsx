@@ -113,6 +113,11 @@ const [testForm, setTestForm] = useState({
   const [chatInput, setChatInput] = useState('');
   const [parentStatuses, setParentStatuses] = useState({}); 
   const [isCheckingParents, setIsCheckingParents] = useState(false);
+  
+  // Chat Resizer States
+  const [chatSidebarWidth, setChatSidebarWidth] = useState(33); 
+  const [isChatDragging, setIsChatDragging] = useState(false);
+  const chatContainerRef = React.useRef(null);
 
   // Study Library States
   const [resources, setResources] = useState([]);
@@ -528,6 +533,37 @@ const [testForm, setTestForm] = useState({
       checkAllParents();
     }
   }, [activeTab, students]);
+
+  // Chat Resizer Event Listeners
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isChatDragging || !chatContainerRef.current) return;
+      const containerRect = chatContainerRef.current.getBoundingClientRect();
+      
+      const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+      
+      if (newWidth >= 20 && newWidth <= 55) { 
+        setChatSidebarWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsChatDragging(false);
+      document.body.style.userSelect = 'auto'; 
+    };
+
+    if (isChatDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = 'none'; 
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = 'auto';
+    };
+  }, [isChatDragging]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -4142,10 +4178,14 @@ const handleAssignSubmit = async (e) => {
 
           {/* VIEW 5: MESSAGES TAB */}
           {activeTab === 'messages' && (
-            <div className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-[85vh] md:h-[800px] flex flex-col lg:flex-row overflow-hidden animate-fade-in gap-6">
+            <div 
+              ref={chatContainerRef} 
+              className="bg-white p-4 sm:p-6 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-[85vh] md:h-[800px] flex flex-col lg:flex-row overflow-hidden animate-fade-in relative"
+              style={{ '--chat-sidebar-width': `${chatSidebarWidth}%` }}
+            >
               
               {/* Left Side: Contact List */}
-              <div className="w-full lg:w-1/3 border-b lg:border-b-0 lg:border-r border-slate-100 pb-4 lg:pb-0 lg:pr-4 flex flex-col min-h-0">
+              <div className="w-full lg:w-[var(--chat-sidebar-width)] border-b lg:border-b-0 lg:border-r border-slate-100 pb-4 lg:pb-0 flex flex-col min-h-0 shrink-0 lg:pr-4 transition-none">
                 <h2 className="text-xl font-black text-[#1B2559] mb-6 shrink-0">Conversations</h2>
                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-2">
                   
@@ -4216,9 +4256,16 @@ const handleAssignSubmit = async (e) => {
                             setChatTarget('student'); 
                             setSelectedParent(null);  
                             fetchMessages(student._id); 
-                          }}
-                          className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 ${selectedStudentForChat?._id === student._id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}>
-                          <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black shrink-0">{(student.registrationName || student.name).charAt(0)}</div>
+                        }}
+                      className={`w-full text-left p-4 rounded-2xl font-bold transition-colors flex items-center gap-3 ${selectedStudentForChat?._id === student._id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}>
+  
+                      {student.profilePic ? (
+                        <img src={student.profilePic} alt={student.name} className="w-10 h-10 rounded-full object-cover shadow-sm shrink-0 border border-indigo-100" />
+                        ) : (
+                        <div className="w-10 h-10 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center font-black shrink-0">
+                        {(student.registrationName || student.name).charAt(0)}
+                      </div>
+                       )}
                           <div className="truncate w-full">
                             <p className="flex items-center gap-2">
                               <span className="truncate">{student.registrationName || student.name}</span>
@@ -4238,14 +4285,46 @@ const handleAssignSubmit = async (e) => {
                 </div>
               </div>
 
+              <div 
+                className="hidden lg:flex w-4 cursor-col-resize items-center justify-center transition-colors z-20 shrink-0 hover:bg-indigo-50/50 -ml-2"
+                onMouseDown={() => setIsChatDragging(true)}
+              >
+                 <div className={`w-1 h-16 rounded-full transition-colors ${isChatDragging ? 'bg-indigo-500' : 'bg-slate-300'}`}></div>
+              </div>
+
               {/* Right Side: Chat Window */}
-              <div className="w-full lg:w-2/3 flex flex-col bg-[#F4F7FE]/50 rounded-3xl overflow-hidden relative min-h-0">
+              <div className="w-full lg:flex-1 flex flex-col bg-[#F4F7FE]/50 rounded-3xl overflow-hidden relative min-h-0 mt-4 lg:mt-0 lg:ml-2 transition-none">
                 {selectedStudentForChat ? (
                   <>
                     <div className="bg-white p-4 border-b border-slate-100 font-black text-[#1B2559] flex items-center justify-between shadow-sm z-10">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center">{(selectedStudentForChat.registrationName || selectedStudentForChat.name).charAt(0)}</div>
-                        Chatting with {selectedStudentForChat.registrationName || selectedStudentForChat.name} {selectedStudentForChat.yearGroup ? `(${selectedStudentForChat.yearGroup})` : ''}
+                        
+                        {chatTarget === 'parent' && selectedParent ? (
+                          <>
+                            {selectedParent.profilePic ? (
+                              <img src={selectedParent.profilePic} alt={selectedParent.name} className="w-8 h-8 rounded-full object-cover shadow-sm border border-violet-200" />
+                            ) : (
+                              <div className="w-8 h-8 bg-violet-500 text-white rounded-full flex items-center justify-center shadow-sm">
+                                {(selectedParent.registrationName || selectedParent.name).charAt(0)}
+                              </div>
+                            )}
+                            Chatting with Parent: {selectedParent.registrationName || selectedParent.name}
+                          </>
+                        ) : (
+                          <>
+                            {selectedStudentForChat._id === 'all' ? (
+                              <div className="w-8 h-8 bg-gradient-to-tr from-indigo-500 to-purple-500 text-white rounded-full flex items-center justify-center text-sm shadow-sm">🌍</div>
+                            ) : selectedStudentForChat.profilePic ? (
+                              <img src={selectedStudentForChat.profilePic} alt={selectedStudentForChat.name} className="w-8 h-8 rounded-full object-cover shadow-sm border border-indigo-100" />
+                            ) : (
+                              <div className="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-sm">
+                                {(selectedStudentForChat.registrationName || selectedStudentForChat.name).charAt(0)}
+                              </div>
+                            )}
+                            Chatting with {selectedStudentForChat.registrationName || selectedStudentForChat.name} {selectedStudentForChat.yearGroup ? `(${selectedStudentForChat.yearGroup})` : ''}
+                          </>
+                        )}
+                        
                       </div>
                       <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200 shadow-sm flex items-center gap-1.5">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -4253,7 +4332,6 @@ const handleAssignSubmit = async (e) => {
                       </span>
                     </div>
 
-                    {/* START OF PARENT TOGGLE UI */}
                     {selectedStudentForChat._id !== 'all' && chatTarget !== 'grader' && chatTarget !== 'admin' && (
                       <div className="bg-[#F4F7FE] border-b border-slate-200 px-6 py-3 flex items-center justify-between z-0">
                         <div className="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-100">
