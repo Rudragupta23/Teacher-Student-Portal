@@ -4185,7 +4185,7 @@ const handleAssignSubmit = async (e) => {
             >
               
               {/* Left Side: Contact List */}
-              <div className="w-full lg:w-[var(--chat-sidebar-width)] border-b lg:border-b-0 lg:border-r border-slate-100 pb-4 lg:pb-0 flex flex-col min-h-0 shrink-0 lg:pr-4 transition-none">
+              <div className={`w-full lg:w-[var(--chat-sidebar-width)] border-b lg:border-b-0 lg:border-r border-slate-100 pb-4 lg:pb-0 flex flex-col min-h-0 flex-1 lg:flex-none lg:shrink-0 lg:pr-4 transition-none ${selectedStudentForChat ? 'hidden lg:flex' : 'flex'}`}>
                 <h2 className="text-xl font-black text-[#1B2559] mb-6 shrink-0">Conversations</h2>
                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-2">
                   
@@ -4293,42 +4293,48 @@ const handleAssignSubmit = async (e) => {
               </div>
 
               {/* Right Side: Chat Window */}
-              <div className="w-full lg:flex-1 flex flex-col bg-[#F4F7FE]/50 rounded-3xl overflow-hidden relative min-h-0 mt-4 lg:mt-0 lg:ml-2 transition-none">
+              <div className={`w-full lg:flex-1 flex flex-col bg-[#F4F7FE]/50 rounded-3xl overflow-hidden relative min-h-0 mt-4 lg:mt-0 lg:ml-2 transition-none ${selectedStudentForChat ? 'flex' : 'hidden lg:flex'}`}>
                 {selectedStudentForChat ? (
                   <>
                     <div className="bg-white p-4 border-b border-slate-100 font-black text-[#1B2559] flex items-center justify-between shadow-sm z-10">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
                         
+                        {/* Mobile Back Button */}
+                        <button onClick={() => setSelectedStudentForChat(null)} className="lg:hidden p-2 -ml-2 text-slate-400 hover:text-indigo-600 outline-none shrink-0">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+
+                        {/* Parent vs Student Profile Check */}
                         {chatTarget === 'parent' && selectedParent ? (
                           <>
                             {selectedParent.profilePic ? (
-                              <img src={selectedParent.profilePic} alt={selectedParent.name} className="w-8 h-8 rounded-full object-cover shadow-sm border border-violet-200" />
+                              <img src={selectedParent.profilePic} alt={selectedParent.name} className="w-8 h-8 rounded-full object-cover shadow-sm border border-violet-200 shrink-0" />
                             ) : (
-                              <div className="w-8 h-8 bg-violet-500 text-white rounded-full flex items-center justify-center shadow-sm">
+                              <div className="w-8 h-8 bg-violet-500 text-white rounded-full flex items-center justify-center shadow-sm shrink-0">
                                 {(selectedParent.registrationName || selectedParent.name).charAt(0)}
                               </div>
                             )}
-                            Chatting with Parent: {selectedParent.registrationName || selectedParent.name}
+                            <span className="truncate max-w-[180px] sm:max-w-xs">Parent: {selectedParent.registrationName || selectedParent.name}</span>
                           </>
                         ) : (
                           <>
                             {selectedStudentForChat._id === 'all' ? (
-                              <div className="w-8 h-8 bg-gradient-to-tr from-indigo-500 to-purple-500 text-white rounded-full flex items-center justify-center text-sm shadow-sm">🌍</div>
+                              <div className="w-8 h-8 bg-gradient-to-tr from-indigo-500 to-purple-500 text-white rounded-full flex items-center justify-center text-sm shadow-sm shrink-0">🌍</div>
                             ) : selectedStudentForChat.profilePic ? (
-                              <img src={selectedStudentForChat.profilePic} alt={selectedStudentForChat.name} className="w-8 h-8 rounded-full object-cover shadow-sm border border-indigo-100" />
+                              <img src={selectedStudentForChat.profilePic} alt={selectedStudentForChat.name} className="w-8 h-8 rounded-full object-cover shadow-sm border border-indigo-100 shrink-0" />
                             ) : (
-                              <div className="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-sm">
+                              <div className="w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-sm shrink-0">
                                 {(selectedStudentForChat.registrationName || selectedStudentForChat.name).charAt(0)}
                               </div>
                             )}
-                            Chatting with {selectedStudentForChat.registrationName || selectedStudentForChat.name} {selectedStudentForChat.yearGroup ? `(${selectedStudentForChat.yearGroup})` : ''}
+                            <span className="truncate max-w-[180px] sm:max-w-xs">{selectedStudentForChat.registrationName || selectedStudentForChat.name} {selectedStudentForChat.yearGroup ? `(${selectedStudentForChat.yearGroup})` : ''}</span>
                           </>
                         )}
                         
                       </div>
-                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200 shadow-sm flex items-center gap-1.5">
+                      <span className="hidden sm:flex text-[10px] font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200 shadow-sm items-center gap-1.5 shrink-0 ml-2">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        Chats delete after 24 hours
+                        Delete 24hrs
                       </span>
                     </div>
 
@@ -4825,7 +4831,7 @@ const handleAssignSubmit = async (e) => {
                               const matchedGrader = graders.find(g => String(g._id) === graderId);
                               if (matchedGrader) {
                                 return (
-                                  <p className="text-[10px] text-emerald-600 bg-emerald-50 inline-block px-2 py-0.5 mt-1 rounded-md font-black block w-max">
+                                  <p className="text-[10px] text-emerald-600 bg-emerald-50 inline-block px-2 py-0.5 mt-1 rounded-md font-black w-max">
                                     ✅ Marked by {matchedGrader.name}
                                   </p>
                                 );
