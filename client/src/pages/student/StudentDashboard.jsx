@@ -1376,56 +1376,98 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* STUDENT VIEW: STUDY LIBRARY */}
+          {/* STUDY LIBRARY */}
           {activeTab === 'library' && (
-            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+            <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in flex flex-col">
               
-              <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
-                <div className="bg-cyan-500 w-2 h-8 rounded-full"></div>
-                <h2 className="text-2xl font-black text-[#1B2559]">Study Materials Hub 📚</h2>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-slate-100 pb-6 gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-cyan-500 w-2 h-8 rounded-full"></div>
+                  <h2 className="text-2xl font-black text-[#1B2559]">Study Materials Hub 📚</h2>
+                </div>
+                <div className="relative w-full sm:w-64">
+                    <svg className="w-5 h-5 absolute left-4 top-3 text-[#A3AED0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" placeholder="Search materials..." 
+                      className="w-full p-3 pl-12 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-4 focus:ring-cyan-500/10 font-bold text-[#1B2559]"
+                      value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                </div>
               </div>
-              <p className="text-slate-500 font-bold mb-8">Access syllabus files, reference links, and study guides provided by your teacher anytime. These are not graded tasks.</p>
+              <p className="text-slate-500 font-bold mb-6">Access syllabus files, reference links, and study guides provided by your teacher anytime. These are not graded tasks.</p>
                 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {resources.map(res => (
-                  <div key={res._id} className="p-6 bg-white border-2 border-slate-100 hover:border-cyan-300 rounded-3xl transition-all shadow-sm hover:shadow-xl flex flex-col justify-between group">
-                    <div>
-                      <div className="flex gap-2 mb-4">
-                        <span className={`text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm
-                          ${res.type === 'Document' ? 'bg-rose-100 text-rose-700' : res.type === 'Video Link' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700'}`}>
-                          {res.type}
-                        </span>
-                      </div>
-                      <h3 className="text-[#1B2559] font-black text-xl mb-2 group-hover:text-cyan-600 transition-colors">{res.title}</h3>
-                      {res.description && <p className="text-sm font-bold text-[#A3AED0] mb-4 line-clamp-3">{res.description}</p>}
-                    </div>
-                    
-                    <button onClick={() => {
-                        const a = document.createElement('a');
-                        a.href = res.url;
-                        a.target = "_blank";
-                        if (res.type === 'Document') a.download = `${res.title.replace(/\s+/g, '_')}`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                      }} 
-                      className="mt-6 w-full py-3.5 bg-[#F4F7FE] text-[#1B2559] hover:bg-cyan-500 hover:text-white font-black rounded-xl transition-all shadow-sm flex justify-center items-center gap-2 transform group-hover:-translate-y-1">
-                      {res.type === 'Document' ? '⬇️ Download Material' : '🔗 Access Link'}
-                    </button>
-                  </div>
-                ))}
-                
-                {resources.length === 0 && (
-                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
-                    <div className="text-6xl mb-4 opacity-50">🗂️</div>
-                    <h3 className="text-[#1B2559] font-black text-2xl mb-1">Library is empty!</h3>
-                    <p className="text-[#A3AED0] font-bold">Your Teacher hasn't uploaded any study materials yet.</p>
-                  </div>
-                )}
-              </div>
+              <div className="overflow-x-auto w-full max-w-full pb-4 relative flex-1 custom-scrollbar">
+                <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-cyan-500 text-white text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top shadow-sm">
+                      <th className="p-4 rounded-tl-2xl">Material Details</th>
+                      <th className="p-4">Type</th>
+                      <th className="p-4">Date Added</th>
+                      <th className="p-4 rounded-tr-2xl text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {resources
+                      .filter(res => {
+                        const searchLower = (searchTerm || '').toLowerCase();
+                        const matchesSearch = res.title?.toLowerCase().includes(searchLower) || res.description?.toLowerCase().includes(searchLower);
+                        if (!matchesSearch) return false;
 
+                        if (res.targetAudience && res.targetAudience !== 'all') {
+                          return String(res.targetAudience) === String(userId);
+                        }
+                        if (res.yearGroupFilter && res.yearGroupFilter !== 'all') {
+                          return studentProfile.yearGroup === res.yearGroupFilter;
+                        }
+                        return true;
+                      })
+                      .map((res, index) => (
+                      <tr key={res._id} className={`border-b border-slate-200 hover:bg-slate-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-cyan-50/20'}`}>
+                        <td className="p-4 whitespace-normal min-w-[300px] leading-snug">
+                          <h3 className="font-black text-[#1B2559] text-lg">{res.title}</h3>
+                          <p className="font-bold text-slate-500 text-sm mt-1">{res.description || '-'}</p>
+                        </td>
+                        <td className="p-4">
+                          <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider
+                            ${res.type === 'Document' ? 'bg-rose-100 text-rose-700' : res.type === 'Video Link' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700'}`}>
+                            {res.type}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className="text-xs font-bold text-slate-500">{new Date(res.createdAt).toLocaleDateString()}</span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <button onClick={() => {
+                              const a = document.createElement('a');
+                              a.href = res.url;
+                              a.target = "_blank";
+                              if (res.type === 'Document') a.download = `${res.title.replace(/\s+/g, '_')}`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                            }} 
+                            className="px-6 py-2.5 bg-[#F4F7FE] text-[#1B2559] hover:bg-cyan-500 hover:text-white font-black rounded-lg transition-all shadow-sm flex justify-center items-center gap-2 mx-auto text-xs">
+                            {res.type === 'Document' ? '⬇️ Download' : '🔗 Open Link'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    
+                    {resources.length === 0 && (
+                      <tr>
+                        <td colSpan="4" className="text-center py-20">
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="text-6xl mb-4 opacity-50">🗂️</div>
+                            <h3 className="text-[#1B2559] font-black text-xl mb-1">Library is empty!</h3>
+                            <p className="text-[#A3AED0] font-bold">Your Teacher hasn't uploaded any study materials yet.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          )} 
+          )}
+
         {/* Lesson Schedule TAB */}
           {activeTab === 'scheme' && (
             <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">

@@ -1,32 +1,36 @@
 const Resource = require('../models/Resource');
-const User = require('../models/User'); // Add this import
-const sendEmail = require('../utils/sendEmail'); // Add this import
+const User = require('../models/User'); 
+const sendEmail = require('../utils/sendEmail'); 
 
 exports.createResource = async (req, res) => {
     try {
-        const { title, description, type, url } = req.body;
-        const resource = new Resource({ title, description, type, url });
+        const { title, description, type, url, targetAudience, yearGroupFilter } = req.body;
+        const resource = new Resource({ title, description, type, url, targetAudience, yearGroupFilter });
         await resource.save();
 
-        // --- NEW EMAIL NOTIFICATION LOGIC ---
-        const students = await User.find({ role: 'student' });
+        // EMAIL
+        let students = [];
+        if (targetAudience && targetAudience !== 'all') {
+            students = await User.find({ _id: targetAudience, role: 'student' });
+        } else if (yearGroupFilter && yearGroupFilter !== 'all') {
+            students = await User.find({ yearGroup: yearGroupFilter, role: 'student' });
+        } else {
+            students = await User.find({ role: 'student' });
+        }
         const studentEmails = students.map(student => student.email).filter(email => email);
 
         if (studentEmails.length > 0) {
-            // Check if the uploaded resource is a link or website (this ignores PDFs)
             const isLinkType = type && (
                 type.toLowerCase().includes('link') || 
                 type.toLowerCase().includes('youtube') || 
                 type.toLowerCase().includes('website')
             );
 
-            // Fix the URL to prevent it from acting as a relative link to your own website
             let validUrl = url;
             if (validUrl && !validUrl.startsWith('http://') && !validUrl.startsWith('https://')) {
                 validUrl = 'https://' + validUrl;
             }
 
-            // Create a clickable link box that explicitly shows the actual URL text
             const urlHtml = (url && isLinkType) 
                 ? `<div style="margin-top: 15px; padding: 15px; background-color: #ffffff; border-radius: 6px; border: 1px solid #ddd6fe; word-break: break-all;">
                        <p style="margin: 0 0 5px 0; color: #5b21b6; font-size: 14px; font-weight: bold;">Material Link:</p>
@@ -62,7 +66,6 @@ exports.createResource = async (req, res) => {
                 html: emailContent
             });
         }
-        // ------------------------------------
 
         res.status(201).json({ message: "Resource added successfully!", resource });
     } catch (error) {

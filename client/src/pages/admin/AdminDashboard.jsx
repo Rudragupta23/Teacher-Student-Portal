@@ -114,7 +114,7 @@ const [testForm, setTestForm] = useState({
 
   // Study Library States
   const [resources, setResources] = useState([]);
-  const [resourceForm, setResourceForm] = useState({ title: '', description: '', type: 'Document', url: '' });
+  const [resourceForm, setResourceForm] = useState({ title: '', description: '', type: 'Document', url: '', targetAudience: 'all', yearGroupFilter: 'all' });
   const [isResourceUploading, setIsResourceUploading] = useState(false);
 
   // Scheme of Work States
@@ -422,7 +422,7 @@ const [testForm, setTestForm] = useState({
     try {
       await api.post('/resources', resourceForm);
       showToast("Library Resource Added!");
-      setResourceForm({ title: '', description: '', type: 'Document', url: '' });
+      setResourceForm({ title: '', description: '', type: 'Document', url: '', targetAudience: 'all', yearGroupFilter: 'all' });
       fetchData();
     } catch (err) { showToast("Failed to upload resource", "error"); }
   };
@@ -4300,108 +4300,263 @@ const handleAssignSubmit = async (e) => {
             </div>
           )}
 
-          {/* VIEW 6: STUDY LIBRARY (ADMIN) */}
+          {/* VIEW 6: STUDY LIBRARY */}
           {activeTab === 'library' && (
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in">
+            <div className="animate-fade-in relative">
               
-              {/* Left Side: Upload Form */}
-              <div className="xl:col-span-4 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] h-fit">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="bg-cyan-500 w-2 h-8 rounded-full"></div>
-                  <h2 className="text-2xl font-black text-[#1B2559]">Add Material</h2>
-                </div>
-                
-                <form onSubmit={handleResourceSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Title</label>
-                    <input type="text" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559]" 
-                      placeholder="e.g. Chapter 4 Calculus Notes" value={resourceForm.title} onChange={e => setResourceForm({...resourceForm, title: e.target.value})} />
-                  </div>
+              {isAssignModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
+                  <div className="bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl transform scale-100 animate-slide-up max-h-[90vh] overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                      <div className="bg-cyan-500 w-2 h-8 rounded-full"></div>
+                      <h2 className="text-2xl font-black text-[#1B2559]">Add Study Material</h2>
+                    </div>
+                    
+                    <form onSubmit={async (e) => {
+                      await handleResourceSubmit(e);
+                      setIsAssignModalOpen(false);
+                    }} className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Title</label>
+                        <input type="text" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-cyan-500/20 font-bold text-[#1B2559]" 
+                          placeholder="e.g. Chapter 4 Calculus Notes" value={resourceForm.title} onChange={e => setResourceForm({...resourceForm, title: e.target.value})} />
+                      </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Resource Type</label>
-                    <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
-                      value={resourceForm.type} onChange={e => setResourceForm({...resourceForm, type: e.target.value, url: ''})}>
-                      <option value="Document">📄 PDF / Document</option>
-                      <option value="Video Link">📺 YouTube / Video Link</option>
-                      <option value="External Link">🔗 External Website</option>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Resource Type</label>
+                        <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+                          value={resourceForm.type} onChange={e => setResourceForm({...resourceForm, type: e.target.value, url: ''})}>
+                          <option value="Document">📄 PDF / Document</option>
+                          <option value="Video Link">📺 YouTube / Video Link</option>
+                          <option value="External Link">🔗 External Website</option>
+                        </select>
+                      </div>
+
+                      {resourceForm.type === 'Document' ? (
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Upload File</label>
+                          <div className="relative border-2 border-dashed border-slate-300 bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer group">
+                            <input type="file" accept=".pdf, image/*" required className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleResourceFile} />
+                            <p className="font-bold text-slate-600 text-sm">{resourceForm.url ? '✅ File Attached' : 'Click to upload PDF/Image'}</p>
+                            {isResourceUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Paste URL</label>
+                          <input type="url" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-cyan-500/20 font-bold text-[#1B2559]" 
+                            placeholder="https://..." value={resourceForm.url} onChange={e => setResourceForm({...resourceForm, url: e.target.value})} />
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Short Description (Optional)</label>
+                        <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-cyan-500/20 font-bold text-[#1B2559]" 
+                          placeholder="What is this material about?" value={resourceForm.description} onChange={e => setResourceForm({...resourceForm, description: e.target.value})} />
+                      </div>
+
+                      <div className="space-y-2 pt-4 border-t border-slate-100">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year Group</label>
+                        <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
+                          value={resourceForm.yearGroupFilter} onChange={e => {
+                            const selectedYear = e.target.value;
+                            const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
+                            setResourceForm({
+                              ...resourceForm, 
+                              yearGroupFilter: selectedYear, 
+                              targetAudience: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
+                            });
+                          }}>
+                          <option value="all">All Years</option>
+                          {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                            <option key={yg} value={yg}>{yg}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Student</label>
+                        <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
+                          value={resourceForm.targetAudience} onChange={e => setResourceForm({...resourceForm, targetAudience: e.target.value})}>
+                          {resourceForm.yearGroupFilter === 'all' && (
+                            <option value="all">📢 Share to Everyone</option>
+                          )}
+                          {students.filter(s => resourceForm.yearGroupFilter === 'all' || s.yearGroup === resourceForm.yearGroupFilter).map(s => (
+                            <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex gap-3 mt-6">
+                        <button type="button" onClick={() => setIsAssignModalOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-200 transition-colors">
+                          Cancel
+                        </button>
+                        <button disabled={isResourceUploading} type="submit" className="flex-1 bg-[#1B2559] hover:bg-cyan-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg transform hover:-translate-y-1 disabled:opacity-50">
+                          Publish Material
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* STUDY MATERIALS BOARD */}
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] flex flex-col">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-slate-100 pb-6 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-cyan-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Study Materials Hub</h2>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto flex-wrap justify-end">
+                    <div className="relative">
+                      <svg className="w-5 h-5 absolute left-4 top-3 text-[#A3AED0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                      <input type="text" placeholder="Search materials..." 
+                        className="w-full sm:w-64 p-3 pl-12 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-4 focus:ring-cyan-500/10 font-bold text-[#1B2559]"
+                        value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    </div>
+
+                    <button onClick={() => {
+                      setResourceForm({ title: '', description: '', type: 'Document', url: '', targetAudience: 'all', yearGroupFilter: 'all' });
+                      setIsAssignModalOpen(true);
+                    }} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-cyan-500 hover:bg-cyan-600 text-white hover:-translate-y-1">
+                      <span>+</span> Add Material
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:items-end">
+                  <div className="flex-1 min-w-[110px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={hwYearFilter} onChange={e => { setHwYearFilter(e.target.value); setHwStudentFilter('all'); }}>
+                      <option value="all">All Years</option>
+                      {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                        <option key={yg} value={yg}>{yg}</option>
+                      ))}
                     </select>
                   </div>
-
-                  {resourceForm.type === 'Document' ? (
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Upload File</label>
-                      <div className="relative border-2 border-dashed border-slate-300 bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer group">
-                        <input type="file" accept=".pdf, image/*" required className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleResourceFile} />
-                        <p className="font-bold text-slate-600 text-sm">{resourceForm.url ? '✅ File Attached' : 'Click to upload PDF/Image'}</p>
-                        {isResourceUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Paste URL</label>
-                      <input type="url" required className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559]" 
-                        placeholder="https://..." value={resourceForm.url} onChange={e => setResourceForm({...resourceForm, url: e.target.value})} />
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Short Description (Optional)</label>
-                    <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559]" 
-                      placeholder="What is this material about?" value={resourceForm.description} onChange={e => setResourceForm({...resourceForm, description: e.target.value})} />
+                  
+                  <div className="flex-[1.5] min-w-[150px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Student</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={hwStudentFilter} onChange={e => setHwStudentFilter(e.target.value)}>
+                      <option value="all">All Filtered Students</option>
+                      {students
+                        .filter(s => hwYearFilter === 'all' || s.yearGroup === hwYearFilter)
+                        .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
+                        .map(s => (
+                        <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                      ))}
+                    </select>
                   </div>
-
-                  <button disabled={isResourceUploading} className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-black py-4 rounded-2xl transition-transform hover:-translate-y-1 shadow-lg text-lg disabled:opacity-50">
-                    Publish Material
-                  </button>
-                </form>
-              </div>
-
-              {/* Right Side: Resource List */}
-              <div className="xl:col-span-8 bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px]">
-                <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
-                  <div className="bg-indigo-500 w-2 h-8 rounded-full"></div>
-                  <h2 className="text-2xl font-black text-[#1B2559]">Resource Library</h2>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                  {resources.map(res => (
-                    <div key={res._id} className="p-6 bg-[#F4F7FE] rounded-3xl relative group border border-transparent hover:border-cyan-200 transition-colors flex flex-col justify-between">
-                      <button type="button" onClick={() => handleDeleteResource(res._id)} className="absolute top-4 right-4 w-8 h-8 bg-white text-rose-500 hover:bg-rose-500 hover:text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-sm">🗑️</button>
+
+                <div className="overflow-x-auto w-full max-w-full pb-4 relative flex-1 custom-scrollbar">
+                  <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
+                    <thead>
+                      <tr className="bg-cyan-500 text-white text-xs font-black uppercase tracking-wider sticky top-0 z-10 align-top shadow-sm">
+                        <th className="p-4 rounded-tl-2xl">Material Details</th>
+                        <th className="p-4">Assigned To</th>
+                        <th className="p-4">Type</th>
+                        <th className="p-4">Date Added</th>
+                        <th className="p-4 rounded-tr-2xl text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resources
+                        .filter(res => {
+                          const searchLower = (searchTerm || '').toLowerCase();
+                          const matchesSearch = res.title?.toLowerCase().includes(searchLower) || 
+                                              (res.targetAudience !== 'all' && students.find(s => s._id === res.targetAudience)?.name.toLowerCase().includes(searchLower));
+                          
+                          if (!matchesSearch) return false;
+                          
+                          if (hwStudentFilter !== 'all') {
+                            if (res.targetAudience !== 'all' && String(res.targetAudience) !== String(hwStudentFilter)) return false;
+                          } else if (hwYearFilter !== 'all') {
+                            if (res.targetAudience !== 'all') {
+                              const targetStudent = students.find(s => s._id === res.targetAudience);
+                              if (!targetStudent || targetStudent.yearGroup !== hwYearFilter) return false;
+                            }
+                          }
+                          return true;
+                        })
+                        .map((res, index) => {
+                        return (
+                          <tr key={res._id} className={`border-b border-slate-200 hover:bg-slate-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-cyan-50/20'}`}>
+                            <td className="p-4 whitespace-normal min-w-[300px] leading-snug">
+                              <h3 className="font-black text-[#1B2559] text-lg">{res.title}</h3>
+                              <p className="font-bold text-slate-500 text-sm mt-1">{res.description || '-'}</p>
+                            </td>
+                            <td className="p-4 font-black text-[#1B2559]">
+                              {res.targetAudience === 'all' 
+                                ? (
+                                  <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider bg-indigo-100 text-indigo-700 inline-block">
+                                    📢 Everyone
+                                  </span>
+                                )
+                                : (() => {
+                                    const st = students.find(s => s._id === res.targetAudience);
+                                    return st ? (
+                                      <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider bg-amber-100 text-amber-700 inline-block">
+                                        👤 {st.registrationName || st.name} {st.yearGroup ? `(${st.yearGroup})` : ''}
+                                      </span>
+                                    ) : 'Specific Student';
+                                  })()
+                              }
+                            </td>
+                            <td className="p-4">
+                              <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider
+                                ${res.type === 'Document' ? 'bg-rose-100 text-rose-700' : res.type === 'Video Link' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700'}`}>
+                                {res.type}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <span className="text-xs font-bold text-slate-500">{new Date(res.createdAt).toLocaleDateString()}</span>
+                            </td>
+                            <td className="p-4 text-center">
+                              <div className="flex flex-row flex-nowrap items-center justify-center gap-2 w-max mx-auto">
+                                <button onClick={() => {
+                                    const a = document.createElement('a');
+                                    a.href = res.url;
+                                    a.target = "_blank";
+                                    if (res.type === 'Document') a.download = `${res.title.replace(/\s+/g, '_')}`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                  }} 
+                                  className="px-4 py-2 bg-[#1B2559] text-white font-black rounded-lg hover:bg-cyan-600 transition-colors shadow-sm text-xs">
+                                  {res.type === 'Document' ? '⬇️ Download' : '🔗 Open Link'}
+                                </button>
+                                <button onClick={() => handleDeleteResource(res._id)} className="p-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-colors shadow-sm" title="Delete">
+                                  🗑️
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                       
-                      <div>
-                        <div className="flex gap-2 mb-3">
-                          <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider
-                            ${res.type === 'Document' ? 'bg-rose-100 text-rose-700' : res.type === 'Video Link' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700'}`}>
-                            {res.type}
-                          </span>
-                        </div>
-                        <h3 className="text-[#1B2559] font-black text-xl mb-2">{res.title}</h3>
-                        {res.description && <p className="text-sm font-bold text-[#A3AED0] mb-4">{res.description}</p>}
-                      </div>
-                      
-                      <button onClick={() => {
-                          const a = document.createElement('a');
-                          a.href = res.url;
-                          a.target = "_blank";
-                          if (res.type === 'Document') a.download = `${res.title.replace(/\s+/g, '_')}`;
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                        }} 
-                        className="mt-4 w-full py-3 bg-white text-[#1B2559] hover:bg-cyan-50 hover:text-cyan-700 font-black rounded-xl transition-all shadow-sm border border-slate-200 flex justify-center items-center gap-2">
-                        {res.type === 'Document' ? '⬇️ Download' : '🔗 Open Link'}
-                      </button>
-                    </div>
-                  ))}
-                  {resources.length === 0 && <div className="col-span-full text-center text-[#A3AED0] font-bold py-10">Library is empty. Add some materials!</div>}
+                      {resources.length === 0 && (
+                        <tr>
+                          <td colSpan="5" className="text-center py-20">
+                            <div className="flex flex-col items-center justify-center">
+                              <div className="text-6xl mb-4 opacity-50">🗂️</div>
+                              <p className="text-[#1B2559] font-black text-xl mb-1">Library is empty!</p>
+                              <p className="text-[#A3AED0] font-bold">Add study materials using the button above.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-
             </div>
           )}
 
-          {/* NEW GRADER MANAGEMENT TAB (ADMIN ONLY) */}
+          {/* NEW GRADER MANAGEMENT TAB */}
           {activeTab === 'graders' && user?.role === 'admin' && (
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
@@ -4702,7 +4857,7 @@ const handleAssignSubmit = async (e) => {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Recipient</label>
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Student</label>
                         <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
                           value={driveForm.targetAudience} onChange={e => setDriveForm({...driveForm, targetAudience: e.target.value})}>
                           
