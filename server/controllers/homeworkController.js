@@ -550,3 +550,62 @@ exports.deleteHomework = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Update/Replace existing homework content
+// @route   PUT /api/homework/:id
+exports.updateHomework = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedData = req.body;
+    
+    const homework = await Homework.findByIdAndUpdate(id, updatedData, { returnDocument: 'after' });
+    
+    if (!homework) {
+      return res.status(404).json({ message: 'Homework not found' });
+    }
+
+    const student = await User.findById(homework.studentId);
+
+    if (student && student.email) {
+      const formattedDueDate = new Date(homework.dueDate).toLocaleString(); 
+
+      const emailSubject = `Homework Updated: ${homework.title}`;
+      const emailContent = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                <div style="background-color: #f59e0b; padding: 25px; text-align: center;">
+                    <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">🔄 Homework Replaced/Updated</h2>
+                </div>
+                <div style="padding: 30px;">
+                    <p style="font-size: 16px; margin-bottom: 20px;">Hello ${student.registrationName || student.name},</p>
+                    <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">Your teacher has updated or replaced the content for an existing assignment. Please review the new details below:</p>
+                    
+                    <table style="width: 100%; border-collapse: collapse; margin: 25px 0;">
+                        <tr>
+                            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280; width: 120px;"><strong>Title</strong></td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #1f2937; font-weight: 500;">${homework.title}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #6b7280;"><strong>Deadline</strong></td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #ef4444; font-weight: 600;">${formattedDueDate}</td>
+                        </tr>
+                    </table>
+                    
+                    <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Please log in to your student dashboard to view the updated instructions and submit your work.</p>
+                </div>
+            </div>
+        </div>
+      `;
+
+      await sendEmail({
+        email: student.email,
+        subject: emailSubject,
+        html: emailContent
+      });
+    }
+
+    res.status(200).json({ message: 'Homework updated successfully and student notified', homework });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

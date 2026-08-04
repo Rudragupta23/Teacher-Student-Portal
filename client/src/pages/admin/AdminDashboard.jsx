@@ -53,6 +53,7 @@ export default function AdminDashboard() {
   const [yearGroupAllocate, setYearGroupAllocate] = useState('all');
   const [selectedStudentsToAllocate, setSelectedStudentsToAllocate] = useState([]);
 
+const [editHomeworkId, setEditHomeworkId] = useState(null); 
 const [assignForm, setAssignForm] = useState({
   title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Medium', 
   dueDate: '', fileUrl: '', content: '', studentInstructions: '',
@@ -640,13 +641,20 @@ const handleAssignSubmit = async (e) => {
   if (!assignForm.dueDate) return showToast("Please assign a valid Due Date!", "error");
 
   try {
-      await api.post('/homework/assign', assignForm);
-      showToast('🎉 Homework successfully published!');
+    if (editHomeworkId) {
+        await api.put(`/homework/${editHomeworkId}`, assignForm);
+        showToast('🎉 Homework successfully updated!');
+        setEditHomeworkId(null);
+    } else {
+        await api.post('/homework/assign', assignForm);
+        showToast('🎉 Homework successfully published!');
+    }
     fetchData(); 
-    setAssignForm({ ...assignForm, title: '', fileUrl: '', content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
+    setAssignForm({ ...assignForm, title: '', weekNo: '', topic: '', fileUrl: '', content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
     setFileName('');
+    setIsAssignModalOpen(false); 
   } catch (err) {
-    showToast(err.response?.data?.message || 'Error assigning work.', "error");
+    showToast(err.response?.data?.message || 'Error assigning/updating work.', "error");
   }
 };
 
@@ -2148,7 +2156,9 @@ const handleAssignSubmit = async (e) => {
                   <div className="bg-white rounded-[2rem] p-8 w-full max-w-2xl shadow-2xl transform scale-100 animate-slide-up max-h-[90vh] overflow-y-auto custom-scrollbar">
                     <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
                       <div className="bg-indigo-600 w-2 h-8 rounded-full"></div>
-                      <h2 className="text-2xl font-black text-[#1B2559]">Assign New Homework</h2>
+                      <h2 className="text-2xl font-black text-[#1B2559]">
+                      {editHomeworkId ? 'View / Edit Homework' : 'Assign New Homework'}
+                      </h2>
                     </div>
                     
                     <form onSubmit={async (e) => {
@@ -2250,14 +2260,33 @@ const handleAssignSubmit = async (e) => {
 
                         <div className="animate-fade-in">
                           {assignForm.type === 'File' && (
-                            <div className="relative border-2 border-dashed border-indigo-300 bg-[#F4F7FE] rounded-3xl p-10 text-center hover:bg-indigo-50 transition-colors cursor-pointer group">
-                              <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />
-                              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
-                              <p className="font-black text-[#1B2559]">Drag & Drop or Click</p>
-                              <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG up to 5MB</p>
-                              {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file...</p>}
-                              {fileName && !isUploading && <p className="mt-3 inline-block bg-white text-indigo-800 px-4 py-2 rounded-full text-xs font-bold shadow-sm">{fileName}</p>}
-                            </div>
+                            <>
+                              <div className="relative border-2 border-dashed border-indigo-300 bg-[#F4F7FE] rounded-3xl p-10 text-center hover:bg-indigo-50 transition-colors cursor-pointer group">
+                                <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />
+                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
+                                <p className="font-black text-[#1B2559]">{editHomeworkId ? 'Drag & Drop or Click to Replace File' : 'Drag & Drop or Click'}</p>
+                                <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG up to 5MB</p>
+                                {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file...</p>}
+                                {fileName && !isUploading && <p className="mt-3 inline-block bg-white text-indigo-800 px-4 py-2 rounded-full text-xs font-bold shadow-sm">{fileName}</p>}
+                                {!fileName && assignForm.fileUrl && !isUploading && <p className="mt-3 inline-block bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full text-xs font-bold shadow-sm">✅ Existing File Attached</p>}
+                              </div>
+                          
+                              {/* PREVIEW BOX FOR ATTACHED FILE */}
+                              {assignForm.fileUrl && (
+                                <div className="mt-4 w-full h-64 overflow-hidden border border-slate-200 rounded-2xl bg-white shadow-inner relative flex items-center justify-center p-2">
+                                  {assignForm.fileUrl.includes('image') || assignForm.fileUrl.startsWith('data:image') ? (
+                                    <img src={assignForm.fileUrl} alt="Attached Work" className="w-full h-full object-contain rounded-xl" />
+                                  ) : assignForm.fileUrl.includes('pdf') || assignForm.fileUrl.startsWith('data:application/pdf') ? (
+                                    <iframe src={assignForm.fileUrl} className="w-full h-full border-0 rounded-xl" title="PDF Preview"></iframe>
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-2">
+                                      <p className="text-center text-slate-500 font-bold">Preview not available.</p>
+                                      <a href={assignForm.fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg font-black hover:bg-indigo-200">Open File in New Tab</a>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </>
                           )}
 
                           {assignForm.type === 'Text' && (
@@ -2312,7 +2341,7 @@ const handleAssignSubmit = async (e) => {
                           Cancel
                         </button>
                         <button type="submit" className="flex-1 bg-[#1B2559] hover:bg-indigo-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg transform hover:-translate-y-1">
-                          Publish Homework
+                          {editHomeworkId ? 'Save Replaced Work' : 'Publish Homework'}
                         </button>
                       </div>
                     </form>
@@ -2336,7 +2365,11 @@ const handleAssignSubmit = async (e) => {
                         value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                     </div>
 
-                    <button onClick={() => setIsAssignModalOpen(true)} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-indigo-600 hover:bg-indigo-700 text-white hover:-translate-y-1">
+                    <button onClick={() => {
+                      setEditHomeworkId(null); 
+                      setAssignForm({ title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Medium', dueDate: '', fileUrl: '', content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]});
+                      setIsAssignModalOpen(true);
+                      }} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-indigo-600 hover:bg-indigo-700 text-white hover:-translate-y-1">
                       <span>+</span> Assign New Homework
                     </button>
                   </div>
@@ -2449,6 +2482,25 @@ const handleAssignSubmit = async (e) => {
                                <div className="flex flex-row flex-nowrap items-center justify-center gap-2 w-max mx-auto">
                                   {hw.status === 'Pending' && (
   <>
+    <button onClick={() => {
+        setAssignForm({
+            title: hw.title, 
+            weekNo: hw.weekNo || '', 
+            topic: hw.topic || '', 
+            type: hw.type, 
+            studentId: hw.studentId?._id || 'all', 
+            difficulty: hw.difficulty, 
+            dueDate: new Date(hw.dueDate).toISOString().slice(0,16), 
+            fileUrl: hw.fileUrl || '', 
+            content: hw.content || '', 
+            studentInstructions: hw.studentInstructions || '', 
+            mcqs: hw.mcqs?.length ? hw.mcqs : [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
+        });
+        setEditHomeworkId(hw._id);
+        setIsAssignModalOpen(true);
+    }} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-600 font-black rounded-lg hover:bg-amber-100 transition-all shadow-sm text-xs">
+      View / Edit
+    </button>
     <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: '' })} className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-600 font-black rounded-lg hover:bg-indigo-50 transition-all shadow-sm text-xs">
       Extend
     </button>
