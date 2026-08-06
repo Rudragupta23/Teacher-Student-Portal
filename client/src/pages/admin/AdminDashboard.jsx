@@ -32,6 +32,22 @@ const calculateEndTime = (startTime) => {
   return `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
+const getDefaultDueDate = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 5);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}T23:59`;
+};
+
+const formatTaskTitle = (title) => {
+  if (!title) return '';
+  let formatted = title.toLowerCase();
+  formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  return formatted.replace(/\bhw\b/ig, 'HW');
+};
+
 export default function AdminDashboard() {
   // Navigation & Data State
   const { user } = useContext(AuthContext);
@@ -55,8 +71,8 @@ export default function AdminDashboard() {
 
 const [editHomeworkId, setEditHomeworkId] = useState(null); 
 const [assignForm, setAssignForm] = useState({
-  title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Medium', 
-  dueDate: '', fileUrl: '', content: '', studentInstructions: '',
+  title: '', weekNo: '', topic: '', type: 'File', studentId: '', difficulty: 'Medium', 
+  dueDate: getDefaultDueDate(), fileUrl: '', content: '', studentInstructions: '',
   mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
 });
 const [testForm, setTestForm] = useState({
@@ -653,6 +669,7 @@ const [testForm, setTestForm] = useState({
 
 const handleAssignSubmit = async (e) => {
   e.preventDefault();
+  if (!assignForm.studentId || assignForm.studentId === 'all') return showToast("Please select a specific student!", "error");
   if (!assignForm.dueDate) return showToast("Please assign a valid Due Date!", "error");
 
   try {
@@ -2241,7 +2258,7 @@ const handleAssignSubmit = async (e) => {
                           <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Select Student</label>
                           <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
                             onChange={e => setAssignForm({...assignForm, studentId: e.target.value})} value={assignForm.studentId}>
-                            <option value="all">All Filtered Students</option>
+                            <option value="">-- Choose a Student --</option>
                             {students.filter(s => yearGroupAssign === 'all' || s.yearGroup === yearGroupAssign).map(s => (
                               <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
                             ))}
@@ -2382,7 +2399,7 @@ const handleAssignSubmit = async (e) => {
 
                     <button onClick={() => {
                       setEditHomeworkId(null); 
-                      setAssignForm({ title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Medium', dueDate: '', fileUrl: '', content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]});
+                      setAssignForm({ title: '', weekNo: '', topic: '', type: 'File', studentId: '', difficulty: 'Medium', dueDate: getDefaultDueDate(), fileUrl: '', content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]});
                       setIsAssignModalOpen(true);
                       }} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-indigo-600 hover:bg-indigo-700 text-white hover:-translate-y-1">
                       <span>+</span> Assign New Homework
@@ -2457,7 +2474,7 @@ const handleAssignSubmit = async (e) => {
                         return (
                           <tr key={hw._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-indigo-50/30'}`}>
                             <td className="p-4 whitespace-normal min-w-[200px] leading-snug">
-                              <h3 className="font-black text-[#1B2559]">{hw.title}</h3>
+                              <h3 className="font-black text-[#1B2559]">{formatTaskTitle(hw.title)}</h3>
                               <p className="text-xs font-bold text-slate-500 mt-1">Format: {hw.type}</p>
                             </td>
                             <td className="p-4 font-black text-[#1B2559]">
@@ -2516,7 +2533,7 @@ const handleAssignSubmit = async (e) => {
     }} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-600 font-black rounded-lg hover:bg-amber-100 transition-all shadow-sm text-xs">
       View / Edit
     </button>
-    <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: '' })} className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-600 font-black rounded-lg hover:bg-indigo-50 transition-all shadow-sm text-xs">
+    <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: getDefaultDueDate() })} className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-600 font-black rounded-lg hover:bg-indigo-50 transition-all shadow-sm text-xs">
       Extend
     </button>
     <button onClick={() => setModal({ type: 'adminSubmit', hwId: hw._id, data: hw })} className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-600 font-black rounded-lg hover:bg-indigo-100 transition-all shadow-sm text-xs">
@@ -2880,7 +2897,7 @@ const handleAssignSubmit = async (e) => {
                         return (
                           <tr key={hw._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-rose-50/30'}`}>
                             <td className="p-4 whitespace-normal min-w-[200px] leading-snug">
-                              <h3 className="font-black text-[#1B2559]">{hw.title}</h3>
+                              <h3 className="font-black text-[#1B2559]">{formatTaskTitle(hw.title)}</h3>
                               <p className="text-xs font-bold text-slate-500 mt-1">Format: {hw.type}</p>
                             </td>
                             <td className="p-4 font-black text-[#1B2559]">
@@ -2915,7 +2932,7 @@ const handleAssignSubmit = async (e) => {
                                <div className="flex flex-row flex-nowrap items-center justify-center gap-2 w-max mx-auto">
                                   {hw.status === 'Pending' && (
   <>
-    <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: '' })} className="px-3 py-1.5 bg-white border border-rose-200 text-rose-600 font-black rounded-lg hover:bg-rose-50 transition-all shadow-sm text-xs">
+    <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: getDefaultDueDate() })} className="px-3 py-1.5 bg-white border border-rose-200 text-rose-600 font-black rounded-lg hover:bg-rose-50 transition-all shadow-sm text-xs">
       Extend
     </button>
     <button onClick={() => setModal({ type: 'adminSubmit', hwId: hw._id, data: hw })} className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 font-black rounded-lg hover:bg-rose-100 transition-all shadow-sm text-xs">
@@ -4888,7 +4905,7 @@ const handleAssignSubmit = async (e) => {
                       return (
                         <tr key={hw._id} className={`border-b border-slate-200 hover:bg-slate-200 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-emerald-50/30'}`}>
                           <td className="p-4 whitespace-normal min-w-[200px] leading-snug">
-                            <h3 className="font-black text-[#1B2559]">{hw.title}</h3>
+                            <h3 className="font-black text-[#1B2559]">{formatTaskTitle(hw.title)}</h3>
                             <p className="text-xs font-bold text-slate-500 mt-1">Format: {hw.type}</p>
                           </td>
                           <td className="p-4 font-black text-[#1B2559]">
