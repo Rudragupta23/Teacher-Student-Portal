@@ -300,19 +300,34 @@ const [testForm, setTestForm] = useState({
     try {
       if (user?.role === 'admin') {
         const [studentRes, hwRes, annRes, resRes, graderRes, schemeRes, plannerRes, feedbackRes] = await Promise.all([
-          api.get('/admin/students'), api.get('/homework/admin'), api.get('/announcements/admin'),
-          api.get('/resources'), api.get('/admin/graders').catch(() => ({ data: [] })), api.get('/scheme'), api.get('/planner'), api.get('/feedback')
+          api.get('/admin/students').catch(err => { console.error('Students error:', err); return { data: [] }; }),
+          api.get('/homework/admin').catch(err => { console.error('Homework error:', err); return { data: [] }; }),
+          api.get('/announcements/admin').catch(err => { console.error('Announcements error:', err); return { data: [] }; }),
+          api.get('/resources').catch(err => { console.error('Resources error:', err); return { data: [] }; }),
+          api.get('/admin/graders').catch(err => { console.error('Graders error:', err); return { data: [] }; }),
+          api.get('/scheme').catch(err => { console.error('Scheme error:', err); return { data: [] }; }),
+          api.get('/planner').catch(err => { console.error('Planner error:', err); return { data: [] }; }),
+          api.get('/feedback').catch(err => { console.error('Feedback error:', err); return { data: [] }; })
         ]);
+        
         setStudents(processStudents(studentRes.data)); 
-        setHomeworks(hwRes.data); setAnnouncements(annRes.data);
-        setResources(resRes.data); setGraders(graderRes.data); setSchemes(schemeRes.data); setPlannerSessions(plannerRes.data || []);
+        setHomeworks(hwRes.data); 
+        setAnnouncements(annRes.data);
+        setResources(resRes.data); 
+        setGraders(graderRes.data); 
+        setSchemes(schemeRes.data); 
+        setPlannerSessions(plannerRes.data || []);
         setAllFeedback(feedbackRes.data);
+        
       } else if (user?.role === 'grader') {
         const [studentRes, hwRes, schemeRes] = await Promise.all([
-          api.get('/admin/students'), api.get('/homework/admin'), api.get('/scheme')
+          api.get('/admin/students').catch(err => { console.error('Students error:', err); return { data: [] }; }), 
+          api.get('/homework/admin').catch(err => { console.error('Homework error:', err); return { data: [] }; }), 
+          api.get('/scheme').catch(err => { console.error('Scheme error:', err); return { data: [] }; })
         ]);
         setStudents(processStudents(studentRes.data)); 
-        setHomeworks(hwRes.data); setSchemes(schemeRes.data);
+        setHomeworks(hwRes.data); 
+        setSchemes(schemeRes.data);
       }
     } catch (error) {
       showToast("Error fetching dashboard data.", "error");

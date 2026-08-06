@@ -42,7 +42,7 @@ const homeworkSchema = new mongoose.Schema({
     gradedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   },
   
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now, index: true }
 });
 
 module.exports = mongoose.model('Homework', homeworkSchema);

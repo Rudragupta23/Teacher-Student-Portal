@@ -151,7 +151,8 @@ exports.getAdminHomework = async (req, res) => {
 
     const homeworks = await Homework.find(filter)
       .populate('studentId', 'name email registrationName yearGroup')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .allowDiskUse(true);
       
     res.status(200).json(homeworks);
   } catch (error) {
@@ -162,7 +163,8 @@ exports.getAdminHomework = async (req, res) => {
 exports.getStudentHomework = async (req, res) => {
   try {
     const homeworks = await Homework.find({ studentId: req.user._id })
-                                    .sort({ createdAt: -1 });
+                                    .sort({ createdAt: -1 })
+                                    .allowDiskUse(true); 
     res.status(200).json(homeworks);
   } catch (error) {
     res.status(500).json({ message: error.message });
