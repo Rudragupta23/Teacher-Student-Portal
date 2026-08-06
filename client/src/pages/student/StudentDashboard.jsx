@@ -19,7 +19,7 @@ export default function StudentDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Submission Form State
-  const [submitForm, setSubmitForm] = useState({ answerFileUrl: '', answerText: '' });
+  const [submitForm, setSubmitForm] = useState({ answerFileUrl: '', attachments: [], answerText: '' });
   const [mcqAnswers, setMcqAnswers] = useState({}); 
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -268,22 +268,35 @@ export default function StudentDashboard() {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5000000) { 
-        showToast("File is too large! Please keep it under 5MB.", "error");
-        return;
-      }
-      setFileName(file.name);
-      setIsUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSubmitForm({ ...submitForm, answerFileUrl: reader.result });
-        setIsUploading(false);
-      };
-      reader.readAsDataURL(file);
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const currentSize = (submitForm.attachments || []).reduce((acc, curr) => acc + (curr.size || 0), 0);
+    const newFilesSize = files.reduce((acc, file) => acc + file.size, 0);
+
+    if (currentSize + newFilesSize > 5000000) {
+      return showToast("Total combined size of all attachments cannot exceed 5MB!", "error");
     }
+
+    setIsUploading(true);
+    const readFiles = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve({ name: file.name, url: reader.result, size: file.size });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    const newAttachments = await Promise.all(readFiles);
+    setSubmitForm(prev => ({
+      ...prev,
+      attachments: [...(prev.attachments || []), ...newAttachments]
+    }));
+    setIsUploading(false);
+    e.target.value = null;
   };
 
   const handleSubmit = async (e) => {
@@ -293,7 +306,7 @@ export default function StudentDashboard() {
       if (Object.keys(mcqAnswers).length !== modalTask.mcqs.length) {
         return showToast("Please answer all MCQ questions before submitting!", "error");
       }
-    } else if (!submitForm.answerFileUrl && !submitForm.answerText) {
+    } else if ((!submitForm.attachments || submitForm.attachments.length === 0) && !submitForm.answerFileUrl && !submitForm.answerText) {
       return showToast("Please attach a file or write an answer!", "error");
     }
 
@@ -301,7 +314,7 @@ export default function StudentDashboard() {
       await api.post(`/homework/${modalTask._id}/submit`, { ...submitForm, mcqAnswers });
       showToast('🎉 Homework submitted successfully!');
       setModalTask(null); 
-      setSubmitForm({ answerFileUrl: '', answerText: '' }); 
+      setSubmitForm({ answerFileUrl: '', attachments: [], answerText: '' }); 
       setMcqAnswers({}); 
       setFileName('');
       fetchAssignments();
@@ -393,7 +406,7 @@ export default function StudentDashboard() {
                 <h3 className="text-3xl font-black text-[#1B2559]">{modalTask.title}</h3>
                 <p className="text-sm font-bold text-indigo-500 mt-1">Due: {new Date(modalTask.dueDate).toLocaleString()}</p>
               </div>
-              <button onClick={() => { setModalTask(null); setSubmitForm({ answerFileUrl: '', answerText: '' }); setFileName(''); }} className="bg-slate-100 hover:bg-slate-200 text-slate-500 p-2 rounded-full transition-colors">
+              <button onClick={() => { setModalTask(null); setSubmitForm({ answerFileUrl: '', attachments: [], answerText: '' }); setFileName(''); }} className="bg-slate-100 hover:bg-slate-200 text-slate-500 p-2 rounded-full transition-colors">
                 ✕
               </button>
             </div>
@@ -410,49 +423,76 @@ export default function StudentDashboard() {
                   </div>
                 )}
                 
-                {modalTask.type === 'File' && modalTask.fileUrl && (
-  <div className="flex flex-col gap-4 w-full">
-    <p className="text-sm font-black text-[#1B2559] uppercase tracking-wide">Attachment Preview</p>
-    
-    <div className="w-full max-h-[400px] overflow-auto border-2 border-slate-200 rounded-2xl bg-white p-2 shadow-inner">
-      {modalTask.fileUrl.includes('image') || modalTask.fileUrl.startsWith('data:image') ? (
-  <img src={modalTask.fileUrl} alt="Homework Attachment" className="w-full h-auto rounded-xl object-contain" />
-) : modalTask.fileUrl.includes('pdf') || modalTask.fileUrl.startsWith('data:application/pdf') ? (
-  <iframe src={modalTask.fileUrl} className="w-full h-[500px] border-0 rounded-xl" title="PDF Preview"></iframe>
-) : (
-  <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
-)}
-    </div>
-
-    <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
-      <p className="font-bold text-indigo-800 text-sm">Do you want to download this file?</p>
-      <button type="button" onClick={() => {
-    const initials = (studentProfile.name || 'Unknown').split(' ')[0];
-    const yearGroup = studentProfile.yearGroup || 'Y?';
-    const formattedTitle = (modalTask.title || '').toUpperCase();
-
-    let ext = '.pdf';
-    if (modalTask.fileUrl) {
-        if (modalTask.fileUrl.includes('image/jpeg') || modalTask.fileUrl.includes('image/jpg')) ext = '.jpg';
-        else if (modalTask.fileUrl.includes('image/png')) ext = '.png';
-    }
-    const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
-
-    const a = document.createElement('a');
-    a.href = modalTask.fileUrl;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }}
-        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all shadow-md flex items-center gap-2"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-        Download
-      </button>
-    </div>
-  </div>
-)}
+                {modalTask.type === 'File' && (modalTask.fileUrl || (modalTask.attachments && modalTask.attachments.length > 0)) && (
+                  <div className="flex flex-col gap-6 w-full">
+                    <p className="text-sm font-black text-[#1B2559] uppercase tracking-wide border-b border-slate-200 pb-2">Attachment Previews</p>
+                    
+                    {/* New multiple attachments logic */}
+                    {modalTask.attachments?.length > 0 ? (
+                      <div className="space-y-8">
+                        {modalTask.attachments.map((attachment, idx) => (
+                          <div key={idx} className="flex flex-col gap-3">
+                            <p className="font-bold text-slate-700 text-sm">📎 {attachment.name}</p>
+                            <div className="w-full max-h-[400px] overflow-auto border-2 border-slate-200 rounded-2xl bg-white p-2 shadow-inner">
+                              {attachment.url.includes('image') || attachment.url.startsWith('data:image') ? (
+                                <img src={attachment.url} alt={attachment.name} className="w-full h-auto rounded-xl object-contain" />
+                              ) : attachment.url.includes('pdf') || attachment.url.startsWith('data:application/pdf') ? (
+                                <iframe src={attachment.url} className="w-full h-[500px] border-0 rounded-xl" title="PDF Preview"></iframe>
+                              ) : (
+                                <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
+                              )}
+                            </div>
+                            <div className="flex justify-end">
+                              <button type="button" onClick={() => {
+                                const a = document.createElement('a');
+                                a.href = attachment.url;
+                                a.download = attachment.name;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                              }} className="px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-black rounded-xl transition-colors flex items-center gap-2 border border-indigo-200">
+                                ⬇️ Download {attachment.name}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      /* Backward compatibility for old single fileUrl */
+                      <div className="flex flex-col gap-4">
+                        <div className="w-full max-h-[400px] overflow-auto border-2 border-slate-200 rounded-2xl bg-white p-2 shadow-inner">
+                          {modalTask.fileUrl.includes('image') || modalTask.fileUrl.startsWith('data:image') ? (
+                            <img src={modalTask.fileUrl} alt="Homework Attachment" className="w-full h-auto rounded-xl object-contain" />
+                          ) : modalTask.fileUrl.includes('pdf') || modalTask.fileUrl.startsWith('data:application/pdf') ? (
+                            <iframe src={modalTask.fileUrl} className="w-full h-[500px] border-0 rounded-xl" title="PDF Preview"></iframe>
+                          ) : (
+                            <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
+                          )}
+                        </div>
+                        <div className="flex justify-end">
+                          <button type="button" onClick={() => {
+                            const initials = (studentProfile.name || 'Unknown').split(' ')[0];
+                            const yearGroup = studentProfile.yearGroup || 'Y?';
+                            const formattedTitle = (modalTask.title || '').toUpperCase();
+                            let ext = '.pdf';
+                            if (modalTask.fileUrl) {
+                                if (modalTask.fileUrl.includes('image/jpeg') || modalTask.fileUrl.includes('image/jpg')) ext = '.jpg';
+                                else if (modalTask.fileUrl.includes('image/png')) ext = '.png';
+                            }
+                            const a = document.createElement('a');
+                            a.href = modalTask.fileUrl;
+                            a.download = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                          }} className="px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-black rounded-xl transition-colors flex items-center gap-2 border border-indigo-200">
+                            ⬇️ Download File
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {modalTask.type === 'Text' && (
                   <p className="text-[#1B2559] font-medium whitespace-pre-wrap">{modalTask.content}</p>
@@ -500,14 +540,33 @@ export default function StudentDashboard() {
                     value={submitForm.answerText} onChange={e => setSubmitForm({...submitForm, answerText: e.target.value})} />
                   
                   <div className="relative border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-2xl p-6 text-center hover:bg-indigo-50 transition-colors cursor-pointer group">
-                    <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />
+                    <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />
                     <p className="font-bold text-indigo-800 flex items-center justify-center gap-2">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                      Attach File (PDF/Image)
+                      Attach Files (Combined Max 5MB)
                     </p>
-                    {isUploading && <p className="mt-2 text-xs font-bold text-amber-500">Processing file...</p>}
-                    {fileName && !isUploading && <p className="mt-2 inline-block bg-white text-indigo-800 px-3 py-1 rounded-full text-xs font-bold shadow-sm">Attached: {fileName}</p>}
+                    {isUploading && <p className="mt-2 text-xs font-bold text-amber-500">Processing file(s)...</p>}
                   </div>
+                  
+                  {/* LIST ATTACHED FILES */}
+                  {submitForm.attachments?.length > 0 && (
+                    <div className="mt-4 space-y-3">
+                      {submitForm.attachments.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+                          <p className="text-sm font-bold text-indigo-800 truncate pr-4">📎 {file.name}</p>
+                          <button type="button" onClick={() => {
+                            const newAttachments = submitForm.attachments.filter((_, i) => i !== idx);
+                            setSubmitForm({...submitForm, attachments: newAttachments});
+                          }} className="text-rose-500 hover:text-rose-700 font-bold text-xs shrink-0 bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Backward compatibility */}
+                  {submitForm.answerFileUrl && (!submitForm.attachments || submitForm.attachments.length === 0) && (
+                    <p className="mt-2 inline-block bg-white text-indigo-800 px-3 py-1 rounded-full text-xs font-bold shadow-sm">✅ Existing File Attached</p>
+                  )}
 
                   <button type="submit" className="w-full bg-[#1B2559] hover:bg-indigo-600 text-white font-black py-4 rounded-2xl transition-all shadow-lg mt-4 transform hover:-translate-y-1">
                     Submit Homework

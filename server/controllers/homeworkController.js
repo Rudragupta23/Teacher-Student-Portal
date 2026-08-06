@@ -3,7 +3,7 @@ const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail'); 
 
 exports.assignHomework = async (req, res) => {
-  const { title, weekNo, topic, description, type, studentId, difficulty, dueDate, startDate, isTest, fileUrl, content, mcqs, studentInstructions } = req.body;
+  const { title, weekNo, topic, description, type, studentId, difficulty, dueDate, startDate, isTest, fileUrl, attachments, content, mcqs, studentInstructions } = req.body;
   
   try {
     let targetStudents = [];
@@ -45,6 +45,7 @@ exports.assignHomework = async (req, res) => {
         type, 
         difficulty,
         fileUrl: type === 'File' ? fileUrl : undefined,
+        attachments: type === 'File' ? (attachments || []) : [],
         content: type === 'Text' ? content : undefined,
         studentInstructions,
         mcqs: type === 'MCQ' ? mcqs : [],
@@ -173,7 +174,7 @@ exports.getStudentHomework = async (req, res) => {
 
 exports.submitHomework = async (req, res) => {
   const { id } = req.params;
-  const { answerText, answerFileUrl, mcqAnswers } = req.body;
+  const { answerText, answerFileUrl, attachments, mcqAnswers } = req.body;
   
   try {
     let homework;
@@ -332,7 +333,7 @@ exports.submitHomework = async (req, res) => {
     }
 
     homework.status = 'Submitted';
-    homework.submission = { answerText, answerFileUrl, submittedAt: new Date() };
+    homework.submission = { answerText, answerFileUrl, attachments: attachments || [], submittedAt: new Date() };
     await homework.save();
 
     notifyAdmins(student.registrationName || student.name);

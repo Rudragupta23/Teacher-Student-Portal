@@ -72,12 +72,12 @@ export default function AdminDashboard() {
 const [editHomeworkId, setEditHomeworkId] = useState(null); 
 const [assignForm, setAssignForm] = useState({
   title: '', weekNo: '', topic: '', type: 'File', studentId: '', difficulty: 'Medium', 
-  dueDate: getDefaultDueDate(), fileUrl: '', content: '', studentInstructions: '',
+  dueDate: getDefaultDueDate(), fileUrl: '', attachments: [], content: '', studentInstructions: '',
   mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
 });
 const [testForm, setTestForm] = useState({
   title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Easy', 
-  startDate: '', dueDate: '', fileUrl: '', content: '', studentInstructions: '',
+  startDate: '', dueDate: '', fileUrl: '', attachments: [], content: '', studentInstructions: '',
   mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
 });
   const [testYearGroupAssign, setTestYearGroupAssign] = useState('all');
@@ -88,7 +88,7 @@ const [testForm, setTestForm] = useState({
 
   // State for optional answer sheet upload
   const [answerSheet, setAnswerSheet] = useState({ fileUrl: '', fileName: '', isUploading: false });
-  const [adminSubmitForm, setAdminSubmitForm] = useState({ answerText: '', answerFileUrl: '' });
+  const [adminSubmitForm, setAdminSubmitForm] = useState({ answerText: '', answerFileUrl: '', attachments: [] });
   const [adminSubmitFile, setAdminSubmitFile] = useState({ fileName: '', isUploading: false });
 
   // Custom UI States
@@ -622,22 +622,35 @@ const [testForm, setTestForm] = useState({
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5000000) { 
-        showToast("File is too large! Please keep it under 5MB.", "error");
-        return;
-      }
-      setFileName(file.name);
-      setIsUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAssignForm({ ...assignForm, fileUrl: reader.result });
-        setIsUploading(false);
-      };
-      reader.readAsDataURL(file);
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const currentSize = assignForm.attachments.reduce((acc, curr) => acc + (curr.size || 0), 0);
+    const newFilesSize = files.reduce((acc, file) => acc + file.size, 0);
+
+    if (currentSize + newFilesSize > 5000000) {
+      return showToast("Total combined size of all attachments cannot exceed 5MB!", "error");
     }
+
+    setIsUploading(true);
+    const readFiles = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve({ name: file.name, url: reader.result, size: file.size });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    const newAttachments = await Promise.all(readFiles);
+    setAssignForm(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, ...newAttachments]
+    }));
+    setIsUploading(false);
+    e.target.value = null; 
   };
 
   const handleAnswerSheetUpload = (e) => {
@@ -653,18 +666,35 @@ const [testForm, setTestForm] = useState({
     }
   };
 
-  const handleAdminSubmitFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5000000) return showToast("File is too large! Please keep it under 5MB.", "error");
-      setAdminSubmitFile({ ...adminSubmitFile, fileName: file.name, isUploading: true });
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAdminSubmitForm({ ...adminSubmitForm, answerFileUrl: reader.result });
-        setAdminSubmitFile({ ...adminSubmitFile, fileName: file.name, isUploading: false });
-      };
-      reader.readAsDataURL(file);
+  const handleAdminSubmitFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const currentSize = (adminSubmitForm.attachments || []).reduce((acc, curr) => acc + (curr.size || 0), 0);
+    const newFilesSize = files.reduce((acc, file) => acc + file.size, 0);
+
+    if (currentSize + newFilesSize > 5000000) {
+      return showToast("Total combined size of all attachments cannot exceed 5MB!", "error");
     }
+
+    setAdminSubmitFile(prev => ({ ...prev, isUploading: true }));
+    const readFiles = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve({ name: file.name, url: reader.result, size: file.size });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    const newAttachments = await Promise.all(readFiles);
+    setAdminSubmitForm(prev => ({
+      ...prev,
+      attachments: [...(prev.attachments || []), ...newAttachments]
+    }));
+    setAdminSubmitFile(prev => ({ ...prev, isUploading: false }));
+    e.target.value = null;
   };
 
 const handleAssignSubmit = async (e) => {
@@ -682,8 +712,7 @@ const handleAssignSubmit = async (e) => {
         showToast('🎉 Homework successfully published!');
     }
     fetchData(); 
-    setAssignForm({ ...assignForm, title: '', weekNo: '', topic: '', fileUrl: '', content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
-    setFileName('');
+    setAssignForm({ ...assignForm, title: '', weekNo: '', topic: '', fileUrl: '', attachments: [], content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
     setIsAssignModalOpen(false); 
   } catch (err) {
     showToast(err.response?.data?.message || 'Error assigning/updating work.', "error");
@@ -713,19 +742,35 @@ const handleAssignSubmit = async (e) => {
     });
   };
 
-  const handleTestFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5000000) return showToast("File is too large! Max 5MB.", "error");
-      setTestFileName(file.name);
-      setIsUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setTestForm({ ...testForm, fileUrl: reader.result });
-        setIsUploading(false);
-      };
-      reader.readAsDataURL(file);
+  const handleTestFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const currentSize = testForm.attachments.reduce((acc, curr) => acc + (curr.size || 0), 0);
+    const newFilesSize = files.reduce((acc, file) => acc + file.size, 0);
+
+    if (currentSize + newFilesSize > 5000000) {
+      return showToast("Total combined size of all attachments cannot exceed 5MB!", "error");
     }
+
+    setIsUploading(true);
+    const readFiles = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve({ name: file.name, url: reader.result, size: file.size });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    const newAttachments = await Promise.all(readFiles);
+    setTestForm(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, ...newAttachments]
+    }));
+    setIsUploading(false);
+    e.target.value = null;
   };
 
   const updateTestMcq = (index, field, value, optionIndex = null) => {
@@ -843,10 +888,11 @@ const handleAssignSubmit = async (e) => {
       else if (modal.type === 'adminSubmit') {
         await api.post(`/homework/${modal.hwId}/submit`, {
           answerText: adminSubmitForm.answerText,
-          answerFileUrl: adminSubmitForm.answerFileUrl
+          answerFileUrl: adminSubmitForm.answerFileUrl,
+          attachments: adminSubmitForm.attachments || []
         });
         showToast("Homework submitted successfully on behalf of the student!");
-        setAdminSubmitForm({ answerText: '', answerFileUrl: '' });
+        setAdminSubmitForm({ answerText: '', answerFileUrl: '', attachments: [] });
         setAdminSubmitFile({ fileName: '', isUploading: false });
       }
       
@@ -1747,12 +1793,27 @@ const handleAssignSubmit = async (e) => {
                       value={adminSubmitForm.answerText} onChange={e => setAdminSubmitForm({...adminSubmitForm, answerText: e.target.value})} />
                   </div>
                   <div>
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Attach Student's File</label>
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Attach Student's Files</label>
                     <div className="relative border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-2xl p-4 text-center hover:bg-indigo-50 transition-colors cursor-pointer group">
-                      <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAdminSubmitFileUpload} />
-                      <p className="font-bold text-indigo-800 text-sm truncate px-2">{adminSubmitFile.fileName ? `📎 ${adminSubmitFile.fileName}` : 'Upload PDF/Image'}</p>
+                      <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAdminSubmitFileUpload} />
+                      <p className="font-bold text-indigo-800 text-sm truncate px-2">Drag or Click to Attach Files (Max 5MB combined)</p>
                       {adminSubmitFile.isUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
                     </div>
+                    
+                    {/* LIST ATTACHED FILES */}
+                    {adminSubmitForm.attachments?.length > 0 && (
+                      <div className="mt-4 space-y-3">
+                        {adminSubmitForm.attachments.map((file, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+                            <p className="text-sm font-bold text-indigo-800 truncate pr-4">📎 {file.name}</p>
+                            <button type="button" onClick={() => {
+                              const newAttachments = adminSubmitForm.attachments.filter((_, i) => i !== idx);
+                              setAdminSubmitForm({...adminSubmitForm, attachments: newAttachments});
+                            }} className="text-rose-500 hover:text-rose-700 font-bold text-xs shrink-0 bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </>
@@ -1786,66 +1847,84 @@ const handleAssignSubmit = async (e) => {
                   <h3 className="text-2xl font-black text-[#1B2559]">Student's Submission</h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  {/* Left Column: Written Answer */}
-                  <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 h-full flex flex-col">
-                    <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-3">Written Answer</h4>
-                    {modal.data.answerText ? (
-                      <div className="bg-white p-5 rounded-2xl border border-slate-100 flex-1 overflow-y-auto custom-scrollbar shadow-inner" style={{maxHeight: '350px'}}>
+                <div className="space-y-6 mb-6">
+                  {/* Written Answer Section (if any) */}
+                  {modal.data.answerText && (
+                    <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200">
+                      <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-3">Written Answer</h4>
+                      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-inner max-h-[200px] overflow-y-auto custom-scrollbar">
                         <p className="text-[#1B2559] whitespace-pre-wrap font-medium text-sm leading-relaxed">{modal.data.answerText}</p>
                       </div>
-                    ) : (
-                      <div className="flex items-center justify-center flex-1 min-h-[200px] text-slate-400 font-bold bg-white rounded-2xl border border-slate-100">
-                        No written text provided.
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
-                  {/* Right Column: Attached File */}
-                  <div className="flex flex-col h-full">
-                    <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-3">📎 Attached File</h4>
-                    {modal.data.answerFileUrl ? (
-                      <div className="flex-1 flex flex-col min-h-[300px]">
-                        <div className="w-full flex-1 overflow-hidden border border-slate-200 rounded-2xl bg-[#F4F7FE] shadow-inner relative flex items-center justify-center p-2">
+                  {/* Attached Files Section */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">📎 Attached Work Files</h4>
+                    
+                    {modal.data.attachments?.length > 0 ? (
+                      <div className="space-y-6">
+                        {modal.data.attachments.map((attachment, idx) => (
+                          <div key={idx} className="bg-[#F4F7FE] p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="font-black text-[#1B2559] text-sm">File {idx + 1}: {attachment.name}</span>
+                              <button type="button" onClick={() => {
+                                const a = document.createElement('a');
+                                a.href = attachment.url;
+                                a.download = attachment.name;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                              }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5">
+                                ⬇️ Download File
+                              </button>
+                            </div>
+
+                            <div className="w-full h-[400px] overflow-hidden border-2 border-slate-200 rounded-2xl bg-white p-2 shadow-inner relative flex items-center justify-center">
+                              {attachment.url.includes('image') || attachment.url.startsWith('data:image') ? (
+                                <img src={attachment.url} alt={attachment.name} className="w-full h-full object-contain rounded-xl" />
+                              ) : attachment.url.includes('pdf') || attachment.url.startsWith('data:application/pdf') ? (
+                                <iframe src={attachment.url} className="w-full h-full border-0 rounded-xl" title={`PDF Preview ${idx}`}></iframe>
+                              ) : (
+                                <p className="text-center text-slate-500 font-bold">Preview not available for this format.</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : modal.data.answerFileUrl ? (
+                      <div className="bg-[#F4F7FE] p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                        <div className="flex justify-end">
+                          <button type="button" onClick={() => {
+                            const studentName = modal.student?.registrationName || modal.student?.name || 'Unknown';
+                            const yearGroup = modal.student?.yearGroup || 'Y?';
+                            const initials = studentName.split(' ')[0];
+                            let formattedTitle = (modal.title || '').toUpperCase().replace(' HW ', ' SW ').replace(' TEST ', ' SW ');
+                            let ext = '.pdf';
+                            if (modal.data.answerFileUrl.includes('image/jpeg') || modal.data.answerFileUrl.includes('image/jpg')) ext = '.jpg';
+                            else if (modal.data.answerFileUrl.includes('image/png')) ext = '.png';
+
+                            const a = document.createElement('a');
+                            a.href = modal.data.answerFileUrl;
+                            a.download = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                          }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5">
+                            ⬇️ Download File
+                          </button>
+                        </div>
+                        <div className="w-full h-[400px] overflow-hidden border-2 border-slate-200 rounded-2xl bg-white p-2 shadow-inner relative flex items-center justify-center">
                           {modal.data.answerFileUrl.includes('image') || modal.data.answerFileUrl.startsWith('data:image') ? (
                             <img src={modal.data.answerFileUrl} alt="Submission" className="w-full h-full object-contain rounded-xl" />
-                          ) : modal.data.answerFileUrl.includes('pdf') || modal.data.answerFileUrl.startsWith('data:application/pdf') ? (
-                            <iframe src={modal.data.answerFileUrl} className="w-full h-full border-0 rounded-xl" title="PDF Preview"></iframe>
                           ) : (
-                            <p className="text-center text-slate-500 font-bold">Preview not available for this format.</p>
+                            <iframe src={modal.data.answerFileUrl} className="w-full h-full border-0 rounded-xl" title="PDF Preview"></iframe>
                           )}
                         </div>
-                        <button type="button" onClick={() => {
-                          const studentName = modal.student?.registrationName || modal.student?.name || 'Unknown';
-                          const yearGroup = modal.student?.yearGroup || 'Y?';
-                          const initials = studentName.split(' ')[0];
-                          
-                          let formattedTitle = (modal.title || '').toUpperCase()
-                                          .replace(' HW ', ' SW ')
-                                          .replace(' TEST ', ' SW ');
-
-                          let ext = '.pdf';
-                          if (modal.data.answerFileUrl) {
-                              if (modal.data.answerFileUrl.includes('image/jpeg') || modal.data.answerFileUrl.includes('image/jpg')) ext = '.jpg';
-                              else if (modal.data.answerFileUrl.includes('image/png')) ext = '.png';
-                          }
-
-                          const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
-
-                          const a = document.createElement('a');
-                          a.href = modal.data.answerFileUrl;
-                          a.download = fileName;
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                        }} className="w-full mt-4 px-6 py-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-black rounded-xl transition-all flex items-center justify-center gap-2">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                          Download File
-                        </button>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center flex-1 min-h-[200px] text-slate-400 font-bold bg-slate-50 rounded-3xl border border-slate-200">
-                        No file attached.
+                      <div className="flex items-center justify-center p-10 text-slate-400 font-bold bg-slate-50 rounded-3xl border border-slate-200">
+                        No files attached to this submission.
                       </div>
                     )}
                   </div>
@@ -1931,7 +2010,7 @@ const handleAssignSubmit = async (e) => {
   setModal({ type: null, hwId: null, studentId: null, data: '' }); 
   setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); 
   setGraderInstruction(''); 
-  setAdminSubmitForm({ answerText: '', answerFileUrl: '' }); 
+  setAdminSubmitForm({ answerText: '', answerFileUrl: '', attachments: [] });
   setAdminSubmitFile({ fileName: '', isUploading: false }); 
   setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' }); 
 }} className="flex-1 py-4 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-2xl transition-colors">
@@ -2294,17 +2373,30 @@ const handleAssignSubmit = async (e) => {
                           {assignForm.type === 'File' && (
                             <>
                               <div className="relative border-2 border-dashed border-indigo-300 bg-[#F4F7FE] rounded-3xl p-10 text-center hover:bg-indigo-50 transition-colors cursor-pointer group">
-                                <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />
+                                <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
-                                <p className="font-black text-[#1B2559]">{editHomeworkId ? 'Drag & Drop or Click to Replace File' : 'Drag & Drop or Click'}</p>
-                                <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG up to 5MB</p>
-                                {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file...</p>}
-                                {fileName && !isUploading && <p className="mt-3 inline-block bg-white text-indigo-800 px-4 py-2 rounded-full text-xs font-bold shadow-sm">{fileName}</p>}
-                                {!fileName && assignForm.fileUrl && !isUploading && <p className="mt-3 inline-block bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full text-xs font-bold shadow-sm">✅ Existing File Attached</p>}
+                                <p className="font-black text-[#1B2559]">Drag & Drop or Click to Attach Files</p>
+                                <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG (Combined Max 5MB)</p>
+                                {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file(s)...</p>}
                               </div>
                           
-                              {/* PREVIEW BOX FOR ATTACHED FILE */}
-                              {assignForm.fileUrl && (
+                              {/* LIST ATTACHED FILES */}
+                              {assignForm.attachments?.length > 0 && (
+                                <div className="mt-4 space-y-3">
+                                  {assignForm.attachments.map((file, idx) => (
+                                    <div key={idx} className="flex items-center justify-between bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+                                      <p className="text-sm font-bold text-indigo-800 truncate pr-4">📎 {file.name}</p>
+                                      <button type="button" onClick={() => {
+                                        const newAttachments = assignForm.attachments.filter((_, i) => i !== idx);
+                                        setAssignForm({...assignForm, attachments: newAttachments});
+                                      }} className="text-rose-500 hover:text-rose-700 font-bold text-xs shrink-0 bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Backward compatibility for old single files */}
+                              {assignForm.fileUrl && assignForm.attachments?.length === 0 && (
                                 <div className="mt-4 w-full h-64 overflow-hidden border border-slate-200 rounded-2xl bg-white shadow-inner relative flex items-center justify-center p-2">
                                   {assignForm.fileUrl.includes('image') || assignForm.fileUrl.startsWith('data:image') ? (
                                     <img src={assignForm.fileUrl} alt="Attached Work" className="w-full h-full object-contain rounded-xl" />
@@ -2399,7 +2491,7 @@ const handleAssignSubmit = async (e) => {
 
                     <button onClick={() => {
                       setEditHomeworkId(null); 
-                      setAssignForm({ title: '', weekNo: '', topic: '', type: 'File', studentId: '', difficulty: 'Medium', dueDate: getDefaultDueDate(), fileUrl: '', content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]});
+                      setAssignForm({ title: '', weekNo: '', topic: '', type: 'File', studentId: '', difficulty: 'Medium', dueDate: getDefaultDueDate(), fileUrl: '', attachments: [], content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]});
                       setIsAssignModalOpen(true);
                       }} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-indigo-600 hover:bg-indigo-700 text-white hover:-translate-y-1">
                       <span>+</span> Assign New Homework
@@ -2520,10 +2612,11 @@ const handleAssignSubmit = async (e) => {
             weekNo: hw.weekNo || '', 
             topic: hw.topic || '', 
             type: hw.type, 
-            studentId: hw.studentId?._id || 'all', 
+            studentId: hw.studentId?._id || '', 
             difficulty: hw.difficulty, 
             dueDate: new Date(hw.dueDate).toISOString().slice(0,16), 
             fileUrl: hw.fileUrl || '', 
+            attachments: hw.attachments || [],
             content: hw.content || '', 
             studentInstructions: hw.studentInstructions || '', 
             mcqs: hw.mcqs?.length ? hw.mcqs : [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
@@ -2544,11 +2637,11 @@ const handleAssignSubmit = async (e) => {
                                   
                                   {hw.status === 'Submitted' && (
                                     <>
-                                      {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText) && (
-                                        <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs">
-                                          View Work
-                                        </button>
-                                      )}
+                                      {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText || (hw.submission.attachments && hw.submission.attachments.length > 0)) && (
+  <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs">
+    View Work
+  </button>
+)}
                                       <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
                                         Grade
                                       </button>
@@ -2631,7 +2724,7 @@ const handleAssignSubmit = async (e) => {
                         });
                         showToast('🎉 Test scheduled successfully!');
                         fetchData(); 
-                        setTestForm({ ...testForm, title: '', startDate: '', dueDate: '', fileUrl: '', content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
+                        setTestForm({ ...testForm, title: '', startDate: '', dueDate: '', fileUrl: '', attachments: [], content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
                         setTestFileName(''); 
                         setIsAssignModalOpen(false);
                       } catch (err) { showToast('Error scheduling test.', "error"); }
@@ -2737,14 +2830,29 @@ const handleAssignSubmit = async (e) => {
 
                         <div className="animate-fade-in">
                           {testForm.type === 'File' && (
-                            <div className="relative border-2 border-dashed border-rose-300 bg-[#F4F7FE] rounded-3xl p-10 text-center hover:bg-rose-50 transition-colors cursor-pointer group">
-                              <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleTestFileUpload} />
-                              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
-                              <p className="font-black text-[#1B2559]">Drag & Drop or Click</p>
-                              <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG up to 5MB</p>
-                              {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file...</p>}
-                              {testFileName && !isUploading && <p className="mt-3 inline-block bg-white text-rose-800 px-4 py-2 rounded-full text-xs font-bold shadow-sm">{testFileName}</p>}
-                            </div>
+                            <>
+                              <div className="relative border-2 border-dashed border-rose-300 bg-[#F4F7FE] rounded-3xl p-10 text-center hover:bg-rose-50 transition-colors cursor-pointer group">
+                                <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleTestFileUpload} />
+                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
+                                <p className="font-black text-[#1B2559]">Drag & Drop or Click to Attach Files</p>
+                                <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG (Combined Max 5MB)</p>
+                                {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file(s)...</p>}
+                              </div>
+
+                              {testForm.attachments?.length > 0 && (
+                                <div className="mt-4 space-y-3">
+                                  {testForm.attachments.map((file, idx) => (
+                                    <div key={idx} className="flex items-center justify-between bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+                                      <p className="text-sm font-bold text-rose-800 truncate pr-4">📎 {file.name}</p>
+                                      <button type="button" onClick={() => {
+                                        const newAttachments = testForm.attachments.filter((_, i) => i !== idx);
+                                        setTestForm({...testForm, attachments: newAttachments});
+                                      }} className="text-rose-500 hover:text-rose-700 font-bold text-xs shrink-0 bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </>
                           )}
 
                           {testForm.type === 'Text' && (
@@ -2943,11 +3051,11 @@ const handleAssignSubmit = async (e) => {
                                   
                                   {hw.status === 'Submitted' && (
                                     <>
-                                      {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText) && (
-                                        <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs">
-                                          View Work
-                                        </button>
-                                      )}
+                                      {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText || (hw.submission.attachments && hw.submission.attachments.length > 0)) && (
+  <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs">
+    View Work
+  </button>
+)}
                                       <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
                                         Grade
                                       </button>
@@ -4952,11 +5060,11 @@ const handleAssignSubmit = async (e) => {
                              <div className="flex flex-row flex-nowrap items-center justify-center gap-2 w-max mx-auto">
                                 {hw.status === 'Submitted' && (
                                   <>
-                                    {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText) && (
-                                      <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs">
-                                        View Work
-                                      </button>
-                                    )}
+                                    {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText || (hw.submission.attachments && hw.submission.attachments.length > 0)) && (
+  <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs">
+    View Work
+  </button>
+)}
                                     <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
                                       Grade
                                     </button>

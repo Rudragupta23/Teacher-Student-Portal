@@ -12,7 +12,12 @@ const homeworkSchema = new mongoose.Schema({
   
   difficulty: { type: String, enum: ['Easy', 'Medium', 'Hard'], default: 'Medium' },
   
-  fileUrl: { type: String }, 
+  fileUrl: { type: String },
+  attachments: [{
+    name: String,
+    url: String,
+    size: Number
+  }], 
   content: { type: String }, 
   studentInstructions: { type: String },
   mcqs: [{
@@ -30,6 +35,11 @@ const homeworkSchema = new mongoose.Schema({
   submission: {
     answerText: { type: String },
     answerFileUrl: { type: String },
+    attachments: [{
+      name: String,
+      url: String,
+      size: Number
+    }],
     submittedAt: { type: Date }
   },
   
