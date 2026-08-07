@@ -67,13 +67,11 @@ exports.assignAdaptiveHomework = async (req, res) => {
 // @route   GET /api/admin/students
 exports.getAllStudents = async (req, res) => {
   try {
-    // If the user is a grader, return ONLY their allocated students
     if (req.user.role === 'grader') {
       const grader = await User.findById(req.user._id).populate('allocatedStudents', '-password');
       return res.status(200).json(grader.allocatedStudents);
     }
     
-    // Otherwise, they are an admin, return ALL students
     const students = await User.find({ role: 'student' }).select('-password');
     res.status(200).json(students);
   } catch (error) {
@@ -90,19 +88,18 @@ exports.deleteStudent = async (req, res) => {
     const student = await User.findById(studentId);
     if (!student) return res.status(404).json({ message: 'Student not found' });
 
-    // 1. Delete all homework assigned to this student to free up database space
     await Homework.deleteMany({ studentId: studentId });
 
-    // 2. NEW: Delete the linked parent account
-    // We check if they have a studentId (like "MCM-Y9-01") and find the matching parent
-    if (student.role === 'student' && student.studentId) {
+    if (student.role === 'student') {
       await User.findOneAndDelete({ 
         role: 'parent', 
-        linkedStudentId: student.studentId 
+        $or: [
+          { linkedStudentId: student._id.toString() },
+          { linkedStudentId: student.studentId },
+          { linkedStudentId: student.email }
+        ]
       });
     }
-
-    // 3. Delete the student account
     await User.findByIdAndDelete(studentId);
 
     res.status(200).json({ message: 'Student, linked parent, and all associated coursework deleted successfully.' });

@@ -8,6 +8,7 @@ import { Eye, EyeOff } from 'lucide-react';
 export default function ParentDashboard() {
   const [childData, setChildData] = useState(null);
   const [assignments, setAssignments] = useState([]);
+  const [isLoadingChild, setIsLoadingChild] = useState(true);
   const { tab } = useParams();
   const navigate = useNavigate();
   const activeTab = tab || 'dashboard';
@@ -293,6 +294,7 @@ export default function ParentDashboard() {
   };
 
   const fetchChildData = async () => {
+    setIsLoadingChild(true);
     try {
       const res = await api.get('/parent/child-data');
       setChildData(res.data.childProfile);
@@ -308,6 +310,8 @@ export default function ParentDashboard() {
       const errorMsg = error.response?.data?.message || "Server Error fetching data";
       console.error("Child Data Error:", errorMsg);
       showToast(errorMsg, "error");
+    } finally {
+      setIsLoadingChild(false);
     }
   };
 
@@ -509,7 +513,7 @@ export default function ParentDashboard() {
           {/* Header */}
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 gap-6">
   <div>
-    <h1 className="text-4xl font-black text-[#1B2559]">Monitoring: {childData?.registrationName || childData?.name || 'Loading...'} 📊</h1>
+    <h1 className="text-4xl font-black text-[#1B2559]">Monitoring: {isLoadingChild ? 'Loading...' : (childData?.registrationName || childData?.name || 'No Student Linked')} 📊</h1>
     <div className="flex items-center gap-3 mt-2">
                 <p className="text-[#A3AED0] font-bold tracking-wide">Stay on top of your child's coursework and grades.</p>
                 <div className="bg-violet-100 text-violet-700 px-3 py-1 rounded-full text-xs font-black tracking-widest border border-violet-200 flex items-center gap-2">
@@ -649,7 +653,7 @@ export default function ParentDashboard() {
                           )}
                         </td>
                         <td className="p-5">
-                          {hw.grading?.adminAnswerSheetUrl ? (
+                          {(hw.grading?.adminAnswerSheetUrl || (hw.grading?.adminAttachments && hw.grading.adminAttachments.length > 0)) ? (
                             <button onClick={() => setMarkedWorkPreview(hw)} className="text-xs bg-violet-100 text-violet-700 px-3 py-1.5 rounded-lg font-black hover:bg-violet-600 hover:text-white transition-colors flex items-center gap-1 w-fit shadow-sm cursor-pointer border-none">
                               📎 View Work
                             </button>
@@ -917,13 +921,15 @@ export default function ParentDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {schemes.map(report => (
+                    {schemes.filter(report => !report.studentId || report.studentId === 'all' || report.studentId === childData?._id || report.studentId === childData?.id).map(report => (
                       <tr key={report._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                         <td className="p-5">
                           <p className="font-bold text-[#1B2559]">
                             {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                           </p>
-                          <p className="text-xs font-bold text-[#A3AED0] mt-1">Week {report.weekNo || 'N/A'}</p>
+                          {report.weekNo && (
+                            <p className="text-xs font-bold text-[#A3AED0] mt-1">Week {report.weekNo}</p>
+                          )}
                         </td>
                         <td className="p-5">
                           <p className="font-bold text-[#1B2559]">{report.title}</p>
@@ -1004,6 +1010,13 @@ export default function ParentDashboard() {
             const firstDayOfMonth = new Date(year, month, 1).getDay();
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+            const getAssignmentsForDay = (day) => {
+              return assignments.filter(hw => {
+                const d = new Date(hw.dueDate);
+                return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
+              });
+            };
+
             const getSessionStatus = (session) => {
               const sessionDateStr = new Date(session.startDate).toDateString();
               const hasReport = schemes.some(report => 
@@ -1026,7 +1039,8 @@ export default function ParentDashboard() {
                         isVisible = true;
                     }
                 } else {
-                    isVisible = session.studentId === childData?._id;
+                    const assignedId = typeof session.studentId === 'object' ? session.studentId._id : session.studentId;
+                    isVisible = assignedId === childData?._id || assignedId === childData?.id;
                 }
 
                 if (!isVisible) return false;
@@ -1067,6 +1081,7 @@ export default function ParentDashboard() {
                   
                   {Array.from({ length: daysInMonth }).map((_, i) => {
                     const day = i + 1;
+                    const dayAssignments = getAssignmentsForDay(day);
                     const isToday = new Date().getDate() === day && new Date().getMonth() === month && new Date().getFullYear() === year;
 
                     return (
@@ -1087,10 +1102,29 @@ export default function ParentDashboard() {
                             </div>
                             );
                           })}
+
+                          {/* 2. Map Assignments Below */}
+                          {dayAssignments.map(hw => (
+                            <div key={hw._id} 
+                              className={`text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg truncate shadow-sm
+                              ${hw.status === 'Graded' ? 'bg-emerald-100 text-emerald-700' : 
+                                hw.status === 'Submitted' ? 'bg-amber-100 text-amber-700' : 
+                                'bg-[#1B2559] text-white'}`}
+                              title={hw.title}
+                            >
+                              {hw.title}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     );
                   })}
+                </div>
+
+                <div className="mt-8 flex items-center justify-center gap-6 text-xs font-bold text-slate-500">
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#1B2559]"></span> Pending</div>
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-300"></span> Under Review</div>
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-300"></span> Graded</div>
                 </div>
               </div>
             );
@@ -1099,58 +1133,94 @@ export default function ParentDashboard() {
           {markedWorkPreview && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-fade-in p-6">
               <div className="bg-white p-6 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col relative border-4 border-violet-500">
-                <div className="flex justify-between items-center mb-4 border-b pb-3">
+                <div className="flex justify-between items-center mb-4 border-b pb-3 shrink-0">
                   <h3 className="font-black text-slate-800 text-lg">Checked/Marked Work Preview</h3>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => {
-                        const studentName = childData?.registrationName || childData?.name || 'Unknown';
-                        const yearGroup = childData?.yearGroup || 'Y?';
-                        
-                        const initials = studentName.split(' ')[0];
-                        
-                        let formattedTitle = (markedWorkPreview.title || '').toUpperCase()
-                            .replace(' HW ', ' MW ')
-                            .replace(' TEST ', ' MW ');
-
-                        let ext = '.pdf';
-                        if (markedWorkPreview.grading.adminAnswerSheetUrl) {
-                            if (markedWorkPreview.grading.adminAnswerSheetUrl.includes('image/jpeg') || markedWorkPreview.grading.adminAnswerSheetUrl.includes('image/jpg')) ext = '.jpg';
-                            else if (markedWorkPreview.grading.adminAnswerSheetUrl.includes('image/png')) ext = '.png';
-                        }
-                        const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
-
-                        const a = document.createElement('a');
-                        a.href = markedWorkPreview.grading.adminAnswerSheetUrl;
-                        a.download = fileName;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                      }} 
-                      className="bg-violet-100 text-violet-700 hover:bg-violet-600 hover:text-white px-4 py-2 rounded-xl font-black transition-all cursor-pointer border-none flex items-center gap-2"
-                    >
-                      ⬇️ Download PDF
-                    </button>
-                    <button onClick={() => setMarkedWorkPreview(null)} className="bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white px-4 py-2 rounded-xl font-black transition-all cursor-pointer border-none">
-                      ✕ Close
-                    </button>
-                  </div>
+                  <button onClick={() => setMarkedWorkPreview(null)} className="bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white px-4 py-2 rounded-xl font-black transition-all cursor-pointer border-none">
+                    ✕ Close
+                  </button>
                 </div>
-                <div className="flex-1 overflow-auto bg-slate-50 rounded-2xl p-2 flex justify-center items-center min-h-[400px]">
-                   {markedWorkPreview.grading.adminAnswerSheetUrl.endsWith('.pdf') || markedWorkPreview.grading.adminAnswerSheetUrl.includes('pdf') || markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('data:application/pdf') ? (
-  <iframe src={markedWorkPreview.grading.adminAnswerSheetUrl} className="w-full h-[500px] border-0 rounded-xl" title="Marked PDF"></iframe>
-) : markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('http') || markedWorkPreview.grading.adminAnswerSheetUrl.includes('image') || markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('data:image') ? (
-  <img src={markedWorkPreview.grading.adminAnswerSheetUrl} alt="Marked Work" className="max-h-[500px] max-w-full object-contain rounded-xl shadow-sm" />
-) : (
-  <div className="text-center p-8">
-    <p className="font-black text-slate-700 mb-2">Unsupported File Format</p>
-    <a href={markedWorkPreview.grading.adminAnswerSheetUrl} target="_blank" rel="noopener noreferrer" className="text-xs bg-indigo-500 text-white px-4 py-2 rounded-xl font-black shadow-md inline-block">Open File in New Tab</a>
-  </div>
-)}
+                
+                <div className="flex-1 overflow-auto bg-slate-50 rounded-2xl p-4 flex flex-col gap-6 custom-scrollbar min-h-[400px]">
+                  
+                  {/* MULTIPLE ATTACHMENTS */}
+                  {markedWorkPreview.grading?.adminAttachments?.length > 0 && (
+                    <div className="space-y-6">
+                      {markedWorkPreview.grading.adminAttachments.map((attachment, idx) => (
+                        <div key={idx} className="flex flex-col gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                          <div className="flex justify-between items-center">
+                            <p className="font-bold text-violet-800 text-sm">📎 {attachment.name}</p>
+                            <button onClick={() => {
+                              const a = document.createElement('a');
+                              a.href = attachment.url;
+                              a.download = attachment.name;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                            }} className="bg-violet-100 text-violet-700 hover:bg-violet-600 hover:text-white px-4 py-2 rounded-xl font-black transition-all cursor-pointer border-none text-xs flex items-center gap-2">
+                              ⬇️ Download
+                            </button>
+                          </div>
+                          <div className="w-full h-[400px] overflow-auto border-2 border-violet-50 rounded-xl bg-slate-50 flex items-center justify-center">
+                            {attachment.url.includes('image') || attachment.url.startsWith('data:image') ? (
+                              <img src={attachment.url} alt={attachment.name} className="max-h-[400px] max-w-full object-contain rounded-lg shadow-sm" />
+                            ) : attachment.url.includes('pdf') || attachment.url.startsWith('data:application/pdf') ? (
+                              <iframe src={attachment.url} className="w-full h-full border-0 rounded-lg" title="PDF Preview"></iframe>
+                            ) : (
+                              <div className="text-center p-8">
+                                <p className="font-black text-slate-700 mb-2">Unsupported File Format</p>
+                                <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-xs bg-indigo-500 text-white px-4 py-2 rounded-xl font-black shadow-md inline-block">Open File in New Tab</a>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* LEGACY SINGLE ATTACHMENT */}
+                  {markedWorkPreview.grading?.adminAnswerSheetUrl && (!markedWorkPreview.grading?.adminAttachments || markedWorkPreview.grading.adminAttachments.length === 0) && (
+                    <div className="flex flex-col gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold text-violet-800 text-sm">📎 Marked Work Document</p>
+                        <button onClick={() => {
+                          const studentName = childData?.registrationName || childData?.name || 'Unknown';
+                          const yearGroup = childData?.yearGroup || 'Y?';
+                          const initials = studentName.split(' ')[0];
+                          let formattedTitle = (markedWorkPreview.title || '').toUpperCase().replace(' HW ', ' MW ').replace(' TEST ', ' MW ');
+                          let ext = '.pdf';
+                          if (markedWorkPreview.grading.adminAnswerSheetUrl.includes('image/jpeg') || markedWorkPreview.grading.adminAnswerSheetUrl.includes('image/jpg')) ext = '.jpg';
+                          else if (markedWorkPreview.grading.adminAnswerSheetUrl.includes('image/png')) ext = '.png';
+                          
+                          const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
+                          const a = document.createElement('a');
+                          a.href = markedWorkPreview.grading.adminAnswerSheetUrl;
+                          a.download = fileName;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                        }} className="bg-violet-100 text-violet-700 hover:bg-violet-600 hover:text-white px-4 py-2 rounded-xl font-black transition-all cursor-pointer border-none text-xs flex items-center gap-2">
+                          ⬇️ Download
+                        </button>
+                      </div>
+                      <div className="w-full h-[400px] overflow-auto border-2 border-violet-50 rounded-xl bg-slate-50 flex items-center justify-center">
+                        {markedWorkPreview.grading.adminAnswerSheetUrl.endsWith('.pdf') || markedWorkPreview.grading.adminAnswerSheetUrl.includes('pdf') || markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('data:application/pdf') ? (
+                          <iframe src={markedWorkPreview.grading.adminAnswerSheetUrl} className="w-full h-full border-0 rounded-lg" title="Marked PDF"></iframe>
+                        ) : markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('http') || markedWorkPreview.grading.adminAnswerSheetUrl.includes('image') || markedWorkPreview.grading.adminAnswerSheetUrl.startsWith('data:image') ? (
+                          <img src={markedWorkPreview.grading.adminAnswerSheetUrl} alt="Marked Work" className="max-h-[400px] max-w-full object-contain rounded-lg shadow-sm" />
+                        ) : (
+                          <div className="text-center p-8">
+                            <p className="font-black text-slate-700 mb-2">Unsupported File Format</p>
+                            <a href={markedWorkPreview.grading.adminAnswerSheetUrl} target="_blank" rel="noopener noreferrer" className="text-xs bg-indigo-500 text-white px-4 py-2 rounded-xl font-black shadow-md inline-block">Open File in New Tab</a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               </div>
             </div>
-          )}         
+          )}
           
           {/* PARENT VIEW: SHARED DRIVE */}
           {activeTab === 'drive' && (

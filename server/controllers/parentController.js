@@ -10,7 +10,17 @@ exports.getChildData = async (req, res) => {
       return res.status(400).json({ message: 'No linked student found.' });
     }
 
-    const child = await User.findOne({ studentId: parent.linkedStudentId, role: 'student' });
+    const query = { role: 'student', $or: [] };
+    
+    if (parent.linkedStudentId.match(/^[0-9a-fA-F]{24}$/)) {
+      query.$or.push({ _id: parent.linkedStudentId });
+    }
+    
+    query.$or.push({ studentId: parent.linkedStudentId });
+    query.$or.push({ email: parent.linkedStudentId });
+
+    const child = await User.findOne(query);
+    
     if (!child) {
       return res.status(404).json({ message: 'Child profile not found.' });
     }

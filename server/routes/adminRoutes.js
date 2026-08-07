@@ -40,7 +40,15 @@ router.get('/student/:id/parent', protect, admin, async (req, res) => {
     const student = await User.findById(req.params.id);
     if (!student) return res.status(404).json({ message: "Student not found" });
 
-    const parent = await User.findOne({ role: 'parent', linkedStudentId: student.studentId });
+    const parent = await User.findOne({ 
+      role: 'parent', 
+      $or: [
+        { linkedStudentId: student.studentId },
+        { linkedStudentId: student._id.toString() },
+        { linkedStudentId: student.email }
+      ]
+    });
+    
     if (!parent) return res.status(404).json({ message: "No parent linked to this student yet." });
     
     res.json(parent);
