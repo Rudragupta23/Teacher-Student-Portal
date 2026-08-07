@@ -38,14 +38,20 @@ const getDefaultDueDate = () => {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}T23:59`;
+  return `${year}-${month}-${day}T20:00`;
 };
 
 const formatTaskTitle = (title) => {
   if (!title) return '';
-  let formatted = title.toLowerCase();
-  formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  let formatted = title.toLowerCase().split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
   return formatted.replace(/\bhw\b/ig, 'HW');
+};
+
+const capitalizeName = (name) => {
+  if (!name) return '';
+  return name.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 };
 
 export default function AdminDashboard() {
@@ -1733,7 +1739,9 @@ const handleAssignSubmit = async (e) => {
                 </select>
 
                 <div className="max-h-48 overflow-y-auto bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2 mb-6 custom-scrollbar">
-                  {students.filter(s => yearGroupAllocate === 'all' || s.yearGroup === yearGroupAllocate).map(s => {
+                  {students.filter(s => yearGroupAllocate === 'all' || s.yearGroup === yearGroupAllocate)
+                    .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
+                    .map(s => {
                     const isInitiallyAllocated = graders.find(g => g._id === modal.graderId)?.allocatedStudents?.some(allocated => allocated._id === s._id || allocated === s._id);
                     const allocatedToOtherGrader = graders.find(g => g._id !== modal.graderId && g.allocatedStudents?.some(allocated => allocated._id === s._id || allocated === s._id));
                     
@@ -2338,7 +2346,9 @@ const handleAssignSubmit = async (e) => {
                           <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
                             onChange={e => setAssignForm({...assignForm, studentId: e.target.value})} value={assignForm.studentId}>
                             <option value="">-- Choose a Student --</option>
-                            {students.filter(s => yearGroupAssign === 'all' || s.yearGroup === yearGroupAssign).map(s => (
+                            {students.filter(s => yearGroupAssign === 'all' || s.yearGroup === yearGroupAssign)
+                              .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
+                              .map(s => (
                               <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
                             ))}
                           </select>
@@ -2570,7 +2580,7 @@ const handleAssignSubmit = async (e) => {
                               <p className="text-xs font-bold text-slate-500 mt-1">Format: {hw.type}</p>
                             </td>
                             <td className="p-4 font-black text-[#1B2559]">
-                              {hw.studentId ? `${hw.studentId.registrationName || hw.studentId.name} ${hw.studentId.yearGroup ? `(${hw.studentId.yearGroup})` : ''}` : "Deleted User"}
+                              {hw.studentId ? `${capitalizeName(hw.studentId.registrationName || hw.studentId.name)} ${hw.studentId.yearGroup ? `(${hw.studentId.yearGroup})` : ''}` : "Deleted User"}
                             </td>
                             <td className="p-4 font-bold text-[#1B2559]">
                               {hw.submission?.submittedAt ? new Date(hw.submission.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
@@ -2792,7 +2802,9 @@ const handleAssignSubmit = async (e) => {
                           <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
                             onChange={e => setTestForm({...testForm, studentId: e.target.value})} value={testForm.studentId}>
                             <option value="all">All Filtered Students</option>
-                            {students.filter(s => testYearGroupAssign === 'all' || s.yearGroup === testYearGroupAssign).map(s => (
+                            {students.filter(s => testYearGroupAssign === 'all' || s.yearGroup === testYearGroupAssign)
+                              .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
+                              .map(s => (
                               <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
                             ))}
                           </select>
@@ -3125,6 +3137,12 @@ const handleAssignSubmit = async (e) => {
                 </div>
                 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mt-4 md:mt-0">
+                  <div className="relative w-full sm:w-64">
+                    <svg className="w-5 h-5 absolute left-3 top-3.5 text-[#A3AED0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" placeholder="Search students..." 
+                      className="w-full p-3 pl-10 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/10 font-bold text-[#1B2559]"
+                      value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                  </div>
                   <button onClick={handleExportCSV} className="w-full sm:w-auto justify-center px-5 py-3 bg-slate-50 text-slate-700 hover:bg-slate-700 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center gap-2 border border-slate-200">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Export CSV
@@ -3180,6 +3198,12 @@ const handleAssignSubmit = async (e) => {
                   </thead>
                   <tbody>
                     {[...students]
+                      .filter(student => {
+                        if (!searchTerm) return true;
+                        const term = searchTerm.toLowerCase();
+                        return (student.registrationName || student.name || '').toLowerCase().includes(term) ||
+                               (student.email || '').toLowerCase().includes(term);
+                      })
                       .sort((a, b) => {
                         const nameA = a.registrationName || a.name || '';
                         const nameB = b.registrationName || b.name || '';
@@ -3369,7 +3393,7 @@ const handleAssignSubmit = async (e) => {
   onChange={e => setSettingsForm({...settingsForm, studentToDelete: e.target.value})}
 >
     <option value="">-- Choose a Student --</option>
-    {students.map(s => (
+    {students.sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || '')).map(s => (
       <option key={s._id} value={s._id}>
         {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''} ({s.email})
       </option>
@@ -3428,7 +3452,7 @@ const handleAssignSubmit = async (e) => {
                       }}
                     >
                       <option value="">-- Choose a Student --</option>
-                      {students.map(s => (
+                      {students.sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || '')).map(s => (
                         <option key={s._id} value={s._id}>
                           {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''} ({s.email})
                         </option>
@@ -3653,7 +3677,7 @@ const handleAssignSubmit = async (e) => {
                         <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559] truncate max-w-full" 
                         value={announcementForm.targetAudience} onChange={e => setAnnouncementForm({...announcementForm, targetAudience: e.target.value})}>
                           <option value="all">📢 Share to Everyone</option>
-                          {students.map(s => <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>)}
+                          {students.sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || '')).map(s => <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>)}
                         </select>
                       </div>
 
@@ -3918,7 +3942,9 @@ const handleAssignSubmit = async (e) => {
                             value={schemeForm.studentId}
                             onChange={e => setSchemeForm({...schemeForm, studentId: e.target.value})}>
                             {schemeForm.yearGroupFilter === 'all' && <option value="all">📢 All Students</option>}
-                            {students.filter(s => schemeForm.yearGroupFilter === 'all' || s.yearGroup === schemeForm.yearGroupFilter).map(s => (
+                            {students.filter(s => schemeForm.yearGroupFilter === 'all' || s.yearGroup === schemeForm.yearGroupFilter)
+                              .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
+                              .map(s => (
                               <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
                             ))}
                           </select>
@@ -4329,13 +4355,13 @@ const handleAssignSubmit = async (e) => {
                       </div>
                       
                       {/* Individual Student Filter Dropdown */}
-<select 
-  className="w-full sm:w-auto p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559] text-sm sm:text-base max-w-full"
-  value={selectedStudentForChart}
+                      <select 
+                        className="w-full sm:w-auto p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559] text-sm sm:text-base max-w-full"
+                        value={selectedStudentForChart}
                         onChange={e => setSelectedStudentForChart(e.target.value)}
                       >
                         <option value="all">Entire Class</option>
-                        {students.map(s => (
+                        {students.sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || '')).map(s => (
                           <option key={s._id} value={s._id}>
                             {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}
                           </option>
@@ -4696,7 +4722,9 @@ const handleAssignSubmit = async (e) => {
                           {resourceForm.yearGroupFilter === 'all' && (
                             <option value="all">📢 Share to Everyone</option>
                           )}
-                          {students.filter(s => resourceForm.yearGroupFilter === 'all' || s.yearGroup === resourceForm.yearGroupFilter).map(s => (
+                          {students.filter(s => resourceForm.yearGroupFilter === 'all' || s.yearGroup === resourceForm.yearGroupFilter)
+                            .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
+                            .map(s => (
                             <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
                           ))}
                         </select>
@@ -5017,7 +5045,7 @@ const handleAssignSubmit = async (e) => {
                             <p className="text-xs font-bold text-slate-500 mt-1">Format: {hw.type}</p>
                           </td>
                           <td className="p-4 font-black text-[#1B2559]">
-                            {hw.studentId ? `${hw.studentId.registrationName || hw.studentId.name} ${hw.studentId.yearGroup ? `(${hw.studentId.yearGroup})` : ''}` : "Deleted User"}
+                            {hw.studentId ? `${capitalizeName(hw.studentId.registrationName || hw.studentId.name)} ${hw.studentId.yearGroup ? `(${hw.studentId.yearGroup})` : ''}` : "Deleted User"}
                             {hw.grading?.gradedBy && user?.role === 'admin' && (() => {
                               const graderId = String(hw.grading.gradedBy?._id || hw.grading.gradedBy);
                               const matchedGrader = graders.find(g => String(g._id) === graderId);
@@ -5180,7 +5208,9 @@ const handleAssignSubmit = async (e) => {
                             <option value="all">📢 Share to Everyone</option>
                           )}
                           
-                          {students.filter(s => driveForm.yearGroupFilter === 'all' || s.yearGroup === driveForm.yearGroupFilter).map(s => (
+                          {students.filter(s => driveForm.yearGroupFilter === 'all' || s.yearGroup === driveForm.yearGroupFilter)
+                            .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
+                            .map(s => (
                             <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
                           ))}
                         </select>
@@ -5466,7 +5496,9 @@ const handleAssignSubmit = async (e) => {
                                   
                                   {plannerForm.yearGroupFilter === 'all' && <option value="all">📢 All Students</option>}
                                   
-                                  {students.filter(s => plannerForm.yearGroupFilter === 'all' || s.yearGroup === plannerForm.yearGroupFilter).map(s => (
+                                  {students.filter(s => plannerForm.yearGroupFilter === 'all' || s.yearGroup === plannerForm.yearGroupFilter)
+                                    .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
+                                    .map(s => (
                                       <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
                                   ))}
                                 </select>
