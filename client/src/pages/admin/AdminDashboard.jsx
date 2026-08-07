@@ -91,9 +91,10 @@ const [testForm, setTestForm] = useState({
 
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [previewAttachmentUrl, setPreviewAttachmentUrl] = useState(null);
 
   // State for optional answer sheet upload
-  const [answerSheet, setAnswerSheet] = useState({ fileUrl: '', fileName: '', isUploading: false });
+  const [answerSheet, setAnswerSheet] = useState({ fileUrl: '', fileName: '', attachments: [], isUploading: false });
   const [adminSubmitForm, setAdminSubmitForm] = useState({ answerText: '', answerFileUrl: '', attachments: [] });
   const [adminSubmitFile, setAdminSubmitFile] = useState({ fileName: '', isUploading: false });
 
@@ -659,17 +660,35 @@ const [testForm, setTestForm] = useState({
     e.target.value = null; 
   };
 
-  const handleAnswerSheetUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5000000) return showToast("File is too large! Please keep it under 5MB.", "error");
-      setAnswerSheet({ ...answerSheet, fileName: file.name, isUploading: true });
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAnswerSheet({ ...answerSheet, fileUrl: reader.result, fileName: file.name, isUploading: false });
-      };
-      reader.readAsDataURL(file);
+  const handleAnswerSheetUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const currentSize = (answerSheet.attachments || []).reduce((acc, curr) => acc + (curr.size || 0), 0);
+    const newFilesSize = files.reduce((acc, file) => acc + file.size, 0);
+
+    if (currentSize + newFilesSize > 5000000) {
+      return showToast("Total combined size of all attachments cannot exceed 5MB!", "error");
     }
+
+    setAnswerSheet(prev => ({ ...prev, isUploading: true }));
+    const readFiles = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve({ name: file.name, url: reader.result, size: file.size });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    const newAttachments = await Promise.all(readFiles);
+    setAnswerSheet(prev => ({
+      ...prev,
+      attachments: [...(prev.attachments || []), ...newAttachments],
+      isUploading: false
+    }));
+    e.target.value = null;
   };
 
   const handleAdminSubmitFileUpload = async (e) => {
@@ -805,8 +824,9 @@ const handleAssignSubmit = async (e) => {
     try {
       if (modal.type === 'grade') {
         const hasScores = modal.data.score !== '' && modal.data.totalScore !== '';
+        const hasAttachments = answerSheet.fileUrl || (answerSheet.attachments && answerSheet.attachments.length > 0);
         
-        if (!hasScores && !answerSheet.fileUrl) {
+        if (!hasScores && !hasAttachments) {
           return showToast("Enter marks or attach marked work!", "error");
         }
 
@@ -829,6 +849,7 @@ const handleAssignSubmit = async (e) => {
           score: modal.data.score !== '' ? Number(modal.data.score) : null, 
           totalScore: modal.data.totalScore !== '' ? Number(modal.data.totalScore) : null, 
           adminAnswerSheetUrl: answerSheet.fileUrl,
+          adminAttachments: answerSheet.attachments,
           driveLink: modal.data.driveLink 
         });
         
@@ -851,7 +872,8 @@ const handleAssignSubmit = async (e) => {
         await api.put(`/homework/${modal.hwId}/grade`, { 
           score: modal.data.score != null ? Number(modal.data.score) : null, 
           totalScore: modal.data.totalScore != null ? Number(modal.data.totalScore) : null,
-          adminAnswerSheetUrl: '' 
+          adminAnswerSheetUrl: '',
+          adminAttachments: []
         });
         showToast("Marked Work Removed!");
       }
@@ -903,7 +925,7 @@ const handleAssignSubmit = async (e) => {
       }
       
       setModal({ type: null, hwId: null, studentId: null, data: '' });
-      setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); 
+      setAnswerSheet({ fileUrl: '', fileName: '', attachments: [], isUploading: false });
       fetchData();
     } catch (error) {
       showToast(error.response?.data?.message || "Action failed.", "error");
@@ -1668,13 +1690,52 @@ const handleAssignSubmit = async (e) => {
                     <div>
                       <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Attach Marked Work</label>
                       <div className="relative border-2 border-dashed border-emerald-300 bg-emerald-50/50 rounded-2xl p-4 text-center hover:bg-emerald-50 transition-colors cursor-pointer group">
-                        <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAnswerSheetUpload} />
-                        <p className="font-bold text-emerald-800 text-sm truncate px-2">{answerSheet.fileName ? `📎 ${answerSheet.fileName}` : 'Upload PDF/Image'}</p>
+                        <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAnswerSheetUpload} />
+                        <p className="font-bold text-emerald-800 text-sm truncate px-2">Click to Attach Files (Max 5MB combined)</p>
                         {answerSheet.isUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
                       </div>
+
+                      {/* LIST ATTACHED FILES */}
+                      {answerSheet.attachments?.length > 0 && (
+                        <div className="mt-4 space-y-3">
+                          {answerSheet.attachments.map((file, idx) => (
+                            <div key={idx} className="flex flex-col gap-2 bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+                              <div className="flex items-center justify-between">
+                                <p 
+                                  className="text-sm font-bold text-emerald-800 truncate pr-4 cursor-pointer hover:underline"
+                                  onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)}
+                                >
+                                  📎 {file.name}
+                                </p>
+                                <div className="flex gap-2 shrink-0">
+                                  <button type="button" onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)} className="text-cyan-600 hover:text-cyan-700 font-bold text-xs bg-cyan-50 px-3 py-1.5 rounded-lg">
+                                    {previewAttachmentUrl === file.url ? 'Close' : 'Preview'}
+                                  </button>
+                                  <button type="button" onClick={() => {
+                                    const newAttachments = answerSheet.attachments.filter((_, i) => i !== idx);
+                                    setAnswerSheet({...answerSheet, attachments: newAttachments});
+                                    if (previewAttachmentUrl === file.url) setPreviewAttachmentUrl(null);
+                                  }} className="text-rose-500 hover:text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                                </div>
+                              </div>
+                              {previewAttachmentUrl === file.url && (
+                                <div className="w-full h-48 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
+                                  {file.url.includes('image') || file.url.startsWith('data:image') ? (
+                                    <img src={file.url} alt="Preview" className="w-full h-full object-contain" />
+                                  ) : file.url.includes('pdf') || file.url.startsWith('data:application/pdf') ? (
+                                    <iframe src={file.url} className="w-full h-full border-0" title="PDF Preview"></iframe>
+                                  ) : (
+                                    <p className="text-xs text-slate-400 font-bold">Preview not available.</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       
                       {/* PREVIEW BOX */}
-                      {(answerSheet.fileUrl || modal.data?.adminAnswerSheetUrl) && (
+                      {(answerSheet.fileUrl || modal.data?.adminAnswerSheetUrl) && !answerSheet.attachments?.length && (
                         <div className="mt-3 w-full h-40 overflow-hidden border border-slate-200 rounded-xl bg-[#F4F7FE] shadow-inner relative flex items-center justify-center p-2">
                           {(answerSheet.fileUrl || modal.data?.adminAnswerSheetUrl).includes('image') || (answerSheet.fileUrl || modal.data?.adminAnswerSheetUrl).startsWith('data:image') ? (
                             <img src={answerSheet.fileUrl || modal.data?.adminAnswerSheetUrl} alt="Marked Work" className="w-full h-full object-contain rounded-lg" />
@@ -1687,7 +1748,7 @@ const handleAssignSubmit = async (e) => {
                       )}
                       
                       {/* ACTIONS FOR EXISTING FILE */}
-                      {modal.data?.adminAnswerSheetUrl && (!answerSheet.fileName || answerSheet.fileName === 'Existing Marked/Checked work Attached') && (
+                      {modal.data?.adminAnswerSheetUrl && !answerSheet.attachments?.length && (!answerSheet.fileName || answerSheet.fileName === 'Existing Marked/Checked work Attached') && (
                         <div className="flex items-center gap-4 mt-3 bg-white p-2 rounded-xl border border-slate-100 justify-center shadow-sm">
                           <button type="button" onClick={() => window.open(modal.data.adminAnswerSheetUrl, "_blank")} className="text-xs font-black text-cyan-600 hover:text-cyan-700 flex items-center gap-1">
                             👁️ View Full File
@@ -1812,12 +1873,36 @@ const handleAssignSubmit = async (e) => {
                     {adminSubmitForm.attachments?.length > 0 && (
                       <div className="mt-4 space-y-3">
                         {adminSubmitForm.attachments.map((file, idx) => (
-                          <div key={idx} className="flex items-center justify-between bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
-                            <p className="text-sm font-bold text-indigo-800 truncate pr-4">📎 {file.name}</p>
-                            <button type="button" onClick={() => {
-                              const newAttachments = adminSubmitForm.attachments.filter((_, i) => i !== idx);
-                              setAdminSubmitForm({...adminSubmitForm, attachments: newAttachments});
-                            }} className="text-rose-500 hover:text-rose-700 font-bold text-xs shrink-0 bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                          <div key={idx} className="flex flex-col gap-2 bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+                            <div className="flex items-center justify-between">
+                              <p 
+                                className="text-sm font-bold text-indigo-800 truncate pr-4 cursor-pointer hover:underline"
+                                onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)}
+                              >
+                                📎 {file.name}
+                              </p>
+                              <div className="flex gap-2 shrink-0">
+                                <button type="button" onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)} className="text-cyan-600 hover:text-cyan-700 font-bold text-xs bg-cyan-50 px-3 py-1.5 rounded-lg">
+                                  {previewAttachmentUrl === file.url ? 'Close' : 'Preview'}
+                                </button>
+                                <button type="button" onClick={() => {
+                                  const newAttachments = adminSubmitForm.attachments.filter((_, i) => i !== idx);
+                                  setAdminSubmitForm({...adminSubmitForm, attachments: newAttachments});
+                                  if (previewAttachmentUrl === file.url) setPreviewAttachmentUrl(null);
+                                }} className="text-rose-500 hover:text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                              </div>
+                            </div>
+                            {previewAttachmentUrl === file.url && (
+                              <div className="w-full h-48 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
+                                {file.url.includes('image') || file.url.startsWith('data:image') ? (
+                                  <img src={file.url} alt="Preview" className="w-full h-full object-contain" />
+                                ) : file.url.includes('pdf') || file.url.startsWith('data:application/pdf') ? (
+                                  <iframe src={file.url} className="w-full h-full border-0" title="PDF Preview"></iframe>
+                                ) : (
+                                  <p className="text-xs text-slate-400 font-bold">Preview not available.</p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -2016,8 +2101,8 @@ const handleAssignSubmit = async (e) => {
                 <>
                   <button onClick={() => { 
   setModal({ type: null, hwId: null, studentId: null, data: '' }); 
-  setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false }); 
-  setGraderInstruction(''); 
+  setAnswerSheet({ fileUrl: '', fileName: '', attachments: [], isUploading: false }); 
+  setGraderInstruction('');
   setAdminSubmitForm({ answerText: '', answerFileUrl: '', attachments: [] });
   setAdminSubmitFile({ fileName: '', isUploading: false }); 
   setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' }); 
@@ -2245,7 +2330,7 @@ const handleAssignSubmit = async (e) => {
           {/* Header */}
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 gap-6">
   <div>
-    <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, {adminProfile.name} 👋</h1>
+    <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, {adminProfile.name} </h1>
     <p className="text-[#A3AED0] mt-2 font-bold tracking-wide">Here is what is happening in your classes today.</p>
   </div>
   
@@ -2394,12 +2479,36 @@ const handleAssignSubmit = async (e) => {
                               {assignForm.attachments?.length > 0 && (
                                 <div className="mt-4 space-y-3">
                                   {assignForm.attachments.map((file, idx) => (
-                                    <div key={idx} className="flex items-center justify-between bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
-                                      <p className="text-sm font-bold text-indigo-800 truncate pr-4">📎 {file.name}</p>
-                                      <button type="button" onClick={() => {
-                                        const newAttachments = assignForm.attachments.filter((_, i) => i !== idx);
-                                        setAssignForm({...assignForm, attachments: newAttachments});
-                                      }} className="text-rose-500 hover:text-rose-700 font-bold text-xs shrink-0 bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                                    <div key={idx} className="flex flex-col gap-2 bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+                                      <div className="flex items-center justify-between">
+                                        <p 
+                                          className="text-sm font-bold text-indigo-800 truncate pr-4 cursor-pointer hover:underline"
+                                          onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)}
+                                        >
+                                          📎 {file.name}
+                                        </p>
+                                        <div className="flex gap-2 shrink-0">
+                                          <button type="button" onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)} className="text-cyan-600 hover:text-cyan-700 font-bold text-xs bg-cyan-50 px-3 py-1.5 rounded-lg">
+                                            {previewAttachmentUrl === file.url ? 'Close' : 'Preview'}
+                                          </button>
+                                          <button type="button" onClick={() => {
+                                            const newAttachments = assignForm.attachments.filter((_, i) => i !== idx);
+                                            setAssignForm({...assignForm, attachments: newAttachments});
+                                            if (previewAttachmentUrl === file.url) setPreviewAttachmentUrl(null);
+                                          }} className="text-rose-500 hover:text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                                        </div>
+                                      </div>
+                                      {previewAttachmentUrl === file.url && (
+                                        <div className="w-full h-48 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
+                                          {file.url.includes('image') || file.url.startsWith('data:image') ? (
+                                            <img src={file.url} alt="Preview" className="w-full h-full object-contain" />
+                                          ) : file.url.includes('pdf') || file.url.startsWith('data:application/pdf') ? (
+                                            <iframe src={file.url} className="w-full h-full border-0" title="PDF Preview"></iframe>
+                                          ) : (
+                                            <p className="text-xs text-slate-400 font-bold">Preview not available.</p>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
@@ -2662,16 +2771,16 @@ const handleAssignSubmit = async (e) => {
                                     <div className="flex items-center gap-2">
                                       {user?.role === 'admin' ? (
                                           <button 
-                                            onClick={() => {
-                                              setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
-                                              if (hw.grading?.adminAnswerSheetUrl) {
-                                                setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl, fileName: 'Existing Marked/Checked work Attached', isUploading: false });
-                                              } else {
-                                                setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false });
-                                              }
-                                            }}
-                                            className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-black border border-emerald-200 text-xs transition-colors shadow-sm"
-                                          >
+                                        onClick={() => {
+                                          setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
+                                          if (hw.grading?.adminAnswerSheetUrl || hw.grading?.adminAttachments?.length > 0) {
+                                            setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl || '', fileName: 'Existing Marked/Checked work Attached', attachments: hw.grading.adminAttachments || [], isUploading: false });
+                                          } else {
+                                            setAnswerSheet({ fileUrl: '', fileName: '', attachments: [], isUploading: false });
+                                          }
+                                        }}
+                                        className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-black border border-emerald-200 text-xs transition-colors shadow-sm"
+                                      >
                                             {hw.grading?.score != null ? `${hw.grading.score}/${hw.grading.totalScore} ✏️` : 'Edit'}
                                           </button>
                                       ) : (
@@ -2854,12 +2963,36 @@ const handleAssignSubmit = async (e) => {
                               {testForm.attachments?.length > 0 && (
                                 <div className="mt-4 space-y-3">
                                   {testForm.attachments.map((file, idx) => (
-                                    <div key={idx} className="flex items-center justify-between bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
-                                      <p className="text-sm font-bold text-rose-800 truncate pr-4">📎 {file.name}</p>
-                                      <button type="button" onClick={() => {
-                                        const newAttachments = testForm.attachments.filter((_, i) => i !== idx);
-                                        setTestForm({...testForm, attachments: newAttachments});
-                                      }} className="text-rose-500 hover:text-rose-700 font-bold text-xs shrink-0 bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                                    <div key={idx} className="flex flex-col gap-2 bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+                                      <div className="flex items-center justify-between">
+                                        <p 
+                                          className="text-sm font-bold text-rose-800 truncate pr-4 cursor-pointer hover:underline"
+                                          onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)}
+                                        >
+                                          📎 {file.name}
+                                        </p>
+                                        <div className="flex gap-2 shrink-0">
+                                          <button type="button" onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)} className="text-cyan-600 hover:text-cyan-700 font-bold text-xs bg-cyan-50 px-3 py-1.5 rounded-lg">
+                                            {previewAttachmentUrl === file.url ? 'Close' : 'Preview'}
+                                          </button>
+                                          <button type="button" onClick={() => {
+                                            const newAttachments = testForm.attachments.filter((_, i) => i !== idx);
+                                            setTestForm({...testForm, attachments: newAttachments});
+                                            if (previewAttachmentUrl === file.url) setPreviewAttachmentUrl(null);
+                                          }} className="text-rose-500 hover:text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                                        </div>
+                                      </div>
+                                      {previewAttachmentUrl === file.url && (
+                                        <div className="w-full h-48 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
+                                          {file.url.includes('image') || file.url.startsWith('data:image') ? (
+                                            <img src={file.url} alt="Preview" className="w-full h-full object-contain" />
+                                          ) : file.url.includes('pdf') || file.url.startsWith('data:application/pdf') ? (
+                                            <iframe src={file.url} className="w-full h-full border-0" title="PDF Preview"></iframe>
+                                          ) : (
+                                            <p className="text-xs text-slate-400 font-bold">Preview not available.</p>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
@@ -3078,16 +3211,21 @@ const handleAssignSubmit = async (e) => {
                                     <div className="flex items-center gap-2">
                                       {user?.role === 'admin' ? (
                                           <button 
-                                            onClick={() => {
-                                              setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
-                                              if (hw.grading?.adminAnswerSheetUrl) {
-                                                setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl, fileName: 'Existing Marked/Checked work Attached', isUploading: false });
-                                              } else {
-                                                setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false });
-                                              }
-                                            }}
-                                            className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-black border border-emerald-200 text-xs transition-colors shadow-sm"
-                                          >
+                                        onClick={() => {
+                                          setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
+                                          if (hw.grading?.adminAnswerSheetUrl || (hw.grading?.adminAttachments && hw.grading.adminAttachments.length > 0)) {
+                                            setAnswerSheet({ 
+                                                fileUrl: hw.grading.adminAnswerSheetUrl || '', 
+                                                fileName: 'Existing Marked/Checked work Attached', 
+                                                attachments: hw.grading.adminAttachments || [], 
+                                                isUploading: false 
+                                            });
+                                          } else {
+                                            setAnswerSheet({ fileUrl: '', fileName: '', attachments: [], isUploading: false });
+                                          }
+                                        }}
+                                        className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-black border border-emerald-200 text-xs transition-colors shadow-sm"
+                                      >
                                             {hw.grading?.score != null ? `${hw.grading.score}/${hw.grading.totalScore} ✏️` : 'Edit'}
                                           </button>
                                       ) : (
@@ -5105,10 +5243,15 @@ const handleAssignSubmit = async (e) => {
                                       <button 
                                         onClick={() => {
                                           setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
-                                          if (hw.grading?.adminAnswerSheetUrl) {
-                                            setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl, fileName: 'Existing Marked/Checked work Attached', isUploading: false });
+                                          if (hw.grading?.adminAnswerSheetUrl || (hw.grading?.adminAttachments && hw.grading.adminAttachments.length > 0)) {
+                                            setAnswerSheet({ 
+                                                fileUrl: hw.grading.adminAnswerSheetUrl || '', 
+                                                fileName: 'Existing Marked/Checked work Attached', 
+                                                attachments: hw.grading.adminAttachments || [], 
+                                                isUploading: false 
+                                            });
                                           } else {
-                                            setAnswerSheet({ fileUrl: '', fileName: '', isUploading: false });
+                                            setAnswerSheet({ fileUrl: '', fileName: '', attachments: [], isUploading: false });
                                           }
                                         }}
                                         className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-black border border-emerald-200 text-xs transition-colors shadow-sm"

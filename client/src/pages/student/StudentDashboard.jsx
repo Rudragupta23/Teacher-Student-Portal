@@ -23,6 +23,7 @@ export default function StudentDashboard() {
   const [mcqAnswers, setMcqAnswers] = useState({}); 
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [previewAttachmentUrl, setPreviewAttachmentUrl] = useState(null);
 
   //  Student Profile & Settings State
   const [studentProfile, setStudentProfile] = useState({ name: 'Scholar', profilePic: '', studentId: '' });
@@ -317,6 +318,7 @@ export default function StudentDashboard() {
       setSubmitForm({ answerFileUrl: '', attachments: [], answerText: '' }); 
       setMcqAnswers({}); 
       setFileName('');
+      setPreviewAttachmentUrl(null);
       fetchAssignments();
     } catch (err) {
       showToast(err.response?.data?.message || 'Submission failed.', "error");
@@ -406,7 +408,7 @@ export default function StudentDashboard() {
                 <h3 className="text-3xl font-black text-[#1B2559]">{modalTask.title}</h3>
                 <p className="text-sm font-bold text-indigo-500 mt-1">Due: {new Date(modalTask.dueDate).toLocaleString()}</p>
               </div>
-              <button onClick={() => { setModalTask(null); setSubmitForm({ answerFileUrl: '', attachments: [], answerText: '' }); setFileName(''); }} className="bg-slate-100 hover:bg-slate-200 text-slate-500 p-2 rounded-full transition-colors">
+              <button onClick={() => { setModalTask(null); setSubmitForm({ answerFileUrl: '', attachments: [], answerText: '' }); setFileName(''); setPreviewAttachmentUrl(null); }} className="bg-slate-100 hover:bg-slate-200 text-slate-500 p-2 rounded-full transition-colors">
                 ✕
               </button>
             </div>
@@ -552,12 +554,36 @@ export default function StudentDashboard() {
                   {submitForm.attachments?.length > 0 && (
                     <div className="mt-4 space-y-3">
                       {submitForm.attachments.map((file, idx) => (
-                        <div key={idx} className="flex items-center justify-between bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
-                          <p className="text-sm font-bold text-indigo-800 truncate pr-4">📎 {file.name}</p>
-                          <button type="button" onClick={() => {
-                            const newAttachments = submitForm.attachments.filter((_, i) => i !== idx);
-                            setSubmitForm({...submitForm, attachments: newAttachments});
-                          }} className="text-rose-500 hover:text-rose-700 font-bold text-xs shrink-0 bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                        <div key={idx} className="flex flex-col gap-2 bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <p 
+                              className="text-sm font-bold text-indigo-800 truncate pr-4 cursor-pointer hover:underline"
+                              onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)}
+                            >
+                              📎 {file.name}
+                            </p>
+                            <div className="flex gap-2 shrink-0">
+                              <button type="button" onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)} className="text-cyan-600 hover:text-cyan-700 font-bold text-xs bg-cyan-50 px-3 py-1.5 rounded-lg">
+                                {previewAttachmentUrl === file.url ? 'Close' : 'Preview'}
+                              </button>
+                              <button type="button" onClick={() => {
+                                const newAttachments = submitForm.attachments.filter((_, i) => i !== idx);
+                                setSubmitForm({...submitForm, attachments: newAttachments});
+                                if (previewAttachmentUrl === file.url) setPreviewAttachmentUrl(null);
+                              }} className="text-rose-500 hover:text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
+                            </div>
+                          </div>
+                          {previewAttachmentUrl === file.url && (
+                            <div className="w-full h-48 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
+                              {file.url.includes('image') || file.url.startsWith('data:image') ? (
+                                <img src={file.url} alt="Preview" className="w-full h-full object-contain" />
+                              ) : file.url.includes('pdf') || file.url.startsWith('data:application/pdf') ? (
+                                <iframe src={file.url} className="w-full h-full border-0" title="PDF Preview"></iframe>
+                              ) : (
+                                <p className="text-xs text-slate-400 font-bold">Preview not available.</p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -588,12 +614,45 @@ export default function StudentDashboard() {
               </div>
               <h4 className="text-xl font-black text-emerald-800 mb-2">Graded Successfully!</h4>
               
-              {(modalTask.grading?.adminAnswerSheetUrl || modalTask.driveLink) ? (
+              {(modalTask.grading?.adminAnswerSheetUrl || (modalTask.grading?.adminAttachments && modalTask.grading.adminAttachments.length > 0) || modalTask.driveLink) ? (
                 <div className="flex flex-col gap-3 w-full mt-6 text-left">
                   <h4 className="text-xs font-black text-emerald-600 uppercase tracking-wide">Teacher's Marked/Checked work</h4>
                   
-                  {/* 1. Show the File Attachment if it exists */}
-                  {modalTask.grading?.adminAnswerSheetUrl && (
+                  {/* Multiple Attachments */}
+                  {modalTask.grading?.adminAttachments?.length > 0 && (
+                    <div className="space-y-6">
+                      {modalTask.grading.adminAttachments.map((attachment, idx) => (
+                        <div key={idx} className="flex flex-col gap-3">
+                          <p className="font-bold text-emerald-800 text-sm">📎 {attachment.name}</p>
+                          <div className="w-full max-h-[400px] overflow-auto border-2 border-emerald-200 rounded-2xl bg-white p-2 shadow-inner">
+                            {attachment.url.includes('image') || attachment.url.startsWith('data:image') ? (
+                              <img src={attachment.url} alt={attachment.name} className="w-full h-auto rounded-xl object-contain" />
+                            ) : attachment.url.includes('pdf') || attachment.url.startsWith('data:application/pdf') ? (
+                              <iframe src={attachment.url} className="w-full h-[500px] border-0 rounded-xl" title="PDF Preview"></iframe>
+                            ) : (
+                              <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
+                            )}
+                          </div>
+                          <button type="button" onClick={() => {
+                            const a = document.createElement('a');
+                            a.href = attachment.url;
+                            a.download = attachment.name;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                          }}
+                            className="w-full px-6 py-4 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-black rounded-2xl transition-all border-2 border-dashed border-emerald-200 flex items-center justify-center gap-2"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Download {attachment.name}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Legacy Single File */}
+                  {modalTask.grading?.adminAnswerSheetUrl && (!modalTask.grading?.adminAttachments || modalTask.grading.adminAttachments.length === 0) && (
                     <>
                       <div className="w-full max-h-[400px] overflow-auto border-2 border-emerald-200 rounded-2xl bg-white p-2 shadow-inner">
                         {modalTask.grading.adminAnswerSheetUrl.includes('image') || modalTask.grading.adminAnswerSheetUrl.startsWith('data:image') ? (
@@ -785,7 +844,7 @@ export default function StudentDashboard() {
           {/* Header */}
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 gap-6">
   <div>
-    <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, {studentProfile.name} 👋</h1>
+    <h1 className="text-4xl font-black text-[#1B2559]">Welcome back, {studentProfile.name} </h1>
     <p className="text-[#A3AED0] font-bold tracking-wide mt-2">Stay on top of your coursework and grades.</p>
     
     <div className="flex flex-wrap items-center gap-2 mt-3">

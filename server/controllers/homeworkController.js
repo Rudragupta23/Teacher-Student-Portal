@@ -346,7 +346,7 @@ exports.submitHomework = async (req, res) => {
 
 exports.gradeHomework = async (req, res) => {
   const { id } = req.params;
-  const { score, totalScore, feedback, adminAnswerSheetUrl, driveLink } = req.body;
+  const { score, totalScore, feedback, adminAnswerSheetUrl, adminAttachments, driveLink } = req.body;
   
   try {
     const homework = await Homework.findById(id);
@@ -355,7 +355,7 @@ exports.gradeHomework = async (req, res) => {
     if (homework.status === 'Graded' && req.user.role === 'grader') {
       return res.status(403).json({ message: 'Action Denied: Graders cannot edit marks once they are published. Please contact the Main Admin to request a change.' });
     }
-    const isRemovingMarkedWork = homework.grading && homework.grading.adminAnswerSheetUrl && !adminAnswerSheetUrl;
+    const isRemovingMarkedWork = homework.grading && (homework.grading.adminAnswerSheetUrl || (homework.grading.adminAttachments && homework.grading.adminAttachments.length > 0)) && !adminAnswerSheetUrl && (!adminAttachments || adminAttachments.length === 0);
 
     homework.status = 'Graded';
     homework.grading = {
@@ -363,6 +363,7 @@ exports.gradeHomework = async (req, res) => {
       totalScore: totalScore !== undefined && totalScore !== '' ? Number(totalScore) : null,
       feedback: feedback || '',
       adminAnswerSheetUrl: adminAnswerSheetUrl || '',
+      adminAttachments: adminAttachments || [],
       gradedAt: new Date(),
       gradedBy: req.user._id 
     };
@@ -391,10 +392,10 @@ exports.gradeHomework = async (req, res) => {
         // 1. NOTIFY THE STUDENT
         if (student.email) {
           
-          const checkedWorkHtml = homework.grading.adminAnswerSheetUrl ? `
+          const checkedWorkHtml = (homework.grading.adminAnswerSheetUrl || (homework.grading.adminAttachments && homework.grading.adminAttachments.length > 0)) ? `
             <div style="margin-bottom: 25px; padding: 15px; background-color: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 6px;">
               <h4 style="margin: 0 0 5px 0; color: #0369a1;">📎 Marked Work Attached:</h4>
-              <p style="margin: 0; font-size: 14px; color: #0c4a6e;">Your teacher has uploaded a marked document for review.</p>
+              <p style="margin: 0; font-size: 14px; color: #0c4a6e;">Your teacher has uploaded marked document(s) for review.</p>
             </div>
           ` : '';
           const studentEmailContent = `

@@ -48,6 +48,11 @@ const homeworkSchema = new mongoose.Schema({
     totalScore: { type: Number },
     feedback: { type: String },
     adminAnswerSheetUrl: { type: String },
+    adminAttachments: [{
+      name: String,
+      url: String,
+      size: Number
+    }],
     gradedAt: { type: Date },
     gradedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   },
