@@ -1142,6 +1142,14 @@ export default function ParentDashboard() {
                 
                 <div className="flex-1 overflow-auto bg-slate-50 rounded-2xl p-4 flex flex-col gap-6 custom-scrollbar min-h-[400px]">
                   
+                  {/* TEACHER COMMENTS */}
+                  {markedWorkPreview.grading?.feedback && (
+                    <div className="w-full bg-white p-5 rounded-2xl border border-violet-100 text-left shadow-sm">
+                      <h4 className="text-xs font-black text-violet-600 uppercase tracking-wide mb-2">Teacher's Comments</h4>
+                      <p className="text-slate-700 font-medium whitespace-pre-wrap">{markedWorkPreview.grading.feedback}</p>
+                    </div>
+                  )}
+
                   {/* MULTIPLE ATTACHMENTS */}
                   {markedWorkPreview.grading?.adminAttachments?.length > 0 && (
                     <div className="space-y-6">

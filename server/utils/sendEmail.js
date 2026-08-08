@@ -23,7 +23,7 @@ if (!response.ok) {
     console.log(`Email sent successfully to ${options.email}`);
   } catch (error) {
     console.error(`Error sending email: ${error.message}`);
-    throw new Error('Email could not be sent');
+    // throw new Error('Email could not be sent');
   }
 };
 

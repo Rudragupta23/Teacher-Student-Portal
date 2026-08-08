@@ -315,6 +315,49 @@ exports.approveStudent = async (req, res) => {
   }
 };
 
+// @desc    Reject a pending student
+// @route   PUT /api/admin/students/:id/reject
+exports.rejectStudent = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { status: 'rejected' },
+      { returnDocument: 'after' }
+    ).select('-password');
+
+    if (!user) return res.status(404).json({ message: 'Student not found' });
+
+    const studentRejectionHtml = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 16px;">
+        <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
+          <h2 style="color: #EF4444; margin-top: 0; font-size: 28px; font-weight: 800;">Registration Declined</h2>
+          <h3 style="color: #1e293b; font-size: 22px; margin-bottom: 16px;">Hello ${user.name},</h3>
+          
+          <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+            Your registration request for MathCom Mentors has been declined by the administrator.
+          </p>
+          
+          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+          
+          <p style="color: #64748b; font-size: 14px; line-height: 1.5; margin: 0;">
+            If you believe this is a mistake, please contact your teacher or the administration directly.
+          </p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail({
+      email: user.email, 
+      subject: 'Registration Declined - MathCom Mentors',
+      html: studentRejectionHtml
+    }).catch(err => console.error("Rejection Email failed, but continuing:", err.message));
+
+    res.status(200).json({ message: 'Student rejected successfully.', user });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
 // @desc    Update a student's board name
 // @route   PUT /api/admin/students/:id/board
 exports.updateStudentBoard = async (req, res) => {

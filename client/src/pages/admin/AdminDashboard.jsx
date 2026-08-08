@@ -265,6 +265,18 @@ const [testForm, setTestForm] = useState({
     }
   };
 
+  const handleRejectStudent = async (studentId) => {
+    if (!window.confirm("Are you sure you want to reject this student's registration?")) return;
+    try {
+      await api.put(`/admin/students/${studentId}/reject`);
+      showToast('🚫 Student registration rejected.', 'error');
+      fetchPendingStudents(); 
+      fetchData(); 
+    } catch (error) {
+      showToast('Failed to reject student', 'error');
+    }
+  };
+
   useEffect(() => {
     fetchData();
     fetchProfile(); 
@@ -848,6 +860,7 @@ const handleAssignSubmit = async (e) => {
         await api.put(`/homework/${modal.hwId}/grade`, { 
           score: modal.data.score !== '' ? Number(modal.data.score) : null, 
           totalScore: modal.data.totalScore !== '' ? Number(modal.data.totalScore) : null, 
+          feedback: modal.data.feedback || '',
           adminAnswerSheetUrl: answerSheet.fileUrl,
           adminAttachments: answerSheet.attachments,
           driveLink: modal.data.driveLink 
@@ -1763,13 +1776,29 @@ const handleAssignSubmit = async (e) => {
 
                     <div>
                       <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Google Drive Link</label>
-                      <input type="url" className="w-full p-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 outline-none font-bold text-[#1B2559] shadow-sm text-sm" 
-                        placeholder="https://drive.google.com/..." 
-                        value={modal.data?.driveLink || ''} 
-                        onChange={e => setModal({...modal, data: { ...modal.data, driveLink: e.target.value }})} 
-                      />
+                      <div className="flex gap-2">
+                        <input type="url" className="w-full p-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 outline-none font-bold text-[#1B2559] shadow-sm text-sm" 
+                          placeholder="https://drive.google.com/..." 
+                          value={modal.data?.driveLink || ''} 
+                          onChange={e => setModal({...modal, data: { ...modal.data, driveLink: e.target.value }})} 
+                        />
+                        {modal.data?.driveLink && (
+                          <button type="button" onClick={() => setModal({...modal, data: { ...modal.data, driveLink: '' }})} className="px-4 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-600 hover:text-white font-black transition-colors shadow-sm text-xs">
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Teacher Comments / Feedback (Visible to Student)</label>
+                  <textarea className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl focus:ring-4 focus:ring-emerald-500/20 outline-none font-medium text-[#1B2559] min-h-[100px] shadow-sm"
+                    placeholder="Add feedback, comments, or praise for the student..."
+                    value={modal.data?.feedback || ''}
+                    onChange={e => setModal({...modal, data: { ...modal.data, feedback: e.target.value }})}
+                  />
                 </div>
               </>
             )}
@@ -2761,7 +2790,7 @@ const handleAssignSubmit = async (e) => {
     View Work
   </button>
 )}
-                                      <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
+                                      <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
                                         Grade
                                       </button>
                                     </>
@@ -2772,7 +2801,7 @@ const handleAssignSubmit = async (e) => {
                                       {user?.role === 'admin' ? (
                                           <button 
                                         onClick={() => {
-                                          setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
+                                          setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', feedback: hw.grading?.feedback || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
                                           if (hw.grading?.adminAnswerSheetUrl || hw.grading?.adminAttachments?.length > 0) {
                                             setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl || '', fileName: 'Existing Marked/Checked work Attached', attachments: hw.grading.adminAttachments || [], isUploading: false });
                                           } else {
@@ -3201,7 +3230,7 @@ const handleAssignSubmit = async (e) => {
     View Work
   </button>
 )}
-                                      <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
+                                     <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
                                         Grade
                                       </button>
                                     </>
@@ -3212,7 +3241,7 @@ const handleAssignSubmit = async (e) => {
                                       {user?.role === 'admin' ? (
                                           <button 
                                         onClick={() => {
-                                          setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
+                                         setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', feedback: hw.grading?.feedback || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
                                           if (hw.grading?.adminAnswerSheetUrl || (hw.grading?.adminAttachments && hw.grading.adminAttachments.length > 0)) {
                                             setAnswerSheet({ 
                                                 fileUrl: hw.grading.adminAnswerSheetUrl || '', 
@@ -3312,12 +3341,20 @@ const handleAssignSubmit = async (e) => {
                           </div>
                           <p className="text-xs font-bold text-[#A3AED0]">{student.email}</p>
                         </div>
-                        <button 
-                          onClick={() => handleApproveStudent(student._id)}
-                          className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3 rounded-xl transition-all shadow-sm text-sm"
-                        >
-                          Allow Access
-                        </button>
+                        <div className="flex gap-2 w-full mt-2">
+                          <button 
+                            onClick={() => handleRejectStudent(student._id)}
+                            className="flex-[1] bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white border border-rose-200 hover:border-transparent font-black py-3 rounded-xl transition-all shadow-sm text-sm"
+                          >
+                            Reject
+                          </button>
+                          <button 
+                            onClick={() => handleApproveStudent(student._id)}
+                            className="flex-[2] bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3 rounded-xl transition-all shadow-sm text-sm"
+                          >
+                            Allow Access
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -5231,7 +5268,7 @@ const handleAssignSubmit = async (e) => {
     View Work
   </button>
 )}
-                                    <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
+                                    <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
                                       Grade
                                     </button>
                                   </>
@@ -5242,7 +5279,7 @@ const handleAssignSubmit = async (e) => {
                                     {user?.role === 'admin' ? (
                                       <button 
                                         onClick={() => {
-                                          setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
+                                          setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', feedback: hw.grading?.feedback || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
                                           if (hw.grading?.adminAnswerSheetUrl || (hw.grading?.adminAttachments && hw.grading.adminAttachments.length > 0)) {
                                             setAnswerSheet({ 
                                                 fileUrl: hw.grading.adminAnswerSheetUrl || '', 

@@ -12,6 +12,7 @@ const {
   allocateStudentsToGrader,
   getPendingStudents, 
   approveStudent,
+  rejectStudent,
   updateStudentBoard,
   updateStudentDetails      
 } = require('../controllers/adminController');
@@ -25,6 +26,7 @@ router.post('/assign-homework', protect, admin, assignAdaptiveHomework);
 router.delete('/students/:id', protect, admin, deleteStudent);
 router.get('/students/pending', protect, admin, getPendingStudents);
 router.put('/students/:id/approve', protect, admin, approveStudent);
+router.put('/students/:id/reject', protect, admin, rejectStudent);
 router.put('/students/:id/board', protect, admin, updateStudentBoard);
 router.put('/students/:id', protect, admin, updateStudentDetails);
 

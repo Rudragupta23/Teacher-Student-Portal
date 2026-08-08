@@ -613,9 +613,16 @@ export default function StudentDashboard() {
                 {modalTask.grading?.score != null ? `${modalTask.grading.score} / ${modalTask.grading.totalScore}` : 'N/A'}
               </div>
               <h4 className="text-xl font-black text-emerald-800 mb-2">Graded Successfully!</h4>
+
+              {modalTask.grading?.feedback && (
+                <div className="w-full bg-white p-5 rounded-2xl border border-emerald-100 mt-2 mb-4 text-left shadow-sm">
+                  <h4 className="text-xs font-black text-emerald-600 uppercase tracking-wide mb-2">Teacher's Comments</h4>
+                  <p className="text-slate-700 font-medium whitespace-pre-wrap">{modalTask.grading.feedback}</p>
+                </div>
+              )}
               
               {(modalTask.grading?.adminAnswerSheetUrl || (modalTask.grading?.adminAttachments && modalTask.grading.adminAttachments.length > 0) || modalTask.driveLink) ? (
-                <div className="flex flex-col gap-3 w-full mt-6 text-left">
+                <div className="flex flex-col gap-3 w-full mt-2 text-left">
                   <h4 className="text-xs font-black text-emerald-600 uppercase tracking-wide">Teacher's Marked/Checked work</h4>
                   
                   {/* Multiple Attachments */}

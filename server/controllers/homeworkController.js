@@ -133,7 +133,7 @@ exports.assignHomework = async (req, res) => {
         email: studentEmails.join(','), 
         subject: emailSubject,
         html: emailContent
-      });
+      }).catch(err => console.error("Email failed, but continuing:", err.message));
     }
     res.status(201).json({ message: `Successfully assigned to ${targetStudents.length} student(s)` });
   } catch (error) {
@@ -430,7 +430,7 @@ exports.gradeHomework = async (req, res) => {
             email: student.email,
             subject: `Your Homework has been Graded: ${homework.title}`,
             html: studentEmailContent
-          });
+          }).catch(err => console.error("Email to student failed, but continuing:", err.message));
         }
 
         // 2. NOTIFY THE PARENT
@@ -470,7 +470,7 @@ exports.gradeHomework = async (req, res) => {
               email: parentEmails.join(','),
               subject: `Update: ${student.registrationName || student.name}'s Homework has been Graded`,
               html: parentEmailContent
-            });
+            }).catch(err => console.error("Email to parent failed, but continuing:", err.message));
           }
         }
       }
@@ -531,7 +531,7 @@ exports.extendDeadline = async (req, res) => {
         email: student.email,
         subject: `Deadline Extended: ${homework.title}`,
         html: emailContent
-      });
+      }).catch(err => console.error("Email failed, but continuing:", err.message));
     }
 
     res.status(200).json({ message: 'Deadline extended successfully!', homework });
