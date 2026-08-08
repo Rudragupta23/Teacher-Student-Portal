@@ -356,6 +356,12 @@ exports.gradeHomework = async (req, res) => {
       return res.status(403).json({ message: 'Action Denied: Graders cannot edit marks once they are published. Please contact the Main Admin to request a change.' });
     }
     const isRemovingMarkedWork = homework.grading && (homework.grading.adminAnswerSheetUrl || (homework.grading.adminAttachments && homework.grading.adminAttachments.length > 0)) && !adminAnswerSheetUrl && (!adminAttachments || adminAttachments.length === 0);
+    
+    const isRemovingDriveLink = homework.driveLink && driveLink === '';
+    
+    const isAddingNewWork = !!adminAnswerSheetUrl || (adminAttachments && adminAttachments.length > 0) || !!driveLink;
+    
+    const skipEmail = (isRemovingMarkedWork || isRemovingDriveLink) && !isAddingNewWork;
 
     homework.status = 'Graded';
     homework.grading = {
@@ -384,7 +390,7 @@ exports.gradeHomework = async (req, res) => {
         }
     await homework.save();
 
-    if (!isRemovingMarkedWork) {
+    if (!skipEmail) {
       const student = await User.findById(homework.studentId);
 
       if (student) {
