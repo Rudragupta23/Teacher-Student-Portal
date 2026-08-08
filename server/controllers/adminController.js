@@ -68,11 +68,15 @@ exports.assignAdaptiveHomework = async (req, res) => {
 exports.getAllStudents = async (req, res) => {
   try {
     if (req.user.role === 'grader') {
-      const grader = await User.findById(req.user._id).populate('allocatedStudents', '-password');
-      return res.status(200).json(grader.allocatedStudents);
+      const grader = await User.findById(req.user._id).populate({
+        path: 'allocatedStudents',
+        match: { status: 'active' },
+        select: '-password'
+      });
+      return res.status(200).json(grader.allocatedStudents || []);
     }
     
-    const students = await User.find({ role: 'student' }).select('-password');
+    const students = await User.find({ role: 'student', status: 'active' }).select('-password');
     res.status(200).json(students);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
