@@ -468,13 +468,28 @@ export default function StudentDashboard() {
                               )}
                             </div>
                             <div className="flex justify-end">
-                              <button type="button" onClick={() => {
-                                const a = document.createElement('a');
-                                a.href = attachment.url;
-                                a.download = attachment.name;
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
+                              <button type="button" onClick={async () => {
+                                const initials = (studentProfile.name || 'Unknown').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                                const yearGroup = studentProfile.yearGroup || 'Y?';
+                                const formattedTitle = (modalTask.title || '').toUpperCase();
+                                let ext = attachment.name.includes('.') ? attachment.name.substring(attachment.name.lastIndexOf('.')) : '.pdf';
+                                const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
+
+                                try {
+                                  const response = await fetch(attachment.url);
+                                  const blob = await response.blob();
+                                  const blobUrl = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.style.display = 'none';
+                                  a.href = blobUrl;
+                                  a.download = fileName;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(blobUrl);
+                                  document.body.removeChild(a);
+                                } catch (error) {
+                                  window.open(attachment.url, "_blank");
+                                }
                               }} className="px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-black rounded-xl transition-colors flex items-center gap-2 border border-indigo-200">
                                 ⬇️ Download {attachment.name}
                               </button>
@@ -495,8 +510,8 @@ export default function StudentDashboard() {
                           )}
                         </div>
                         <div className="flex justify-end">
-                          <button type="button" onClick={() => {
-                            const initials = (studentProfile.name || 'Unknown').split(' ')[0];
+                          <button type="button" onClick={async () => {
+                            const initials = (studentProfile.name || 'Unknown').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
                             const yearGroup = studentProfile.yearGroup || 'Y?';
                             const formattedTitle = (modalTask.title || '').toUpperCase();
                             let ext = '.pdf';
@@ -504,12 +519,23 @@ export default function StudentDashboard() {
                                 if (modalTask.fileUrl.includes('image/jpeg') || modalTask.fileUrl.includes('image/jpg')) ext = '.jpg';
                                 else if (modalTask.fileUrl.includes('image/png')) ext = '.png';
                             }
-                            const a = document.createElement('a');
-                            a.href = modalTask.fileUrl;
-                            a.download = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
+                            const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
+
+                            try {
+                              const response = await fetch(modalTask.fileUrl);
+                              const blob = await response.blob();
+                              const blobUrl = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.style.display = 'none';
+                              a.href = blobUrl;
+                              a.download = fileName;
+                              document.body.appendChild(a);
+                              a.click();
+                              window.URL.revokeObjectURL(blobUrl);
+                              document.body.removeChild(a);
+                            } catch (error) {
+                              window.open(modalTask.fileUrl, "_blank");
+                            }
                           }} className="px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-black rounded-xl transition-colors flex items-center gap-2 border border-indigo-200">
                             ⬇️ Download File
                           </button>
@@ -663,13 +689,28 @@ export default function StudentDashboard() {
                               <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
                             )}
                           </div>
-                          <button type="button" onClick={() => {
-                            const a = document.createElement('a');
-                            a.href = attachment.url;
-                            a.download = attachment.name;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
+                          <button type="button" onClick={async () => {
+                            const initials = (studentProfile.name || 'Unknown').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                            const yearGroup = studentProfile.yearGroup || 'Y?';
+                            const formattedTitle = (modalTask.title || '').toUpperCase().replace(' HW ', ' MW ').replace(' TEST ', ' MW ');
+                            let ext = attachment.name.includes('.') ? attachment.name.substring(attachment.name.lastIndexOf('.')) : '.pdf';
+                            const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
+
+                            try {
+                              const response = await fetch(attachment.url);
+                              const blob = await response.blob();
+                              const blobUrl = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.style.display = 'none';
+                              a.href = blobUrl;
+                              a.download = fileName;
+                              document.body.appendChild(a);
+                              a.click();
+                              window.URL.revokeObjectURL(blobUrl);
+                              document.body.removeChild(a);
+                            } catch (error) {
+                              window.open(attachment.url, "_blank");
+                            }
                           }}
                             className="w-full px-6 py-4 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-black rounded-2xl transition-all border-2 border-dashed border-emerald-200 flex items-center justify-center gap-2"
                           >
@@ -694,8 +735,8 @@ export default function StudentDashboard() {
                         )}
                       </div>
 
-                      <button type="button" onClick={() => {
-                        const initials = (studentProfile.name || 'Unknown').split(' ')[0];
+                      <button type="button" onClick={async () => {
+                        const initials = (studentProfile.name || 'Unknown').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
                         const yearGroup = studentProfile.yearGroup || 'Y?';
                         
                         let formattedTitle = (modalTask.title || '').toUpperCase()
@@ -709,12 +750,21 @@ export default function StudentDashboard() {
                         }
                         const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
 
-                        const a = document.createElement('a');
-                        a.href = modalTask.grading.adminAnswerSheetUrl;
-                        a.download = fileName;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
+                        try {
+                          const response = await fetch(modalTask.grading.adminAnswerSheetUrl);
+                          const blob = await response.blob();
+                          const blobUrl = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.style.display = 'none';
+                          a.href = blobUrl;
+                          a.download = fileName;
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(blobUrl);
+                          document.body.removeChild(a);
+                        } catch (error) {
+                          window.open(modalTask.grading.adminAnswerSheetUrl, "_blank");
+                        }
                       }}
                         className="w-full mt-2 px-6 py-4 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-black rounded-2xl transition-all border-2 border-dashed border-emerald-200 flex items-center justify-center gap-2"
                       >

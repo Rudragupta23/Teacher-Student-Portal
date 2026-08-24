@@ -2046,13 +2046,30 @@ const handleAssignSubmit = async (e) => {
                           <div key={idx} className="bg-[#F4F7FE] p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                             <div className="flex justify-between items-center">
                               <span className="font-black text-[#1B2559] text-sm">File {idx + 1}: {attachment.name}</span>
-                              <button type="button" onClick={() => {
-                                const a = document.createElement('a');
-                                a.href = attachment.url;
-                                a.download = attachment.name;
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
+                              <button type="button" onClick={async () => {
+                                const studentName = modal.student?.registrationName || modal.student?.name || 'Unknown';
+                                const yearGroup = modal.student?.yearGroup || 'Y?';
+                                const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                                let formattedTitle = (modal.title || '').toUpperCase().replace(' HW ', ' SW ').replace(' TEST ', ' SW ');
+                                let ext = attachment.name.includes('.') ? attachment.name.substring(attachment.name.lastIndexOf('.')) : '.pdf';
+                                const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
+
+                                try {
+                                  const response = await fetch(attachment.url);
+                                  const blob = await response.blob();
+                                  const blobUrl = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.style.display = 'none';
+                                  a.href = blobUrl;
+                                  a.download = fileName;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(blobUrl);
+                                  document.body.removeChild(a);
+                                } catch (error) {
+                                  console.error("Direct download failed", error);
+                                  window.open(attachment.url, "_blank");
+                                }
                               }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5">
                                 ⬇️ Download File
                               </button>
@@ -2073,21 +2090,32 @@ const handleAssignSubmit = async (e) => {
                     ) : modal.data.answerFileUrl ? (
                       <div className="bg-[#F4F7FE] p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                         <div className="flex justify-end">
-                          <button type="button" onClick={() => {
+                          <button type="button" onClick={async () => {
                             const studentName = modal.student?.registrationName || modal.student?.name || 'Unknown';
                             const yearGroup = modal.student?.yearGroup || 'Y?';
-                            const initials = studentName.split(' ')[0];
+                            const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
                             let formattedTitle = (modal.title || '').toUpperCase().replace(' HW ', ' SW ').replace(' TEST ', ' SW ');
                             let ext = '.pdf';
                             if (modal.data.answerFileUrl.includes('image/jpeg') || modal.data.answerFileUrl.includes('image/jpg')) ext = '.jpg';
                             else if (modal.data.answerFileUrl.includes('image/png')) ext = '.png';
+                            const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
 
-                            const a = document.createElement('a');
-                            a.href = modal.data.answerFileUrl;
-                            a.download = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
+                            try {
+                              const response = await fetch(modal.data.answerFileUrl);
+                              const blob = await response.blob();
+                              const blobUrl = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.style.display = 'none';
+                              a.href = blobUrl;
+                              a.download = fileName;
+                              document.body.appendChild(a);
+                              a.click();
+                              window.URL.revokeObjectURL(blobUrl);
+                              document.body.removeChild(a);
+                            } catch (error) {
+                              console.error("Direct download failed", error);
+                              window.open(modal.data.answerFileUrl, "_blank");
+                            }
                           }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5">
                             ⬇️ Download File
                           </button>

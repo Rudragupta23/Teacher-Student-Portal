@@ -1183,13 +1183,29 @@ export default function ParentDashboard() {
                         <div key={idx} className="flex flex-col gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                           <div className="flex justify-between items-center">
                             <p className="font-bold text-violet-800 text-sm">📎 {attachment.name}</p>
-                            <button onClick={() => {
-                              const a = document.createElement('a');
-                              a.href = attachment.url;
-                              a.download = attachment.name;
-                              document.body.appendChild(a);
-                              a.click();
-                              document.body.removeChild(a);
+                           <button onClick={async () => {
+                              const studentName = childData?.registrationName || childData?.name || 'Unknown';
+                              const yearGroup = childData?.yearGroup || 'Y?';
+                              const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                              const formattedTitle = (markedWorkPreview.title || '').toUpperCase().replace(' HW ', ' MW ').replace(' TEST ', ' MW ');
+                              let ext = attachment.name.includes('.') ? attachment.name.substring(attachment.name.lastIndexOf('.')) : '.pdf';
+                              const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
+
+                              try {
+                                const response = await fetch(attachment.url);
+                                const blob = await response.blob();
+                                const blobUrl = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.style.display = 'none';
+                                a.href = blobUrl;
+                                a.download = fileName;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(blobUrl);
+                                document.body.removeChild(a);
+                              } catch (error) {
+                                window.open(attachment.url, "_blank");
+                              }
                             }} className="bg-violet-100 text-violet-700 hover:bg-violet-600 hover:text-white px-4 py-2 rounded-xl font-black transition-all cursor-pointer border-none text-xs flex items-center gap-2">
                               ⬇️ Download
                             </button>
@@ -1216,22 +1232,32 @@ export default function ParentDashboard() {
                     <div className="flex flex-col gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                       <div className="flex justify-between items-center">
                         <p className="font-bold text-violet-800 text-sm">📎 Marked Work Document</p>
-                        <button onClick={() => {
+                        <button onClick={async () => {
                           const studentName = childData?.registrationName || childData?.name || 'Unknown';
                           const yearGroup = childData?.yearGroup || 'Y?';
-                          const initials = studentName.split(' ')[0];
+                          const initials = studentName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
                           let formattedTitle = (markedWorkPreview.title || '').toUpperCase().replace(' HW ', ' MW ').replace(' TEST ', ' MW ');
                           let ext = '.pdf';
                           if (markedWorkPreview.grading.adminAnswerSheetUrl.includes('image/jpeg') || markedWorkPreview.grading.adminAnswerSheetUrl.includes('image/jpg')) ext = '.jpg';
                           else if (markedWorkPreview.grading.adminAnswerSheetUrl.includes('image/png')) ext = '.png';
                           
                           const fileName = `${initials} - ${yearGroup} - ${formattedTitle}${ext}`;
-                          const a = document.createElement('a');
-                          a.href = markedWorkPreview.grading.adminAnswerSheetUrl;
-                          a.download = fileName;
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
+
+                          try {
+                            const response = await fetch(markedWorkPreview.grading.adminAnswerSheetUrl);
+                            const blob = await response.blob();
+                            const blobUrl = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.style.display = 'none';
+                            a.href = blobUrl;
+                            a.download = fileName;
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(blobUrl);
+                            document.body.removeChild(a);
+                          } catch (error) {
+                            window.open(markedWorkPreview.grading.adminAnswerSheetUrl, "_blank");
+                          }
                         }} className="bg-violet-100 text-violet-700 hover:bg-violet-600 hover:text-white px-4 py-2 rounded-xl font-black transition-all cursor-pointer border-none text-xs flex items-center gap-2">
                           ⬇️ Download
                         </button>
