@@ -66,7 +66,7 @@ export default function AdminDashboard() {
   const [minDateTime, setMinDateTime] = useState('');
   const [selectedStudentForChart, setSelectedStudentForChart] = useState('all');
   const [announcements, setAnnouncements] = useState([]);
-  const [announcementForm, setAnnouncementForm] = useState({ content: '', targetAudience: 'all', imageUrl: '' });
+  const [announcementForm, setAnnouncementForm] = useState({ content: '', targetAudience: '', imageUrl: '' });
   const [isAnnounceUploading, setIsAnnounceUploading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -82,7 +82,7 @@ const [assignForm, setAssignForm] = useState({
   mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
 });
 const [testForm, setTestForm] = useState({
-  title: '', weekNo: '', topic: '', type: 'File', studentId: 'all', difficulty: 'Easy', 
+  title: '', weekNo: '', topic: '', type: 'File', studentId: '', difficulty: 'Easy', 
   startDate: '', dueDate: '', fileUrl: '', attachments: [], content: '', studentInstructions: '',
   mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]
 });
@@ -146,7 +146,7 @@ const [testForm, setTestForm] = useState({
 
   // Study Library States
   const [resources, setResources] = useState([]);
-  const [resourceForm, setResourceForm] = useState({ title: '', description: '', type: 'Document', url: '', targetAudience: 'all', yearGroupFilter: 'all' });
+  const [resourceForm, setResourceForm] = useState({ title: '', description: '', type: 'Document', url: '', targetAudience: '', yearGroupFilter: 'all' });
   const [isResourceUploading, setIsResourceUploading] = useState(false);
 
   // Scheme of Work States
@@ -165,7 +165,7 @@ const [testForm, setTestForm] = useState({
     rescheduledStartTime: '',
     rescheduledEndTime: '',
     yearGroupFilter: 'all', 
-    studentId: 'all' 
+    studentId: '' 
   });
   const [graderInstruction, setGraderInstruction] = useState('');
   const [schemeListYear, setSchemeListYear] = useState('all');
@@ -182,7 +182,7 @@ const [testForm, setTestForm] = useState({
 
   // Shared Drive States
   const [driveLinks, setDriveLinks] = useState([]);
-  const [driveForm, setDriveForm] = useState({ title: '', url: '', targetAudience: 'all', yearGroupFilter: 'all' });
+  const [driveForm, setDriveForm] = useState({ title: '', url: '', targetAudience: '', yearGroupFilter: 'all' });
 
   const [graders, setGraders] = useState([]);
   const [newGraderEmail, setNewGraderEmail] = useState('');
@@ -195,7 +195,7 @@ const [testForm, setTestForm] = useState({
   const [plannerFilter, setPlannerFilter] = useState('calendar'); 
   const [plannerCurrentDate, setPlannerCurrentDate] = useState(new Date());
   const [plannerModal, setPlannerModal] = useState({ show: false, selectedDate: null, data: null });
-  const [plannerForm, setPlannerForm] = useState({ topic: '', weekNo: '', title: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: 'all' });
+  const [plannerForm, setPlannerForm] = useState({ topic: '', weekNo: '', title: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: '' });
 
   // Topic Progress Tracker States
   const [topics, setTopics] = useState([]);
@@ -392,11 +392,12 @@ const [testForm, setTestForm] = useState({
 
   const handleDriveSubmit = async (e) => {
     e.preventDefault();
+    if (!driveForm.targetAudience || driveForm.targetAudience === 'all') return showToast("Please select a specific student!", "error");
     if (!driveForm.url.includes('http')) return showToast("Please provide a valid URL starting with http", "error");
     try {
       await api.post('/drive-links', driveForm);
       showToast("☁️ Drive Link Shared Successfully!");
-      setDriveForm({ title: '', url: '', targetAudience: 'all', yearGroupFilter: 'all' });
+      setDriveForm({ title: '', url: '', targetAudience: '', yearGroupFilter: 'all' });
       fetchDriveLinks();
     } catch (err) { showToast("Failed to share link", "error"); }
   };
@@ -413,6 +414,7 @@ const [testForm, setTestForm] = useState({
     if (!plannerForm.startTime || !plannerForm.endTime) {
       return showToast("Please fill both Start and End time", "error");
     }
+    if (!plannerForm.studentId || plannerForm.studentId === 'all') return showToast("Please select a specific student!", "error");
 
     const startDateTime = new Date(`${plannerModal.selectedDate}T${plannerForm.startTime}`);
     const endDateTime = new Date(`${plannerModal.selectedDate}T${plannerForm.endTime}`);
@@ -443,7 +445,7 @@ const [testForm, setTestForm] = useState({
         showToast('Class scheduled successfully!');
       }
       setPlannerModal({ show: false, selectedDate: null, data: null });
-      setPlannerForm({ topic: '', weekNo: '', title: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: 'all' });
+      setPlannerForm({ topic: '', weekNo: '', title: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: '' });
       fetchData();
     } catch (err) {
       showToast(err.response?.data?.message || 'Error scheduling class.', "error");
@@ -487,11 +489,12 @@ const [testForm, setTestForm] = useState({
 
   const handleResourceSubmit = async (e) => {
     e.preventDefault();
+    if (!resourceForm.targetAudience || resourceForm.targetAudience === 'all') return showToast("Please select a specific student!", "error");
     if (!resourceForm.url) return showToast("Please provide a file or link", "error");
     try {
       await api.post('/resources', resourceForm);
       showToast("Library Resource Added!");
-      setResourceForm({ title: '', description: '', type: 'Document', url: '', targetAudience: 'all', yearGroupFilter: 'all' });
+      setResourceForm({ title: '', description: '', type: 'Document', url: '', targetAudience: '', yearGroupFilter: 'all' });
       fetchData();
     } catch (err) { showToast("Failed to upload resource", "error"); }
   };
@@ -532,11 +535,12 @@ const [testForm, setTestForm] = useState({
 
   const handleAnnouncementSubmit = async (e) => {
     e.preventDefault();
+    if (!announcementForm.targetAudience || announcementForm.targetAudience === 'all') return showToast("Please select a specific student!", "error");
     if (!announcementForm.content) return showToast("Message content is required", "error");
     try {
       await api.post('/announcements', announcementForm);
       showToast("📢 Announcement Broadcasted Successfully!");
-      setAnnouncementForm({ content: '', targetAudience: 'all', imageUrl: '' });
+      setAnnouncementForm({ content: '', targetAudience: '', imageUrl: '' });
       fetchData();
     } catch (err) {
       showToast("Failed to post announcement", "error");
@@ -930,7 +934,7 @@ const handleAssignSubmit = async (e) => {
           await api.post('/scheme', { ...schemeForm, graderInstruction });
           showToast("Daily Report Submitted!");
         }
-        setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' });
+        setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: '' });
         setGraderInstruction('');
         setIsSchemeModalOpen(false);
       }
@@ -970,6 +974,7 @@ const handleAssignSubmit = async (e) => {
   const handleSchemeInitialSubmit = async (e) => {
     e.preventDefault();
     if (isLoading) return; 
+    if (!schemeForm.studentId || schemeForm.studentId === 'all') return showToast("Please select a specific student!", "error");
 
     let shouldShowGraderBox = false;
 
@@ -2914,6 +2919,7 @@ const handleAssignSubmit = async (e) => {
                     
                     <form onSubmit={async (e) => {
                       e.preventDefault();
+                      if (!testForm.studentId || testForm.studentId === 'all') return showToast("Please select a specific student!", "error");
                       if (!testForm.startDate || !testForm.dueDate) return showToast("Assign Start & Due Dates!", "error");
                       if (new Date(testForm.startDate) >= new Date(testForm.dueDate)) return showToast("Due date must be after Start date!", "error");
                       try {
@@ -2923,7 +2929,7 @@ const handleAssignSubmit = async (e) => {
                         });
                         showToast('🎉 Test scheduled successfully!');
                         fetchData(); 
-                        setTestForm({ ...testForm, title: '', startDate: '', dueDate: '', fileUrl: '', attachments: [], content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
+                        setTestForm({ title: '', weekNo: '', topic: '', type: 'File', studentId: '', difficulty: 'Easy', startDate: '', dueDate: '', fileUrl: '', attachments: [], content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }] });
                         setTestFileName(''); 
                         setIsAssignModalOpen(false);
                       } catch (err) { showToast('Error scheduling test.', "error"); }
@@ -2990,7 +2996,7 @@ const handleAssignSubmit = async (e) => {
                           <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Select Student</label>
                           <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
                             onChange={e => setTestForm({...testForm, studentId: e.target.value})} value={testForm.studentId}>
-                            <option value="all">All Filtered Students</option>
+                            <option value="">-- Choose a Student --</option>
                             {students.filter(s => testYearGroupAssign === 'all' || s.yearGroup === testYearGroupAssign)
                               .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
                               .map(s => (
@@ -3157,7 +3163,10 @@ const handleAssignSubmit = async (e) => {
                         value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                     </div>
 
-                    <button onClick={() => setIsAssignModalOpen(true)} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-rose-500 hover:bg-rose-600 text-white hover:-translate-y-1">
+                    <button onClick={() => {
+                      setTestForm({ title: '', weekNo: '', topic: '', type: 'File', studentId: '', difficulty: 'Easy', startDate: '', dueDate: '', fileUrl: '', attachments: [], content: '', studentInstructions: '', mcqs: [{ question: '', options: ['', '', '', ''], correctOption: 0 }]});
+                      setIsAssignModalOpen(true);
+                    }} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-rose-500 hover:bg-rose-600 text-white hover:-translate-y-1">
                       <span>+</span> Schedule New Test
                     </button>
                   </div>
@@ -3902,7 +3911,7 @@ const handleAssignSubmit = async (e) => {
                         <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Target Audience</label>
                         <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559] truncate max-w-full" 
                         value={announcementForm.targetAudience} onChange={e => setAnnouncementForm({...announcementForm, targetAudience: e.target.value})}>
-                          <option value="all">📢 Share to Everyone</option>
+                          <option value="">-- Choose a Student --</option>
                           {students.sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || '')).map(s => <option key={s._id} value={s._id}>👤 {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>)}
                         </select>
                       </div>
@@ -3946,7 +3955,7 @@ const handleAssignSubmit = async (e) => {
                     </div>
 
                     <button onClick={() => {
-                      setAnnouncementForm({ content: '', targetAudience: 'all', imageUrl: '' });
+                      setAnnouncementForm({ content: '', targetAudience: '', imageUrl: '' });
                       setIsAssignModalOpen(true);
                     }} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white hover:-translate-y-1">
                       <span>+</span> Post Announcement
@@ -4149,11 +4158,10 @@ const handleAssignSubmit = async (e) => {
                             value={schemeForm.yearGroupFilter}
                             onChange={e => {
                               const selectedYear = e.target.value;
-                              const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
                               setSchemeForm({
                                 ...schemeForm,
                                 yearGroupFilter: selectedYear,
-                                studentId: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
+                                studentId: ''
                               });
                             }}>
                             <option value="all">All Years</option>
@@ -4167,7 +4175,7 @@ const handleAssignSubmit = async (e) => {
                           <select className="w-full p-3 mt-1 bg-white border border-indigo-100 rounded-xl outline-none font-bold text-[#1B2559]"
                             value={schemeForm.studentId}
                             onChange={e => setSchemeForm({...schemeForm, studentId: e.target.value})}>
-                            {schemeForm.yearGroupFilter === 'all' && <option value="all">📢 All Students</option>}
+                            <option value="">-- Choose a Student --</option>
                             {students.filter(s => schemeForm.yearGroupFilter === 'all' || s.yearGroup === schemeForm.yearGroupFilter)
                               .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
                               .map(s => (
@@ -4268,7 +4276,7 @@ const handleAssignSubmit = async (e) => {
                         <button type="button" onClick={() => { 
                           setIsSchemeModalOpen(false);
                           setEditingSchemeId(null); 
-                          setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' }); 
+                          setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: '' });
                           setGraderInstruction(''); 
                         }} className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-xl transition-all shadow-sm">
                           Cancel
@@ -4298,7 +4306,7 @@ const handleAssignSubmit = async (e) => {
                     )}
                     {user?.role === 'admin' && (
                       <button onClick={() => {
-                        setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: 'all' });
+                        setSchemeForm({ date: new Date().toISOString().split('T')[0], startTime: '', endTime: '', title: '', weekNo: '', topic: '', description: '', classStatus: 'Class Taken', yearGroupFilter: 'all', studentId: '' });
                         setEditingSchemeId(null);
                         setIsSchemeModalOpen(true);
                       }} className="px-6 py-3 bg-[#1B2559] hover:bg-fuchsia-600 text-white font-black rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-2 whitespace-nowrap">
@@ -4927,11 +4935,10 @@ const handleAssignSubmit = async (e) => {
                         <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
                           value={resourceForm.yearGroupFilter} onChange={e => {
                             const selectedYear = e.target.value;
-                            const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
                             setResourceForm({
                               ...resourceForm, 
                               yearGroupFilter: selectedYear, 
-                              targetAudience: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
+                              targetAudience: ''
                             });
                           }}>
                           <option value="all">All Years</option>
@@ -4945,9 +4952,7 @@ const handleAssignSubmit = async (e) => {
                         <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Select Student</label>
                         <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
                           value={resourceForm.targetAudience} onChange={e => setResourceForm({...resourceForm, targetAudience: e.target.value})}>
-                          {resourceForm.yearGroupFilter === 'all' && (
-                            <option value="all">📢 Share to Everyone</option>
-                          )}
+                          <option value="">-- Choose a Student --</option>
                           {students.filter(s => resourceForm.yearGroupFilter === 'all' || s.yearGroup === resourceForm.yearGroupFilter)
                             .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
                             .map(s => (
@@ -4986,7 +4991,7 @@ const handleAssignSubmit = async (e) => {
                     </div>
 
                     <button onClick={() => {
-                      setResourceForm({ title: '', description: '', type: 'Document', url: '', targetAudience: 'all', yearGroupFilter: 'all' });
+                      setResourceForm({ title: '', description: '', type: 'Document', url: '', targetAudience: '', yearGroupFilter: 'all' });
                       setIsAssignModalOpen(true);
                     }} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-cyan-500 hover:bg-cyan-600 text-white hover:-translate-y-1">
                       <span>+</span> Add Material
@@ -5416,11 +5421,10 @@ const handleAssignSubmit = async (e) => {
                         <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
                           value={driveForm.yearGroupFilter} onChange={e => {
                             const selectedYear = e.target.value;
-                            const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
                             setDriveForm({
                               ...driveForm, 
                               yearGroupFilter: selectedYear, 
-                              targetAudience: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
+                              targetAudience: ''
                             });
                           }}>
                           <option value="all">All Years</option>
@@ -5435,9 +5439,7 @@ const handleAssignSubmit = async (e) => {
                         <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]" 
                           value={driveForm.targetAudience} onChange={e => setDriveForm({...driveForm, targetAudience: e.target.value})}>
                           
-                          {driveForm.yearGroupFilter === 'all' && (
-                            <option value="all">📢 Share to Everyone</option>
-                          )}
+                          <option value="">-- Choose a Student --</option>
                           
                           {students.filter(s => driveForm.yearGroupFilter === 'all' || s.yearGroup === driveForm.yearGroupFilter)
                             .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
@@ -5477,7 +5479,7 @@ const handleAssignSubmit = async (e) => {
                     </div>
 
                     <button onClick={() => {
-                      setDriveForm({ title: '', url: '', targetAudience: 'all', yearGroupFilter: 'all' });
+                      setDriveForm({ title: '', url: '', targetAudience: '', yearGroupFilter: 'all' });
                       setIsAssignModalOpen(true);
                     }} className="px-6 py-3 font-black rounded-xl shadow-lg transition-transform flex items-center justify-center gap-2 whitespace-nowrap bg-blue-500 hover:bg-blue-600 text-white hover:-translate-y-1">
                       <span>+</span> Add Drive Link
@@ -5704,11 +5706,10 @@ const handleAssignSubmit = async (e) => {
                                   value={plannerForm.yearGroupFilter}
                                   onChange={e => {
                                       const selectedYear = e.target.value;
-                                      const filteredStudents = students.filter(s => selectedYear === 'all' || s.yearGroup === selectedYear);
                                       setPlannerForm({
                                           ...plannerForm,
                                           yearGroupFilter: selectedYear,
-                                          studentId: selectedYear === 'all' ? 'all' : (filteredStudents.length > 0 ? filteredStudents[0]._id : '')
+                                          studentId: ''
                                       });
                                   }}>
                                   <option value="all">All Years</option>
@@ -5725,7 +5726,7 @@ const handleAssignSubmit = async (e) => {
                                   value={plannerForm.studentId}
                                   onChange={e => setPlannerForm({...plannerForm, studentId: e.target.value})}>
                                   
-                                  {plannerForm.yearGroupFilter === 'all' && <option value="all">📢 All Students</option>}
+                                  <option value="">-- Choose a Student --</option>
                                   
                                   {students.filter(s => plannerForm.yearGroupFilter === 'all' || s.yearGroup === plannerForm.yearGroupFilter)
                                     .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
@@ -5849,7 +5850,7 @@ const handleAssignSubmit = async (e) => {
                         const daySessions = getSessionsForDay(day);
                         return (
                           <div key={day} onClick={() => {
-                            setPlannerForm({ topic: '', weekNo: '', title: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: 'all' });
+                            setPlannerForm({ topic: '', weekNo: '', title: '', startTime: '', endTime: '', isRecurring: false, yearGroupFilter: 'all', studentId: '' });
                             setPlannerModal({show: true, selectedDate: dateStr, data: null});
                           }}
                                className="min-h-[100px] md:min-h-[120px] p-2 md:p-3 rounded-2xl border bg-white border-slate-100 hover:border-indigo-300 cursor-pointer transition-all">
