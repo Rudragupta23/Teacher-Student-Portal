@@ -25,6 +25,11 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// KEEP-ALIVE PING ROUTE 
+app.get('/api/ping', (req, res) => {
+  res.status(200).json({ message: 'Server is awake!', timestamp: new Date() });
+});
+
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
