@@ -287,7 +287,7 @@ export default function StudentDashboard() {
     files.forEach(file => formData.append('files', file));
 
     try {
-      const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await api.post('/upload?folder=submissions', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setSubmitForm(prev => ({
         ...prev,
         attachments: [...(prev.attachments || []), ...res.data.attachments]
@@ -383,7 +383,7 @@ export default function StudentDashboard() {
         const formData = new FormData();
         formData.append('files', profilePicFile);
 
-        const uploadRes = await api.post('/upload', formData, { 
+        const uploadRes = await api.post('/upload?folder=profiles', formData, { 
           headers: { 'Content-Type': 'multipart/form-data' } 
         });
         finalProfilePicUrl = uploadRes.data.attachments[0].url;

@@ -179,7 +179,7 @@ export default function ParentDashboard() {
         const formData = new FormData();
         formData.append('files', profilePicFile);
 
-        const uploadRes = await api.post('/upload', formData, { 
+        const uploadRes = await api.post('/upload?folder=profiles', formData, { 
           headers: { 'Content-Type': 'multipart/form-data' } 
         });
         finalProfilePicUrl = uploadRes.data.attachments[0].url;

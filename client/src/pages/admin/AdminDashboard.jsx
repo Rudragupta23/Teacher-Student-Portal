@@ -473,7 +473,7 @@ const [testForm, setTestForm] = useState({
     formData.append('files', file);
 
     try {
-      const res = await api.post('/upload', formData, { 
+      const res = await api.post('/upload?folder=study_materials', formData, { 
         headers: { 'Content-Type': 'multipart/form-data' } 
       });
       setResourceForm({ ...resourceForm, url: res.data.attachments[0].url });
@@ -517,7 +517,7 @@ const [testForm, setTestForm] = useState({
     formData.append('files', file);
 
     try {
-      const res = await api.post('/upload', formData, { 
+      const res = await api.post('/upload?folder=announcements', formData, { 
         headers: { 'Content-Type': 'multipart/form-data' } 
       });
       // Grab the single S3 URL returned by the backend
@@ -681,7 +681,7 @@ const [testForm, setTestForm] = useState({
     files.forEach(file => formData.append('files', file));
 
     try {
-      const res = await api.post('/upload', formData, {
+      const res = await api.post('/upload?folder=homeworks', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
@@ -714,7 +714,7 @@ const [testForm, setTestForm] = useState({
     files.forEach(file => formData.append('files', file));
 
     try {
-      const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await api.post('/upload?folder=marked_work', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setAnswerSheet(prev => ({
         ...prev,
         attachments: [...(prev.attachments || []), ...res.data.attachments],
@@ -744,7 +744,7 @@ const [testForm, setTestForm] = useState({
     files.forEach(file => formData.append('files', file));
 
     try {
-      const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await api.post('/upload?folder=submissions', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setAdminSubmitForm(prev => ({
         ...prev,
         attachments: [...(prev.attachments || []), ...res.data.attachments]
@@ -819,7 +819,7 @@ const handleAssignSubmit = async (e) => {
     files.forEach(file => formData.append('files', file));
 
     try {
-      const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await api.post('/upload?folder=tests', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setTestForm(prev => ({
         ...prev,
         attachments: [...prev.attachments, ...res.data.attachments]
@@ -1349,7 +1349,7 @@ const handleAssignSubmit = async (e) => {
         const formData = new FormData();
         formData.append('files', profilePicFile);
 
-        const uploadRes = await api.post('/upload', formData, { 
+        const uploadRes = await api.post('/upload?folder=profiles', formData, { 
           headers: { 'Content-Type': 'multipart/form-data' } 
         });
         finalProfilePicUrl = uploadRes.data.attachments[0].url;

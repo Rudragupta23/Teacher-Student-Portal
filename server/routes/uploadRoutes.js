@@ -22,8 +22,9 @@ const upload = multer({
       cb(null, { fieldName: file.fieldname });
     },
     key: function (req, file, cb) {
+      const folder = req.query.folder ? req.query.folder.trim() : 'misc';
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + '-' + file.originalname.replace(/\s+/g, '_'));
+      cb(null, `${folder}/${uniqueSuffix}-${file.originalname.replace(/\s+/g, '_')}`);
     }
   }),
   limits: { fileSize: 50 * 1024 * 1024 } 
