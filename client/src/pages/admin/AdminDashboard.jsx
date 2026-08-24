@@ -111,6 +111,7 @@ const [testForm, setTestForm] = useState({
   const togglePassword = (field) => setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
   const [editStudentForm, setEditStudentForm] = useState({ id: '', name: '', phone: '', schoolName: '', city: '' });
   const [isProfileUploading, setIsProfileUploading] = useState(false);
+  const [profilePicFile, setProfilePicFile] = useState(null);
   const [userId, setUserId] = useState(null); 
 
   // HANDLER FUNCTION
@@ -460,18 +461,28 @@ const [testForm, setTestForm] = useState({
     }
   };
 
-  const handleResourceFile = (e) => {
+  const handleResourceFile = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5000000) return showToast("File too large (Max 5MB)", "error");
-      setIsResourceUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setResourceForm({ ...resourceForm, url: reader.result });
-        setIsResourceUploading(false);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > 50000000) return showToast("File too large (Max 50MB)", "error");
+    
+    setIsResourceUploading(true);
+    
+    const formData = new FormData();
+    formData.append('files', file);
+
+    try {
+      const res = await api.post('/upload', formData, { 
+        headers: { 'Content-Type': 'multipart/form-data' } 
+      });
+      setResourceForm({ ...resourceForm, url: res.data.attachments[0].url });
+    } catch (err) {
+      showToast("Upload failed", "error");
     }
+    
+    setIsResourceUploading(false);
+    e.target.value = null;
   };
 
   const handleResourceSubmit = async (e) => {
@@ -493,18 +504,30 @@ const [testForm, setTestForm] = useState({
     } catch(e) { showToast("Failed to delete", "error"); }
   };
 
-  const handleAnnounceImageUpload = (e) => {
+  const handleAnnounceImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5000000) return showToast("Image too large (Max 5MB)", "error");
-      setIsAnnounceUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAnnouncementForm({ ...announcementForm, imageUrl: reader.result });
-        setIsAnnounceUploading(false);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Increased limit to 50MB for AWS S3
+    if (file.size > 50000000) return showToast("Image too large (Max 50MB)", "error");
+    
+    setIsAnnounceUploading(true);
+    
+    const formData = new FormData();
+    formData.append('files', file);
+
+    try {
+      const res = await api.post('/upload', formData, { 
+        headers: { 'Content-Type': 'multipart/form-data' } 
+      });
+      // Grab the single S3 URL returned by the backend
+      setAnnouncementForm({ ...announcementForm, imageUrl: res.data.attachments[0].url });
+    } catch (err) {
+      showToast("Upload failed", "error");
     }
+    
+    setIsAnnounceUploading(false);
+    e.target.value = null;
   };
 
   const handleAnnouncementSubmit = async (e) => {
@@ -648,26 +671,28 @@ const [testForm, setTestForm] = useState({
     const currentSize = assignForm.attachments.reduce((acc, curr) => acc + (curr.size || 0), 0);
     const newFilesSize = files.reduce((acc, file) => acc + file.size, 0);
 
-    if (currentSize + newFilesSize > 5000000) {
-      return showToast("Total combined size of all attachments cannot exceed 5MB!", "error");
+    if (currentSize + newFilesSize > 50000000) { 
+      return showToast("Total combined size of all attachments cannot exceed 50MB!", "error");
     }
 
     setIsUploading(true);
-    const readFiles = files.map(file => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          resolve({ name: file.name, url: reader.result, size: file.size });
-        };
-        reader.readAsDataURL(file);
-      });
-    });
+    
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
 
-    const newAttachments = await Promise.all(readFiles);
-    setAssignForm(prev => ({
-      ...prev,
-      attachments: [...prev.attachments, ...newAttachments]
-    }));
+    try {
+      const res = await api.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setAssignForm(prev => ({
+        ...prev,
+        attachments: [...prev.attachments, ...res.data.attachments]
+      }));
+    } catch (err) {
+      showToast("File upload failed.", "error");
+    }
+
     setIsUploading(false);
     e.target.value = null; 
   };
@@ -679,27 +704,26 @@ const [testForm, setTestForm] = useState({
     const currentSize = (answerSheet.attachments || []).reduce((acc, curr) => acc + (curr.size || 0), 0);
     const newFilesSize = files.reduce((acc, file) => acc + file.size, 0);
 
-    if (currentSize + newFilesSize > 5000000) {
-      return showToast("Total combined size of all attachments cannot exceed 5MB!", "error");
+    if (currentSize + newFilesSize > 50000000) {
+      return showToast("Total combined size of all attachments cannot exceed 50MB!", "error");
     }
 
     setAnswerSheet(prev => ({ ...prev, isUploading: true }));
-    const readFiles = files.map(file => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          resolve({ name: file.name, url: reader.result, size: file.size });
-        };
-        reader.readAsDataURL(file);
-      });
-    });
+    
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
 
-    const newAttachments = await Promise.all(readFiles);
-    setAnswerSheet(prev => ({
-      ...prev,
-      attachments: [...(prev.attachments || []), ...newAttachments],
-      isUploading: false
-    }));
+    try {
+      const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setAnswerSheet(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), ...res.data.attachments],
+        isUploading: false
+      }));
+    } catch (err) {
+      setAnswerSheet(prev => ({ ...prev, isUploading: false }));
+      showToast("Upload failed", "error");
+    }
     e.target.value = null;
   };
 
@@ -710,26 +734,25 @@ const [testForm, setTestForm] = useState({
     const currentSize = (adminSubmitForm.attachments || []).reduce((acc, curr) => acc + (curr.size || 0), 0);
     const newFilesSize = files.reduce((acc, file) => acc + file.size, 0);
 
-    if (currentSize + newFilesSize > 5000000) {
-      return showToast("Total combined size of all attachments cannot exceed 5MB!", "error");
+    if (currentSize + newFilesSize > 50000000) {
+      return showToast("Total combined size of all attachments cannot exceed 50MB!", "error");
     }
 
     setAdminSubmitFile(prev => ({ ...prev, isUploading: true }));
-    const readFiles = files.map(file => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          resolve({ name: file.name, url: reader.result, size: file.size });
-        };
-        reader.readAsDataURL(file);
-      });
-    });
+    
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
 
-    const newAttachments = await Promise.all(readFiles);
-    setAdminSubmitForm(prev => ({
-      ...prev,
-      attachments: [...(prev.attachments || []), ...newAttachments]
-    }));
+    try {
+      const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setAdminSubmitForm(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), ...res.data.attachments]
+      }));
+    } catch (err) {
+      showToast("Upload failed", "error");
+    }
+    
     setAdminSubmitFile(prev => ({ ...prev, isUploading: false }));
     e.target.value = null;
   };
@@ -786,26 +809,25 @@ const handleAssignSubmit = async (e) => {
     const currentSize = testForm.attachments.reduce((acc, curr) => acc + (curr.size || 0), 0);
     const newFilesSize = files.reduce((acc, file) => acc + file.size, 0);
 
-    if (currentSize + newFilesSize > 5000000) {
-      return showToast("Total combined size of all attachments cannot exceed 5MB!", "error");
+    if (currentSize + newFilesSize > 50000000) {
+      return showToast("Total combined size of all attachments cannot exceed 50MB!", "error");
     }
 
     setIsUploading(true);
-    const readFiles = files.map(file => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          resolve({ name: file.name, url: reader.result, size: file.size });
-        };
-        reader.readAsDataURL(file);
-      });
-    });
+    
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
 
-    const newAttachments = await Promise.all(readFiles);
-    setTestForm(prev => ({
-      ...prev,
-      attachments: [...prev.attachments, ...newAttachments]
-    }));
+    try {
+      const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setTestForm(prev => ({
+        ...prev,
+        attachments: [...prev.attachments, ...res.data.attachments]
+      }));
+    } catch (err) {
+      showToast("Upload failed", "error");
+    }
+    
     setIsUploading(false);
     e.target.value = null;
   };
@@ -1300,27 +1322,56 @@ const handleAssignSubmit = async (e) => {
 
   const handleProfilePicUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2000000) return showToast("Profile picture must be under 2MB", "error");
-      setIsProfileUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSettingsForm(prev => ({ ...prev, profilePic: reader.result }));
-        setIsProfileUploading(false);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    if (file.size > 2000000) return showToast("Profile picture must be under 2MB", "error");
+    
+    // Save the actual file in state to upload LATER when they click Save
+    setProfilePicFile(file);
+    
+    // Show a temporary local preview immediately
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSettingsForm(prev => ({ ...prev, profilePic: reader.result }));
+    };
+    reader.readAsDataURL(file);
+    
+    e.target.value = null;
   };
 
   const handleSaveSettings = async () => {
     try {
-      const res = await api.put('/auth/profile', { name: settingsForm.name, profilePic: settingsForm.profilePic });
+      setIsProfileUploading(true);
+      let finalProfilePicUrl = settingsForm.profilePic;
+
+      // If a new file was selected, upload it to S3 NOW
+      if (profilePicFile) {
+        const formData = new FormData();
+        formData.append('files', profilePicFile);
+
+        const uploadRes = await api.post('/upload', formData, { 
+          headers: { 'Content-Type': 'multipart/form-data' } 
+        });
+        finalProfilePicUrl = uploadRes.data.attachments[0].url;
+      }
+
+      // Now save the profile with the final S3 URL
+      const res = await api.put('/auth/profile', { 
+        name: settingsForm.name, 
+        profilePic: finalProfilePicUrl 
+      });
+
       setAdminProfile({ name: res.data.user.name, profilePic: res.data.user.profilePic || '' });
+      setSettingsForm(prev => ({ ...prev, profilePic: res.data.user.profilePic || '' }));
+      setProfilePicFile(null);
+      setIsProfileUploading(false);
       showToast("Profile Settings Saved!");
     } catch (error) {
+      setIsProfileUploading(false);
       showToast("Failed to save profile", "error");
     }
   };
+
   const handleUpdateStudentDetails = async () => {
     if (!editStudentForm.id) return showToast("Please select a student first!", "error");
     try {
@@ -4852,7 +4903,7 @@ const handleAssignSubmit = async (e) => {
                         <div className="space-y-2">
                           <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Upload File</label>
                           <div className="relative border-2 border-dashed border-slate-300 bg-slate-50 rounded-2xl p-4 text-center hover:bg-slate-100 transition-colors cursor-pointer group">
-                            <input type="file" accept=".pdf, image/*" required className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleResourceFile} />
+                          <input type="file" accept=".pdf, image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleResourceFile} />
                             <p className="font-bold text-slate-600 text-sm">{resourceForm.url ? '✅ File Attached' : 'Click to upload PDF/Image'}</p>
                             {isResourceUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
                           </div>

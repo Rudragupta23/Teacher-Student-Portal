@@ -1,6 +1,7 @@
 const Announcement = require('../models/Announcement');
-const User = require('../models/User'); // Add this import
-const sendEmail = require('../utils/sendEmail'); // Add this import
+const User = require('../models/User'); 
+const sendEmail = require('../utils/sendEmail'); 
+const { deleteFileFromS3 } = require('../utils/s3Utils');
 
 exports.createAnnouncement = async (req, res) => {
     try {
@@ -90,6 +91,13 @@ exports.markAsRead = async (req, res) => {
 
 exports.deleteAnnouncement = async (req, res) => {
     try {
+        const announcement = await Announcement.findById(req.params.id);
+        
+        //  Delete image from AWS S3 
+        if (announcement && announcement.imageUrl) {
+            await deleteFileFromS3(announcement.imageUrl);
+        }
+
         await Announcement.findByIdAndDelete(req.params.id);
         res.status(200).json({ message: "Announcement deleted" });
     } catch (error) {

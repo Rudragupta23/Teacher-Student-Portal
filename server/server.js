@@ -6,6 +6,7 @@ const announcementRoutes = require('./routes/announcementRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const resourceRoutes = require('./routes/resourceRoutes');
 const classPlannerRoutes = require('./routes/classPlannerRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 // Connect to Database
 connectDB();
@@ -39,6 +40,7 @@ app.use('/api/planner', classPlannerRoutes);
 app.use('/api/contact', require('./routes/contactRoutes'));
 app.use('/api/topics', require('./routes/topicProgressRoutes'));
 app.use('/api/feedback', require('./routes/feedbackRoutes'));
+app.use('/api/upload', uploadRoutes);
 require('./jobs/reminderJob');
 const PORT = process.env.PORT || 5000;
 

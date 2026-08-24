@@ -1,6 +1,7 @@
 const Resource = require('../models/Resource');
 const User = require('../models/User'); 
 const sendEmail = require('../utils/sendEmail'); 
+const { deleteFileFromS3 } = require('../utils/s3Utils');
 
 exports.createResource = async (req, res) => {
     try {
@@ -84,6 +85,13 @@ exports.getResources = async (req, res) => {
 
 exports.deleteResource = async (req, res) => {
     try {
+        const resource = await Resource.findById(req.params.id);
+        
+        // Delete document from AWS S3 if it's a file
+        if (resource && resource.type === 'Document' && resource.url) {
+            await deleteFileFromS3(resource.url);
+        }
+
         await Resource.findByIdAndDelete(req.params.id);
         res.status(200).json({ message: "Resource deleted" });
     } catch (error) {

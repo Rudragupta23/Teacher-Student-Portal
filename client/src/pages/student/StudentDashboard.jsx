@@ -32,6 +32,7 @@ export default function StudentDashboard() {
   const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   const togglePassword = (field) => setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
   const [isProfileUploading, setIsProfileUploading] = useState(false);
+  const [profilePicFile, setProfilePicFile] = useState(null);
   const [userId, setUserId] = useState(null); 
   const [announcements, setAnnouncements] = useState([]);
 
@@ -276,26 +277,25 @@ export default function StudentDashboard() {
     const currentSize = (submitForm.attachments || []).reduce((acc, curr) => acc + (curr.size || 0), 0);
     const newFilesSize = files.reduce((acc, file) => acc + file.size, 0);
 
-    if (currentSize + newFilesSize > 5000000) {
-      return showToast("Total combined size of all attachments cannot exceed 5MB!", "error");
+    if (currentSize + newFilesSize > 50000000) {
+      return showToast("Total combined size of all attachments cannot exceed 50MB!", "error");
     }
 
     setIsUploading(true);
-    const readFiles = files.map(file => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          resolve({ name: file.name, url: reader.result, size: file.size });
-        };
-        reader.readAsDataURL(file);
-      });
-    });
+    
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
 
-    const newAttachments = await Promise.all(readFiles);
-    setSubmitForm(prev => ({
-      ...prev,
-      attachments: [...(prev.attachments || []), ...newAttachments]
-    }));
+    try {
+      const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setSubmitForm(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), ...res.data.attachments]
+      }));
+    } catch (err) {
+      showToast("Upload failed", "error");
+    }
+    
     setIsUploading(false);
     e.target.value = null;
   };
@@ -348,16 +348,19 @@ export default function StudentDashboard() {
   // Handle Profile Picture Upload
   const handleProfilePicUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2000000) return showToast("Profile picture must be under 2MB", "error");
-      setIsProfileUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSettingsForm(prev => ({ ...prev, profilePic: reader.result }));
-        setIsProfileUploading(false);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    if (file.size > 2000000) return showToast("Profile picture must be under 2MB", "error");
+    
+    setProfilePicFile(file);
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSettingsForm(prev => ({ ...prev, profilePic: reader.result }));
+    };
+    reader.readAsDataURL(file);
+    
+    e.target.value = null;
   };
 
   const handleConfidenceChange = async (topicId, newConfidence) => {
@@ -373,16 +376,36 @@ export default function StudentDashboard() {
   // Save Profile Settings to Database
   const handleSaveSettings = async () => {
     try {
-      const res = await api.put('/auth/profile', settingsForm);
+      setIsProfileUploading(true);
+      let finalProfilePicUrl = settingsForm.profilePic;
+
+      if (profilePicFile) {
+        const formData = new FormData();
+        formData.append('files', profilePicFile);
+
+        const uploadRes = await api.post('/upload', formData, { 
+          headers: { 'Content-Type': 'multipart/form-data' } 
+        });
+        finalProfilePicUrl = uploadRes.data.attachments[0].url;
+      }
+
+      const res = await api.put('/auth/profile', { 
+        name: settingsForm.name, 
+        profilePic: finalProfilePicUrl 
+      });
       
       setStudentProfile(prev => ({ 
         ...prev, 
         name: res.data.user.name, 
         profilePic: res.data.user.profilePic || '' 
       }));
+      setSettingsForm(prev => ({ ...prev, profilePic: res.data.user.profilePic || '' }));
+      setProfilePicFile(null); 
+      setIsProfileUploading(false);
       
       showToast("Profile Settings Saved!");
     } catch (error) {
+      setIsProfileUploading(false);
       showToast("Failed to save profile", "error");
     }
   };

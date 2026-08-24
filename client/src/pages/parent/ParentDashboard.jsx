@@ -20,6 +20,8 @@ export default function ParentDashboard() {
   // Add these for the Settings Tab
   const [parentProfile, setParentProfile] = useState({ name: 'Parent', profilePic: '' });
   const [settingsForm, setSettingsForm] = useState({ name: '', profilePic: '' });
+  const [profilePicFile, setProfilePicFile] = useState(null); 
+  const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' }); 
   const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   const togglePassword = (field) => setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
@@ -170,12 +172,32 @@ export default function ParentDashboard() {
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.put('/auth/profile', settingsForm);
+      setIsProfileUploading(true);
+      let finalProfilePicUrl = settingsForm.profilePic;
+
+      if (profilePicFile) {
+        const formData = new FormData();
+        formData.append('files', profilePicFile);
+
+        const uploadRes = await api.post('/upload', formData, { 
+          headers: { 'Content-Type': 'multipart/form-data' } 
+        });
+        finalProfilePicUrl = uploadRes.data.attachments[0].url;
+      }
+
+      const res = await api.put('/auth/profile', {
+        name: settingsForm.name,
+        profilePic: finalProfilePicUrl
+      });
       
       const updatedData = res.data.user ? res.data.user : res.data;
       setParentProfile({ name: updatedData.name, profilePic: updatedData.profilePic || '' });
+      setSettingsForm({ name: updatedData.name, profilePic: updatedData.profilePic || '' });
+      setProfilePicFile(null);
+      setIsProfileUploading(false);
       showToast('Profile updated successfully!');
     } catch (err) {
+      setIsProfileUploading(false);
       console.error("Update Error:", err.response || err);
       showToast(err.response?.data?.message || 'Failed to update profile', 'error');
     }
@@ -183,17 +205,21 @@ export default function ParentDashboard() {
 
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2000000) {
-        return showToast("Image is too large! Please choose a file under 2MB.", "error");
-      }
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSettingsForm({ ...settingsForm, profilePic: reader.result }); 
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.size > 2000000) {
+      return showToast("Image is too large! Please choose a file under 2MB.", "error");
     }
+    
+    setProfilePicFile(file);
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSettingsForm({ ...settingsForm, profilePic: reader.result }); 
+    };
+    reader.readAsDataURL(file);
+    
+    e.target.value = null;
   };
 
   // 3. EXPORT LOGIC

@@ -1,6 +1,7 @@
 const Homework = require('../models/Homework');
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail'); 
+const { deleteFileFromS3 } = require('../utils/s3Utils');
 
 exports.assignHomework = async (req, res) => {
   const { title, weekNo, topic, description, type, studentId, difficulty, dueDate, startDate, isTest, fileUrl, attachments, content, mcqs, studentInstructions } = req.body;
@@ -553,6 +554,18 @@ exports.deleteHomework = async (req, res) => {
     }
     const homework = await Homework.findById(req.params.id);
     if (!homework) return res.status(404).json({ message: 'Homework not found' });
+
+    const urlsToDelete = [];
+    if (homework.fileUrl) urlsToDelete.push(homework.fileUrl);
+    if (homework.attachments) homework.attachments.forEach(a => urlsToDelete.push(a.url));
+    if (homework.submission?.answerFileUrl) urlsToDelete.push(homework.submission.answerFileUrl);
+    if (homework.submission?.attachments) homework.submission.attachments.forEach(a => urlsToDelete.push(a.url));
+    if (homework.grading?.adminAnswerSheetUrl) urlsToDelete.push(homework.grading.adminAnswerSheetUrl);
+    if (homework.grading?.adminAttachments) homework.grading.adminAttachments.forEach(a => urlsToDelete.push(a.url));
+
+    for (const url of urlsToDelete) {
+      await deleteFileFromS3(url);
+    }
 
     await Homework.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Assignment permanently deleted.' });

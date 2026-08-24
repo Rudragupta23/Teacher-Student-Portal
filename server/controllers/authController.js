@@ -2,6 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
+const { deleteFileFromS3 } = require('../utils/s3Utils');
 
 // generate a 6-digit OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -319,7 +320,13 @@ exports.updateProfile = async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
     
     if (name) user.name = name; 
+    
+    // Delete old profile picture from AWS S3 
     if (profilePic !== undefined) {
+      if (user.profilePic && user.profilePic !== profilePic) {
+        await deleteFileFromS3(user.profilePic);
+      }
+      
       user.profilePic = profilePic;
       user.markModified('profilePic');
     }
