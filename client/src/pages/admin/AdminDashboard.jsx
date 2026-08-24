@@ -2219,24 +2219,31 @@ const handleAssignSubmit = async (e) => {
         
         {/* 1. Header */}
         <div 
-          onClick={() => { navigate(user?.role === 'grader' ? '/grader-dashboard/settings' : '/admin-dashboard/settings'); setIsSidebarOpen(false); }}
-          className="p-8 flex items-center gap-4 border-b border-slate-700/50 shrink-0 cursor-pointer group hover:bg-slate-800/50 transition-colors"
-          title="Go to Settings to Upload Profile Picture"
+          onClick={() => { 
+            if (user?.role === 'admin') {
+              navigate('/admin-dashboard/settings'); 
+              setIsSidebarOpen(false); 
+            }
+          }}
+          className={`p-8 flex items-center gap-4 border-b border-slate-700/50 shrink-0 transition-colors ${user?.role === 'admin' ? 'cursor-pointer group hover:bg-slate-800/50' : ''}`}
+          title={user?.role === 'admin' ? "Go to Settings to Upload Profile Picture" : "MathCom Mentors"}
         >
           <div className="relative">
             {adminProfile?.profilePic ? (
-              <img src={adminProfile.profilePic} alt="Profile" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-indigo-500/30 group-hover:opacity-75 transition-opacity" />
+              <img src={adminProfile.profilePic} alt="Profile" className={`w-12 h-12 rounded-2xl object-cover shadow-lg shadow-indigo-500/30 transition-opacity ${user?.role === 'admin' ? 'group-hover:opacity-75' : ''}`} />
             ) : (
-              <div className="bg-gradient-to-tr from-indigo-500 to-purple-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-indigo-500/30 group-hover:opacity-75 transition-opacity">
+              <div className={`bg-gradient-to-tr from-indigo-500 to-purple-500 text-white w-12 h-12 flex items-center justify-center rounded-2xl font-black text-2xl shadow-lg shadow-indigo-500/30 transition-opacity ${user?.role === 'admin' ? 'group-hover:opacity-75' : ''}`}>
                 M
               </div>
             )}
             
-            <div className="absolute inset-0 bg-[#0B1437]/60 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            </div>
+            {user?.role === 'admin' && (
+              <div className="absolute inset-0 bg-[#0B1437]/60 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              </div>
+            )}
             
-            {!adminProfile?.profilePic && (
+            {user?.role === 'admin' && !adminProfile?.profilePic && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500 border border-[#0B1437]"></span>
@@ -2244,9 +2251,9 @@ const handleAssignSubmit = async (e) => {
             )}
           </div>
           <div>
-            <h1 className="text-lg font-black text-white tracking-wide leading-tight group-hover:text-indigo-400 transition-colors">MathCom<br/>Mentors</h1>
+            <h1 className={`text-lg font-black text-white tracking-wide leading-tight transition-colors ${user?.role === 'admin' ? 'group-hover:text-indigo-400' : ''}`}>MathCom<br/>Mentors</h1>
             
-            {!adminProfile?.profilePic && (
+            {user?.role === 'admin' && !adminProfile?.profilePic && (
               <p className="text-[10px] text-indigo-400 font-bold mt-1 group-hover:underline">Click to upload your photo</p>
             )}
           </div>
@@ -2493,7 +2500,11 @@ const handleAssignSubmit = async (e) => {
                         <div className="space-y-1">
                           <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Filter by Year</label>
                           <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
-                            value={yearGroupAssign} onChange={e => setYearGroupAssign(e.target.value)}>
+                            value={yearGroupAssign} 
+                            onChange={e => {
+                              setYearGroupAssign(e.target.value);
+                              setAssignForm(prev => ({ ...prev, studentId: '' }));
+                            }}>
                             <option value="all">All Years</option>
                             {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
                               <option key={yg} value={yg}>{yg}</option>
@@ -2974,7 +2985,11 @@ const handleAssignSubmit = async (e) => {
                         <div className="space-y-1">
                           <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Filter by Year</label>
                           <select className="w-full max-w-full truncate p-4 bg-[#F4F7FE] border-none rounded-2xl outline-none font-bold text-[#1B2559]"
-                            value={testYearGroupAssign} onChange={e => setTestYearGroupAssign(e.target.value)}>
+                            value={testYearGroupAssign} 
+                            onChange={e => {
+                              setTestYearGroupAssign(e.target.value);
+                              setTestForm(prev => ({ ...prev, studentId: '' }));
+                            }}>
                             <option value="all">All Years</option>
                             {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
                               <option key={yg} value={yg}>{yg}</option>
