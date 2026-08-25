@@ -170,6 +170,8 @@ const [testForm, setTestForm] = useState({
   const [graderInstruction, setGraderInstruction] = useState('');
   const [schemeListYear, setSchemeListYear] = useState('all');
   const [schemeListStudent, setSchemeListStudent] = useState('all');
+  const [schemeListStatus, setSchemeListStatus] = useState('all'); 
+  const [schemeListDate, setSchemeListDate] = useState(''); 
 
   // NEW STATES FOR EDITING BOARD AND SCHEMES
   const [editingBoardId, setEditingBoardId] = useState(null);
@@ -4359,8 +4361,8 @@ const handleAssignSubmit = async (e) => {
                   </div>
                 </div>
 
-                {/* LIST FILTERS */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                {/* FILTERS */}
+                <div className="flex flex-col lg:flex-row gap-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                   <div className="flex-1">
                     <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
                     <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
@@ -4387,6 +4389,23 @@ const handleAssignSubmit = async (e) => {
                         <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
                       ))}
                     </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Status</label>
+                    <select className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
+                      value={schemeListStatus} onChange={e => setSchemeListStatus(e.target.value)}>
+                      <option value="all">All Statuses</option>
+                      <option value="Class Taken">Class Taken</option>
+                      <option value="Class Cancelled by Teacher">Class Cancelled by Teacher</option>
+                      <option value="Class Cancelled by Student">Class Cancelled by Student</option>
+                      <option value="Student didn't attend">Student didn't attend</option>
+                      <option value="Class Rescheduled">Class Rescheduled</option>
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Filter by Date</label>
+                    <input type="date" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl outline-none font-bold text-[#1B2559]"
+                      value={schemeListDate} onChange={e => setSchemeListDate(e.target.value)} />
                   </div>
                 </div>
                 
@@ -4422,6 +4441,13 @@ const handleAssignSubmit = async (e) => {
                         }
                         
                         if (schemeListStudent !== 'all' && report.studentId !== 'all' && report.studentId !== schemeListStudent) return false;
+                        
+                        if (schemeListStatus !== 'all' && report.classStatus !== schemeListStatus) return false;
+
+                        if (schemeListDate) {
+                          const reportDate = new Date(report.date).toISOString().split('T')[0];
+                          if (reportDate !== schemeListDate) return false;
+                        }
                         
                         return true;
                       }).map(report => (
