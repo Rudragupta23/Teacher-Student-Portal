@@ -8,6 +8,7 @@ MathCom Mentors is a full-stack MERN educational platform built to centralize th
 [![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)](https://expressjs.com/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![AWS S3](https://img.shields.io/badge/AWS_S3-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/s3/)
 
 **🚀 Live Platform:** [https://mathcommentors.com/](https://mathcommentors.com/)
 
@@ -38,12 +39,12 @@ MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it d
 | | **Parent Hub** | Real-time tracking of their child's attendance, grades, and teacher feedback. | Parent |
 | | **Grader Interface** | Dedicated pipeline for reviewing submissions, assigning marks, and writing feedback. | Grader |
 | **Academic Tools** | **Homework Management** | End-to-end system to create, distribute, submit, and evaluate digital assignments. | Teacher, Student, Grader |
-| | **Resource Library** | Centralized repository for uploading study materials, PDFs, and Google Drive links. | Teacher, Student |
-| | **Class Planner / Scheme** | Tools to map out the curriculum, schedule upcoming lessons, and track syllabus completion. | Admin, Teacher |
-| | **Question Bank Integration** | Upload and manage standardized questions for assignments and evaluations. | Admin, Teacher |
-| **Communication** | **Targeted Announcements** | Broadcast important updates system-wide or to specific classes/roles. | Admin, Teacher, Student |
+| | **Cloud Resource Library** | Secure, scalable centralized repository powered by AWS S3 for uploading study materials, PDFs, and media. | Teacher, Student |
+| | **Class Planner & Scheme** | Tools to map out the curriculum, schedule upcoming lessons, and track syllabus completion. | Admin, Teacher |
+| | **Topic Progress Tracking** | Granular tracking of student and class progress through specific curriculum topics. | Teacher, Student, Parent |
+| **Communication** | **Contextual Feedback** | Attach specific, constructive comments directly to a student's graded submission. | Teacher, Grader, Student |
+| | **Contact & Support** | Streamlined contact routing for platform support and administrative inquiries. | All Users |
 | | **Internal Messaging** | Secure direct communication channel connecting educators with parents. | Teacher, Parent |
-| | **Contextual Feedback** | Attach specific, constructive comments directly to a student's graded submission. | Teacher, Grader, Student |
 | **Automation** | **CRON Job Reminders** | Background server tasks that automatically detect approaching deadlines and send warning emails. | Student, Parent |
 | | **Automated Alerts** | Instant email notifications triggered by new assignments or newly published grades. | Student, Parent |
 
@@ -71,6 +72,7 @@ MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it d
 ### **Backend**
 - **Node.js & Express.js** (Server & API architecture)
 - **MongoDB & Mongoose** (Database & Object Data Modeling)
+- **AWS S3 SDK** (Secure cloud object storage integration)
 - **JSON Web Tokens (JWT)** (Authentication)
 - **Bcrypt.js** (Password hashing)
 - **Nodemailer** (Email integration)
@@ -161,6 +163,7 @@ server/
 │   ├── messageRoutes.js
 │   ├── parentRoutes.js
 │   ├── resourceRoutes.js
+│   ├── uploadRoutes.js
 │   ├── schemeRoutes.js
 │   └── studentRoutes.js
 ├── middlewares/
@@ -169,6 +172,7 @@ server/
 ├── jobs/
 │   └── reminderJob.js
 └── utils/
+    ├── s3Utils.js
     └── sendEmail.js
 ```
 
