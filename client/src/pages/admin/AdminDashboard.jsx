@@ -1687,6 +1687,55 @@ const handleAssignSubmit = async (e) => {
     }
   };
 
+  const handleExportAnalyticsPDF = async () => {
+    const chartContainer = document.getElementById('analytics-export-area');
+    if (!chartContainer) return showToast("No analytics data to export", "error");
+
+    try {
+      showToast("Generating PDF, please wait...", "success");
+      
+      const canvas = await html2canvas(chartContainer, { 
+        scale: 2, 
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        scrollY: -window.scrollY
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const doc = new jsPDF('landscape', 'mm', 'a4'); 
+      
+      const pdfWidth = 270; 
+      const pageHeight = 180; 
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 40; 
+
+      doc.setFontSize(22);
+      doc.setTextColor(27, 37, 89);
+      doc.text("Class Performance & Analytics Report", 14, 22);
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+
+      doc.addImage(imgData, 'PNG', 14, position, pdfWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Automatically add new pages if the charts are too tall for one page
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        doc.addPage();
+        doc.addImage(imgData, 'PNG', 14, position, pdfWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      doc.save(`Analytics_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      showToast("Analytics successfully exported to PDF!");
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      showToast("Error generating PDF.", "error");
+    }
+  };
+
   const chartData = Object.values(homeworks.reduce((acc, hw) => {
     if (hw.status === 'Graded' && hw.grading?.score != null && hw.grading?.totalScore) {
       if (!acc[hw.title]) {
@@ -4594,104 +4643,267 @@ const handleAssignSubmit = async (e) => {
               </div>
             </div>
           )}
+
           {/* VIEW 4: ANALYTICS TAB */}
           {activeTab === 'analytics' && (() => {
+            // 1. Task Completion Breakdown
             const studentHwForPie = selectedStudentForChart === 'all' 
               ? homeworks 
               : homeworks.filter(h => h.studentId?._id === selectedStudentForChart);
               
             const pieData = [
-              { name: 'Completed & Graded', value: studentHwForPie.filter(h => h.status === 'Graded').length, color: '#10B981' }, 
-              { name: 'Submitted (Pending Review)', value: studentHwForPie.filter(h => h.status === 'Submitted').length, color: '#F59E0B' }, 
-              { name: 'Pending Work', value: studentHwForPie.filter(h => h.status === 'Pending').length, color: '#EF4444' } 
+              { name: 'Graded', value: studentHwForPie.filter(h => h.status === 'Graded').length, color: '#10B981' }, 
+              { name: 'Needs Grading', value: studentHwForPie.filter(h => h.status === 'Submitted').length, color: '#F59E0B' }, 
+              { name: 'Pending/Overdue', value: studentHwForPie.filter(h => h.status === 'Pending').length, color: '#EF4444' } 
             ].filter(d => d.value > 0);
 
+            // 2. Topic Confidence Data
+            const studentTopicsForPie = selectedStudentForChart === 'all'
+              ? topics
+              : topics.filter(t => (t.studentId?._id || t.studentId) === selectedStudentForChart);
+
+            const confidenceData = [
+              { name: 'High (Green)', value: studentTopicsForPie.filter(t => t.studentConfidence === 'Green').length, color: '#10B981' },
+              { name: 'Medium (Amber)', value: studentTopicsForPie.filter(t => t.studentConfidence === 'Amber').length, color: '#F59E0B' },
+              { name: 'Low (Red)', value: studentTopicsForPie.filter(t => t.studentConfidence === 'Red').length, color: '#EF4444' },
+              { name: 'Unrated', value: studentTopicsForPie.filter(t => !t.studentConfidence).length, color: '#94A3B8' }
+            ].filter(d => d.value > 0);
+
+            // 3. Average Scores by Assignment
+            const scoreData = Object.values(homeworks.reduce((acc, hw) => {
+              if (hw.status === 'Graded' && hw.grading?.score != null && hw.grading?.totalScore) {
+                if (!acc[hw.title]) {
+                  acc[hw.title] = { title: hw.title, totalEarned: 0, totalPossible: 0 };
+                }
+                acc[hw.title].totalEarned += hw.grading.score;
+                acc[hw.title].totalPossible += hw.grading.totalScore;
+              }
+              return acc;
+            }, {})).map(item => ({
+              name: item.title.length > 15 ? item.title.substring(0, 15) + '...' : item.title,
+              avgScore: Number(((item.totalEarned / item.totalPossible) * 100).toFixed(1))
+            })).slice(0, 15);
+
+            // 4. Timeliness Breakdown (On-Time vs Late)
+            const lateSubmissions = studentHwForPie.filter(h => h.submission?.submittedAt && new Date(h.submission.submittedAt) > new Date(h.dueDate)).length;
+            const onTimeSubmissions = studentHwForPie.filter(h => h.submission?.submittedAt && new Date(h.submission.submittedAt) <= new Date(h.dueDate)).length;
+            const timelinessData = [
+              { name: 'On Time', value: onTimeSubmissions, color: '#0EA5E9' },
+              { name: 'Late', value: lateSubmissions, color: '#F43F5E' }
+            ].filter(d => d.value > 0);
+
+            // 5. Student Performance Rankings
+            const studentAverages = students.map(s => {
+              const sHw = homeworks.filter(h => h.studentId?._id === s._id && h.status === 'Graded');
+              let earned = 0, possible = 0;
+              sHw.forEach(h => {
+                if (h.grading?.score != null && h.grading?.totalScore) {
+                  earned += h.grading.score; possible += h.grading.totalScore;
+                }
+              });
+              return {
+                name: s.registrationName || s.name,
+                avg: possible > 0 ? ((earned / possible) * 100).toFixed(1) : null,
+                completed: sHw.length
+              };
+            }).filter(s => s.avg !== null).sort((a, b) => b.avg - a.avg);
+
+            const topPerformers = studentAverages.slice(0, 5);
+            const needsSupport = studentAverages.filter(s => parseFloat(s.avg) < 60).slice(-5).reverse();
+
+            // 6. Actionable Admin KPIs
+            const needsGradingCount = homeworks.filter(h => h.status === 'Submitted').length;
+            const overdueCount = homeworks.filter(h => h.status === 'Pending' && new Date(h.dueDate) < new Date()).length;
+            const classAvg = (() => {
+              let earned = 0, possible = 0;
+              homeworks.filter(h => h.status === 'Graded').forEach(h => {
+                if (h.grading?.score != null && h.grading?.totalScore) {
+                  earned += h.grading.score; possible += h.grading.totalScore;
+                }
+              });
+              return possible > 0 ? ((earned / possible) * 100).toFixed(1) : 0;
+            })();
+            const classesTakenCount = schemes.filter(s => s.classStatus === 'Class Taken').length;
+
             return (
-              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in">
+              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in relative">
                 
                 {/* Header & Export Button */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                   <div className="flex items-center gap-3">
                     <div className="bg-sky-500 w-2 h-8 rounded-full"></div>
-                    <h2 className="text-2xl font-black text-[#1B2559]">Class Performance Analytics</h2>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Advanced Analytics</h2>
                   </div>
-                  <button onClick={handleExportPDF} className="px-5 py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white font-black rounded-xl transition-colors shadow-sm flex items-center gap-2 border border-indigo-100">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    Export Full PDF Report
-                  </button>
+                  <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                    <select 
+                      className="w-full sm:w-auto p-3 bg-[#F4F7FE] border-none rounded-xl outline-none focus:ring-4 focus:ring-sky-500/20 font-bold text-[#1B2559] text-sm"
+                      value={selectedStudentForChart}
+                      onChange={e => setSelectedStudentForChart(e.target.value)}
+                    >
+                      <option value="all">Entire Class Filter</option>
+                      {students.sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || '')).map(s => (
+                        <option key={s._id} value={s._id}>
+                          {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <button onClick={handleExportAnalyticsPDF} className="w-full sm:w-auto px-5 py-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white font-black rounded-xl transition-colors shadow-sm flex justify-center items-center gap-2 border border-indigo-100">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                      Export PDF Report
+                    </button>
+                  </div>
                 </div>
 
+                {/* PDF EXPORT */}
                 <div id="analytics-export-area" className="space-y-8 bg-white p-2">
                   
-                  {/* BAR CHART SECTION */}
-                  <div className="bg-[#F4F7FE]/50 p-6 rounded-3xl border border-slate-100">
-                    <div className="mb-6">
-                      <h3 className="text-xl font-black text-[#1B2559]">Average Scores per Homework</h3>
-                      <p className="text-slate-500 text-sm font-bold mt-1">Class average for graded topics.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100 flex flex-col justify-center">
+                      <h3 className="text-amber-800 font-black text-sm uppercase tracking-wider">Needs Grading</h3>
+                      <p className="text-4xl font-black text-amber-600 mt-2">{needsGradingCount}</p>
                     </div>
-                    {chartData.length > 0 ? (
-                      <div className="h-[350px] w-full pt-4">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600 }} dy={10} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600 }} domain={[0, 100]} dx={-10} />
-                            <Tooltip cursor={{ fill: '#F4F7FE' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', fontWeight: 'bold' }} />
-                            <Legend wrapperStyle={{ paddingTop: '20px', fontWeight: 'bold' }} />
-                            <Bar dataKey="avgScore" name="Average Score (%)" fill="#4F46E5" radius={[8, 8, 0, 0]} barSize={50} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-[250px] text-center opacity-50">
-                        <p className="font-bold text-[#1B2559]">Not enough graded data yet.</p>
-                      </div>
-                    )}
+                    <div className="bg-rose-50 p-6 rounded-3xl border border-rose-100 flex flex-col justify-center">
+                      <h3 className="text-rose-800 font-black text-sm uppercase tracking-wider">Overdue Tasks</h3>
+                      <p className="text-4xl font-black text-rose-600 mt-2">{overdueCount}</p>
+                    </div>
+                    <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 flex flex-col justify-center">
+                      <h3 className="text-emerald-800 font-black text-sm uppercase tracking-wider">Class Avg Score</h3>
+                      <p className="text-4xl font-black text-emerald-600 mt-2">{classAvg}%</p>
+                    </div>
+                    <div className="bg-sky-50 p-6 rounded-3xl border border-sky-100 flex flex-col justify-center">
+                      <h3 className="text-sky-800 font-black text-sm uppercase tracking-wider">Classes Logged</h3>
+                      <p className="text-4xl font-black text-sky-600 mt-2">{classesTakenCount}</p>
+                    </div>
                   </div>
 
-                  {/* PIE CHART SECTION */}
-                  <div className="bg-[#F4F7FE]/50 p-6 rounded-3xl border border-slate-100">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                      <div>
-                        <h3 className="text-xl font-black text-[#1B2559]">Task Completion Breakdown</h3>
-                        <p className="text-slate-500 text-sm font-bold mt-1">View status distribution by individual student.</p>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* PIE CHART: Task Status */}
+                    <div className="bg-[#F4F7FE]/50 p-6 rounded-3xl border border-slate-100">
+                      <div className="mb-4">
+                        <h3 className="text-lg font-black text-[#1B2559]">Task Completion</h3>
+                      </div>
+                      {pieData.length > 0 ? (
+                        <div className="h-[200px] w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value"
+                                label={({name, percent}) => `${(percent * 100).toFixed(0)}%`}>
+                                {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                              </Pie>
+                              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontWeight: 'bold' }} />
+                              <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontWeight: 'bold', fontSize: '10px' }}/>
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div className="flex h-[200px] items-center justify-center opacity-50"><p className="font-bold text-[#1B2559]">No tasks assigned.</p></div>
+                      )}
+                    </div>
+
+                    {/* PIE CHART: Timeliness */}
+                    <div className="bg-[#F4F7FE]/50 p-6 rounded-3xl border border-slate-100">
+                      <div className="mb-4">
+                        <h3 className="text-lg font-black text-[#1B2559]">Submission Timeliness</h3>
+                      </div>
+                      {timelinessData.length > 0 ? (
+                        <div className="h-[200px] w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie data={timelinessData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value"
+                                label={({name, percent}) => `${(percent * 100).toFixed(0)}%`}>
+                                {timelinessData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                              </Pie>
+                              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontWeight: 'bold' }} />
+                              <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontWeight: 'bold', fontSize: '10px' }}/>
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div className="flex h-[200px] items-center justify-center opacity-50"><p className="font-bold text-[#1B2559]">No submissions yet.</p></div>
+                      )}
+                    </div>
+
+                    {/* PIE CHART: Topic Confidence */}
+                    <div className="bg-[#F4F7FE]/50 p-6 rounded-3xl border border-slate-100">
+                      <div className="mb-4">
+                        <h3 className="text-lg font-black text-[#1B2559]">Topic Confidence</h3>
+                      </div>
+                      {confidenceData.length > 0 ? (
+                        <div className="h-[200px] w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie data={confidenceData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value"
+                                label={({name, percent}) => `${(percent * 100).toFixed(0)}%`}>
+                                {confidenceData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                              </Pie>
+                              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontWeight: 'bold' }} />
+                              <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontWeight: 'bold', fontSize: '10px' }}/>
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div className="flex h-[200px] items-center justify-center opacity-50"><p className="font-bold text-[#1B2559]">No confidence data.</p></div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* BAR CHART: Scores */}
+                    <div className="bg-[#F4F7FE]/50 p-6 rounded-3xl border border-slate-100 lg:col-span-2">
+                      <div className="mb-6">
+                        <h3 className="text-xl font-black text-[#1B2559]">Average Scores per Assignment</h3>
+                      </div>
+                      {scoreData.length > 0 ? (
+                        <div className="h-[300px] w-full pt-4">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={scoreData} margin={{ top: 20, right: 30, left: -20, bottom: 20 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600, fontSize: 12 }} dy={10} />
+                              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontWeight: 600, fontSize: 12 }} domain={[0, 100]} />
+                              <Tooltip cursor={{ fill: '#F4F7FE' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', fontWeight: 'bold' }} />
+                              <Bar dataKey="avgScore" name="Avg Score (%)" fill="#0EA5E9" radius={[6, 6, 0, 0]} barSize={30} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div className="flex h-[250px] items-center justify-center opacity-50"><p className="font-bold text-[#1B2559]">Not enough graded data yet.</p></div>
+                      )}
+                    </div>
+
+                    {/* STUDENT RANKINGS */}
+                    <div className="bg-white rounded-3xl border border-slate-100 flex flex-col shadow-sm">
+                      <div className="p-5 border-b border-slate-100">
+                        <h3 className="text-lg font-black text-[#1B2559]">Student Overview</h3>
                       </div>
                       
-                      {/* Individual Student Filter Dropdown */}
-                      <select 
-                        className="w-full sm:w-auto p-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-[#1B2559] text-sm sm:text-base max-w-full"
-                        value={selectedStudentForChart}
-                        onChange={e => setSelectedStudentForChart(e.target.value)}
-                      >
-                        <option value="all">Entire Class</option>
-                        {students.sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || '')).map(s => (
-                          <option key={s._id} value={s._id}>
-                            {s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    {pieData.length > 0 ? (
-                      <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie data={pieData} cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={5} dataKey="value"
-                              label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                              {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                            </Pie>
-                            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontWeight: 'bold' }} />
-                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontWeight: 'bold' }}/>
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-[200px] text-center opacity-50">
-                        <p className="font-bold text-[#1B2559]">No tasks assigned yet.</p>
-                      </div>
-                    )}
-                  </div>
+                      <div className="p-5 flex-1 space-y-6">
+                        <div>
+                          <h4 className="text-xs font-black text-emerald-600 uppercase tracking-wider mb-3">Top Performers</h4>
+                          <div className="space-y-3">
+                            {topPerformers.length > 0 ? topPerformers.map((s, idx) => (
+                              <div key={idx} className="flex justify-between items-center text-sm">
+                                <span className="font-bold text-slate-700 truncate pr-2">{idx + 1}. {s.name}</span>
+                                <span className="font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{s.avg}%</span>
+                              </div>
+                            )) : <p className="text-xs font-bold text-slate-400">No data available.</p>}
+                          </div>
+                        </div>
 
+                        <div>
+                          <h4 className="text-xs font-black text-rose-600 uppercase tracking-wider mb-3">Needs Support (&lt; 60%)</h4>
+                          <div className="space-y-3">
+                            {needsSupport.length > 0 ? needsSupport.map((s, idx) => (
+                              <div key={idx} className="flex justify-between items-center text-sm">
+                                <span className="font-bold text-slate-700 truncate pr-2">⚠️ {s.name}</span>
+                                <span className="font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded">{s.avg}%</span>
+                              </div>
+                            )) : <p className="text-xs font-bold text-slate-400">No students currently in this range.</p>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
                 </div>
               </div>
             );
