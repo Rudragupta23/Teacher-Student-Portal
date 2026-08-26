@@ -4732,7 +4732,7 @@ const handleAssignSubmit = async (e) => {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                   <div className="flex items-center gap-3">
                     <div className="bg-sky-500 w-2 h-8 rounded-full"></div>
-                    <h2 className="text-2xl font-black text-[#1B2559]">Advanced Analytics</h2>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Class Analytics</h2>
                   </div>
                   <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
                     <select 
@@ -4780,7 +4780,7 @@ const handleAssignSubmit = async (e) => {
                     {/* PIE CHART: Task Status */}
                     <div className="bg-[#F4F7FE]/50 p-6 rounded-3xl border border-slate-100">
                       <div className="mb-4">
-                        <h3 className="text-lg font-black text-[#1B2559]">Task Completion</h3>
+                        <h3 className="text-lg font-black text-[#1B2559]">Homework Completion</h3>
                       </div>
                       {pieData.length > 0 ? (
                         <div className="h-[200px] w-full">
@@ -4796,7 +4796,7 @@ const handleAssignSubmit = async (e) => {
                           </ResponsiveContainer>
                         </div>
                       ) : (
-                        <div className="flex h-[200px] items-center justify-center opacity-50"><p className="font-bold text-[#1B2559]">No tasks assigned.</p></div>
+                        <div className="flex h-[200px] items-center justify-center opacity-50"><p className="font-bold text-[#1B2559]">No homework assigned.</p></div>
                       )}
                     </div>
 
@@ -4851,7 +4851,7 @@ const handleAssignSubmit = async (e) => {
                     {/* BAR CHART: Scores */}
                     <div className="bg-[#F4F7FE]/50 p-6 rounded-3xl border border-slate-100 lg:col-span-2">
                       <div className="mb-6">
-                        <h3 className="text-xl font-black text-[#1B2559]">Average Scores per Assignment</h3>
+                        <h3 className="text-xl font-black text-[#1B2559]">Average Scores per Homework</h3>
                       </div>
                       {scoreData.length > 0 ? (
                         <div className="h-[300px] w-full pt-4">
