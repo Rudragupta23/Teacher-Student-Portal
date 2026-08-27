@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Homework = require('../models/Homework'); 
 const bcrypt = require('bcryptjs');
 const sendEmail = require('../utils/sendEmail');
+const { deleteFileFromS3 } = require('../utils/s3Utils');
 
 // @desc    Upload a single question to the Question Bank
 // @route   POST /api/admin/questions
@@ -83,7 +84,7 @@ exports.getAllStudents = async (req, res) => {
   }
 };
 
-// @desc    Delete a student, their parent, and their coursework
+// @desc    Delete a student, their parent, and their coursework (including S3 files)
 // @route   DELETE /api/admin/students/:id
 exports.deleteStudent = async (req, res) => {
   try {
@@ -92,10 +93,39 @@ exports.deleteStudent = async (req, res) => {
     const student = await User.findById(studentId);
     if (!student) return res.status(404).json({ message: 'Student not found' });
 
+    // 1. Delete Student's Profile Picture from AWS S3
+    if (student.profilePic) {
+      await deleteFileFromS3(student.profilePic);
+    }
+
+    // 2. Fetch and delete all Homework files from AWS S3
+    const homeworks = await Homework.find({ studentId: studentId });
+    for (const hw of homeworks) {
+      // Delete teacher's assigned files for this student
+      if (hw.fileUrl) await deleteFileFromS3(hw.fileUrl);
+      if (hw.attachments?.length > 0) {
+        for (const att of hw.attachments) if (att.url) await deleteFileFromS3(att.url);
+      }
+      
+      // Delete student's submitted files
+      if (hw.submission?.answerFileUrl) await deleteFileFromS3(hw.submission.answerFileUrl);
+      if (hw.submission?.attachments?.length > 0) {
+        for (const att of hw.submission.attachments) if (att.url) await deleteFileFromS3(att.url);
+      }
+      
+      // Delete admin's graded files
+      if (hw.grading?.adminAnswerSheetUrl) await deleteFileFromS3(hw.grading.adminAnswerSheetUrl);
+      if (hw.grading?.adminAttachments?.length > 0) {
+        for (const att of hw.grading.adminAttachments) if (att.url) await deleteFileFromS3(att.url);
+      }
+    }
+
+    // Now safe to delete homework records from the database
     await Homework.deleteMany({ studentId: studentId });
 
+    // 3. Find Parent, delete Parent's S3 Profile Pic, then delete Parent DB record
     if (student.role === 'student') {
-      await User.findOneAndDelete({ 
+      const parent = await User.findOne({ 
         role: 'parent', 
         $or: [
           { linkedStudentId: student._id.toString() },
@@ -103,10 +133,19 @@ exports.deleteStudent = async (req, res) => {
           { linkedStudentId: student.email }
         ]
       });
+
+      if (parent) {
+        if (parent.profilePic) {
+          await deleteFileFromS3(parent.profilePic);
+        }
+        await User.findByIdAndDelete(parent._id);
+      }
     }
+    
+    // 4. Finally, delete the student DB record
     await User.findByIdAndDelete(studentId);
 
-    res.status(200).json({ message: 'Student, linked parent, and all associated coursework deleted successfully.' });
+    res.status(200).json({ message: 'Student, linked parent, and all associated AWS S3 content deleted successfully.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
