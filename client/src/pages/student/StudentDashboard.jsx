@@ -17,6 +17,7 @@ export default function StudentDashboard() {
   const [modalTask, setModalTask] = useState(null); 
   const [isLoading, setIsLoading] = useState(true); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showMandatoryProfileModal, setShowMandatoryProfileModal] = useState(false);
   
   // Submission Form State
   const [submitForm, setSubmitForm] = useState({ answerFileUrl: '', attachments: [], answerText: '' });
@@ -210,6 +211,11 @@ export default function StudentDashboard() {
       });
       
       setSettingsForm({ name: displayName, profilePic: res.data.profilePic || '' });
+
+      // Trigger soft modal if no profile pic exists
+      if (!res.data.profilePic) {
+        setShowMandatoryProfileModal(true);
+      }
     } catch (error) {
       console.error("Error fetching profile from DB");
     } finally {
@@ -403,6 +409,7 @@ export default function StudentDashboard() {
       setProfilePicFile(null); 
       setIsProfileUploading(false);
       
+      setShowMandatoryProfileModal(false); // Close modal if they save from it
       showToast("Profile Settings Saved!");
     } catch (error) {
       setIsProfileUploading(false);
@@ -413,13 +420,66 @@ export default function StudentDashboard() {
   return (
     <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
       
-      {/* CUSTOM TOAST NOTIFICATION */}
       <div className={`absolute top-6 right-6 z-50 transform transition-all duration-500 ease-out flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl font-bold text-white
         ${toast.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
         ${toast.type === 'error' ? 'bg-rose-500' : 'bg-slate-900'}`}>
         {toast.type === 'error' ? '⚠️' : '✅'}
         {toast.message}
       </div>
+
+      {/* DISMISSIBLE PROFILE */}
+      {showMandatoryProfileModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl transform scale-100 flex flex-col text-center items-center relative">
+            <button onClick={() => setShowMandatoryProfileModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-100 p-2 rounded-full">
+              ✕
+            </button>
+            <div className="w-20 h-20 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center text-4xl mb-6 shadow-inner">
+              📸
+            </div>
+            <h2 className="text-2xl font-black text-[#1B2559] mb-2">Add a Profile Photo</h2>
+            <p className="text-slate-500 font-bold text-sm mb-8">
+              Help your teacher recognize you! Upload a clear photo of yourself to complete your profile.
+            </p>
+
+            <div className="w-full space-y-6">
+              <div className="relative mx-auto w-32 h-32">
+                {settingsForm.profilePic ? (
+                  <img src={settingsForm.profilePic} alt="Preview" className="w-32 h-32 rounded-full object-cover shadow-lg border-4 border-indigo-100" />
+                ) : (
+                  <div className="w-32 h-32 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center text-4xl shadow-inner border-2 border-dashed border-slate-300 mx-auto">
+                    👤
+                  </div>
+                )}
+              </div>
+
+              <label className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-6 py-3 rounded-xl font-black cursor-pointer transition-colors shadow-sm inline-flex items-center gap-2 border border-indigo-200 w-full justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                <input type="file" accept="image/*" className="hidden" onChange={handleProfilePicUpload} />
+                {settingsForm.profilePic ? 'Change Photo' : 'Select Photo'}
+              </label>
+
+              {isProfileUploading && <p className="text-sm font-bold text-amber-500 animate-pulse">Uploading and saving...</p>}
+
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={() => setShowMandatoryProfileModal(false)}
+                  className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-sm rounded-2xl transition-colors"
+                >
+                  Skip for now
+                </button>
+                <button 
+                  onClick={handleSaveSettings} 
+                  disabled={isProfileUploading || (!profilePicFile && !settingsForm.profilePic)}
+                  className="flex-[2] py-4 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black text-sm rounded-2xl shadow-lg transition-transform hover:-translate-y-1"
+                >
+                  Save Photo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TASK VIEWER & SUBMISSION MODAL */}
       {modalTask && (
