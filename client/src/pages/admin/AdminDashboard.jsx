@@ -2069,6 +2069,67 @@ const handleAssignSubmit = async (e) => {
   </>
 )}
 
+            {modal.type === 'viewOriginalWork' && (
+              <>
+                <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                  <div className="bg-sky-500 w-2 h-8 rounded-full"></div>
+                  <h3 className="text-2xl font-black text-[#1B2559]">Original Assigned Work</h3>
+                </div>
+
+                <div className="space-y-6 mb-6">
+                  {modal.data.content && (
+                    <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200">
+                      <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-3">Written Content / Instructions</h4>
+                      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-inner max-h-[200px] overflow-y-auto custom-scrollbar">
+                        <p className="text-[#1B2559] whitespace-pre-wrap font-medium text-sm leading-relaxed">{modal.data.content}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {modal.data.studentInstructions && (
+                    <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200">
+                      <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-3">Student Instructions</h4>
+                      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-inner max-h-[200px] overflow-y-auto custom-scrollbar">
+                        <p className="text-[#1B2559] whitespace-pre-wrap font-medium text-sm leading-relaxed">{modal.data.studentInstructions}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">📎 Attached Files</h4>
+                    
+                    {modal.data.attachments?.length > 0 ? (
+                      <div className="space-y-6">
+                        {modal.data.attachments.map((attachment, idx) => (
+                          <div key={idx} className="bg-[#F4F7FE] p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="font-black text-[#1B2559] text-sm truncate pr-4">File {idx + 1}: {attachment.name}</span>
+                              <button type="button" onClick={() => window.open(attachment.url, "_blank")} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5 shrink-0">
+                                View File
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : modal.data.fileUrl ? (
+                       <div className="bg-[#F4F7FE] p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                         <div className="flex justify-between items-center">
+                           <span className="font-black text-[#1B2559] text-sm">Attached File</span>
+                           <button type="button" onClick={() => window.open(modal.data.fileUrl, "_blank")} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5 shrink-0">
+                            View File
+                           </button>
+                         </div>
+                       </div>
+                    ) : (
+                      <div className="flex items-center justify-center p-10 text-slate-400 font-bold bg-slate-50 rounded-3xl border border-slate-200">
+                        No files attached to this assignment.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
             {modal.type === 'viewWork' && (
               <>
                 <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
@@ -2257,7 +2318,7 @@ const handleAssignSubmit = async (e) => {
               </>
             )}
             <div className="flex gap-4">
-              {modal.type === 'viewWork' ? (
+              {modal.type === 'viewWork' || modal.type === 'viewOriginalWork' ? (
                 <button onClick={() => setModal({ type: null, hwId: null, studentId: null, data: '' })} className="w-full py-4 bg-slate-100 text-slate-700 hover:bg-slate-200 font-black rounded-2xl transition-colors">
                   Close Preview
                 </button>
@@ -2931,12 +2992,15 @@ const handleAssignSubmit = async (e) => {
                                   
                                   {hw.status === 'Submitted' && (
                                     <>
+                                      <button onClick={() => setModal({ type: 'viewOriginalWork', data: hw })} className="px-3 py-1.5 bg-sky-50 border border-sky-200 text-sky-600 font-black rounded-lg hover:bg-sky-100 transition-colors shadow-sm text-xs whitespace-nowrap">
+                                        View Assigned Work
+                                      </button>
                                       {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText || (hw.submission.attachments && hw.submission.attachments.length > 0)) && (
-  <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs">
-    View Work
-  </button>
-)}
-                                      <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
+                                        <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs whitespace-nowrap">
+                                          View SW
+                                        </button>
+                                      )}
+                                      <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
                                         Grade
                                       </button>
                                     </>
@@ -3379,12 +3443,15 @@ const handleAssignSubmit = async (e) => {
                                   
                                   {hw.status === 'Submitted' && (
                                     <>
+                                      <button onClick={() => setModal({ type: 'viewOriginalWork', data: hw })} className="px-3 py-1.5 bg-sky-50 border border-sky-200 text-sky-600 font-black rounded-lg hover:bg-sky-100 transition-colors shadow-sm text-xs whitespace-nowrap">
+                                        View Assigned Work
+                                      </button>
                                       {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText || (hw.submission.attachments && hw.submission.attachments.length > 0)) && (
-  <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs">
-    View Work
-  </button>
-)}
-                                     <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
+                                        <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs whitespace-nowrap">
+                                          View SW
+                                        </button>
+                                      )}
+                                      <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
                                         Grade
                                       </button>
                                     </>
@@ -5600,12 +5667,15 @@ const handleAssignSubmit = async (e) => {
                              <div className="flex flex-row flex-nowrap items-center justify-center gap-2 w-max mx-auto">
                                 {hw.status === 'Submitted' && (
                                   <>
+                                    <button onClick={() => setModal({ type: 'viewOriginalWork', data: hw })} className="px-3 py-1.5 bg-sky-50 border border-sky-200 text-sky-600 font-black rounded-lg hover:bg-sky-100 transition-colors shadow-sm text-xs whitespace-nowrap">
+                                      View Assigned Work
+                                    </button>
                                     {hw.submission && (hw.submission.answerFileUrl || hw.submission.answerText || (hw.submission.attachments && hw.submission.attachments.length > 0)) && (
-  <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs">
-    View Work
-  </button>
-)}
-                                    <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1">
+                                      <button onClick={() => setModal({ type: 'viewWork', hwId: hw._id, data: hw.submission, title: hw.title, student: hw.studentId })} className="px-3 py-1.5 bg-[#1B2559] text-white font-black rounded-lg hover:bg-indigo-900 transition-colors shadow-sm text-xs whitespace-nowrap">
+                                        View SW
+                                      </button>
+                                    )}
+                                    <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
                                       Grade
                                     </button>
                                   </>

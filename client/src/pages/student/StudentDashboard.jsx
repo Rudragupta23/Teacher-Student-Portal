@@ -313,8 +313,10 @@ export default function StudentDashboard() {
       if (Object.keys(mcqAnswers).length !== modalTask.mcqs.length) {
         return showToast("Please answer all MCQ questions before submitting!", "error");
       }
-    } else if ((!submitForm.attachments || submitForm.attachments.length === 0) && !submitForm.answerFileUrl && !submitForm.answerText) {
-      return showToast("Please attach a file or write an answer!", "error");
+    } else if (modalTask.type !== 'Text' && (!submitForm.attachments || submitForm.attachments.length === 0) && !submitForm.answerFileUrl) {
+      return showToast("Attaching a file is compulsory. Please attach your work!", "error");
+    } else if (modalTask.type === 'Text' && !submitForm.answerText) {
+      return showToast("Please write your answer before submitting!", "error");
     }
 
     try {
@@ -647,7 +649,7 @@ export default function StudentDashboard() {
                   <h4 className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Your Submission</h4>
                   
                   <textarea className="w-full p-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/20 outline-none font-medium text-[#1B2559] min-h-[100px]" 
-                    placeholder="Write your answer here (optional if attaching a file)..." 
+                    placeholder="Write your answer here (optional) - it is mandatory to attach a file..." 
                     value={submitForm.answerText} onChange={e => setSubmitForm({...submitForm, answerText: e.target.value})} />
                   
                   <div className="relative border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-2xl p-6 text-center hover:bg-indigo-50 transition-colors cursor-pointer group">
