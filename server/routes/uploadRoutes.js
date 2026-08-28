@@ -36,11 +36,18 @@ router.post('/', protect, upload.array('files', 30), (req, res) => {
       return res.status(400).json({ message: 'No files uploaded' });
     }
     
-    const attachments = req.files.map(file => ({
-      name: file.originalname,
-      url: file.location, 
-      size: file.size
-    }));
+    const attachments = req.files.map(file => {
+      // Use CloudFront URL if available, otherwise fallback to standard S3 URL
+      const finalUrl = process.env.AWS_CLOUDFRONT_URL 
+        ? `${process.env.AWS_CLOUDFRONT_URL}/${file.key}`
+        : file.location;
+
+      return {
+        name: file.originalname,
+        url: finalUrl, 
+        size: file.size
+      };
+    });
     
     res.status(200).json({ attachments });
   } catch (error) {

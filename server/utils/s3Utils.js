@@ -9,10 +9,25 @@ const s3 = new S3Client({
 });
 
 const deleteFileFromS3 = async (fileUrl) => {
-  if (!fileUrl || !fileUrl.includes('amazonaws.com')) return;
+  if (!fileUrl) return;
 
   try {
-    const key = fileUrl.split('amazonaws.com/')[1];
+    let key;
+
+    // Handle standard S3 URLs (For backwards compatibility with old uploads)
+    if (fileUrl.includes('amazonaws.com/')) {
+      key = fileUrl.split('amazonaws.com/')[1];
+    } 
+    // Handle new CloudFront URLs
+    else if (process.env.AWS_CLOUDFRONT_URL && fileUrl.includes(process.env.AWS_CLOUDFRONT_URL)) {
+      key = fileUrl.replace(`${process.env.AWS_CLOUDFRONT_URL}/`, '');
+    } 
+    // Fallback URL parser just in case
+    else {
+      const urlObj = new URL(fileUrl);
+      key = urlObj.pathname.substring(1); 
+    }
+
     if (!key) return;
 
     const deleteParams = {
