@@ -1755,8 +1755,22 @@ export default function StudentDashboard() {
                             {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                           </p>
                         </td>
-                        <td className="p-5">
-                          <p className="font-bold text-[#1B2559]">{report.title}</p>
+                        <td className="p-5 whitespace-normal leading-snug min-w-[160px]">
+                          <p className="font-bold text-[#1B2559]">
+                            {(() => {
+                              const words = (report.title || '').trim().split(/\s+/);
+                              if (words.length > 3) {
+                                return (
+                                  <>
+                                    {words.slice(0, 3).join(' ')}
+                                    <br />
+                                    {words.slice(3).join(' ')}
+                                  </>
+                                );
+                              }
+                              return report.title;
+                            })()}
+                          </p>
                         </td>
                         <td className="p-5">
                           <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider shadow-sm ${

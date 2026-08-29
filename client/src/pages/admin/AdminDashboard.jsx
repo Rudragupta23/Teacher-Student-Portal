@@ -4573,9 +4573,23 @@ const handleAssignSubmit = async (e) => {
                               {new Date(report.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                             </p>
                           </td>
-                          <td className="p-5">
+                          <td className="p-5 whitespace-normal leading-snug min-w-[160px]">
                             {report.title && (
-                              <p className="font-bold text-[#1B2559] mb-1">{report.title}</p>
+                              <p className="font-bold text-[#1B2559] mb-1">
+                                {(() => {
+                                  const words = (report.title || '').trim().split(/\s+/);
+                                  if (words.length > 3) {
+                                    return (
+                                      <>
+                                        {words.slice(0, 3).join(' ')}
+                                        <br />
+                                        {words.slice(3).join(' ')}
+                                      </>
+                                    );
+                                  }
+                                  return report.title;
+                                })()}
+                              </p>
                             )}
                             {report.studentId && report.studentId !== 'all' ? (
                               <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">

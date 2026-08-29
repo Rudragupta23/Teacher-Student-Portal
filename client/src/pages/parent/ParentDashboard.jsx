@@ -957,8 +957,22 @@ export default function ParentDashboard() {
                             <p className="text-xs font-bold text-[#A3AED0] mt-1">Week {report.weekNo}</p>
                           )}
                         </td>
-                        <td className="p-5">
-                          <p className="font-bold text-[#1B2559]">{report.title}</p>
+                        <td className="p-5 whitespace-normal leading-snug min-w-[160px]">
+                          <p className="font-bold text-[#1B2559]">
+                            {(() => {
+                              const words = (report.title || '').trim().split(/\s+/);
+                              if (words.length > 3) {
+                                return (
+                                  <>
+                                    {words.slice(0, 3).join(' ')}
+                                    <br />
+                                    {words.slice(3).join(' ')}
+                                  </>
+                                );
+                              }
+                              return report.title;
+                            })()}
+                          </p>
                           {report.topic && <p className="text-xs font-bold text-slate-500 mt-1">Topic: {report.topic}</p>}
                         </td>
                         <td className="p-5">
