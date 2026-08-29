@@ -1,6 +1,6 @@
 # 🎓 MathCom Mentors | Classroom Portal
 
-MathCom Mentors is a full-stack MERN educational platform built to centralize the digital classroom. It provides secure, role-based dashboards for teachers, students, graders, and parents to manage assignments, track academic progress, and streamline communication in one place.
+MathCom Mentors is a full-stack MERN educational platform built to centralize the digital classroom. It provides secure, role-based dashboards for teachers, students, graders and parents to manage assignments, track academic progress and streamline communication in one place.
 
 [![Website](https://img.shields.io/badge/Website-mathcommentors.com-blue?style=for-the-badge&logo=google-chrome)](https://mathcommentors.com/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
@@ -9,8 +9,10 @@ MathCom Mentors is a full-stack MERN educational platform built to centralize th
 [![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)](https://expressjs.com/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![AWS S3](https://img.shields.io/badge/AWS_S3-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/s3/)
+[![AWS CloudFront](https://img.shields.io/badge/AWS_CloudFront-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/cloudfront/)
 
-**🚀 Live Platform:** [https://mathcommentors.com/](https://mathcommentors.com/)
+**🚀 Live Platform:** [https://mathcommentors.com/](https://mathcommentors.com/)  
+**🔐 Direct Login Portal:** [https://mathcommentors.com/login](https://mathcommentors.com/login)
 
 ---
 
@@ -39,7 +41,7 @@ MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it d
 | | **Parent Hub** | Real-time tracking of their child's attendance, grades, and teacher feedback. | Parent |
 | | **Grader Interface** | Dedicated pipeline for reviewing submissions, assigning marks, and writing feedback. | Grader |
 | **Academic Tools** | **Homework Management** | End-to-end system to create, distribute, submit, and evaluate digital assignments. | Teacher, Student, Grader |
-| | **Cloud Resource Library** | Secure, scalable centralized repository powered by AWS S3 for uploading study materials, PDFs, and media. | Teacher, Student |
+| | **Cloud Resource Library** | Secure, scalable centralized repository powered by AWS S3 and accelerated by AWS CloudFront for lightning-fast global delivery of study materials, PDFs, and media. | Teacher, Student |
 | | **Class Planner & Scheme** | Tools to map out the curriculum, schedule upcoming lessons, and track syllabus completion. | Admin, Teacher |
 | | **Topic Progress Tracking** | Granular tracking of student and class progress through specific curriculum topics. | Teacher, Student, Parent |
 | **Communication** | **Contextual Feedback** | Attach specific, constructive comments directly to a student's graded submission. | Teacher, Grader, Student |
@@ -72,7 +74,7 @@ MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it d
 ### **Backend**
 - **Node.js & Express.js** (Server & API architecture)
 - **MongoDB & Mongoose** (Database & Object Data Modeling)
-- **AWS S3 SDK** (Secure cloud object storage integration)
+- **AWS S3 & CloudFront** (Secure cloud object storage integration with globally accelerated CDN delivery)
 - **JSON Web Tokens (JWT)** (Authentication)
 - **Bcrypt.js** (Password hashing)
 - **Nodemailer** (Email integration)
@@ -176,6 +178,13 @@ server/
     └── sendEmail.js
 ```
 
+## ☁️ Deployment Architecture
+
+* **Frontend:** Hosted on [Render](https://render.com/) for fast, continuous delivery from the repository.
+* **Backend:** Deployed on [Render](https://render.com/), providing a reliable environment for the Node.js/Express REST API.
+* **Database:** Hosted securely on MongoDB Atlas.
+* **Storage:** AWS S3 buckets used for secure file storage, cached and distributed globally via AWS CloudFront.
+
 # 🚀 Installation & Run Instructions
 
 Follow these steps to get the application running on your local machine.
@@ -233,10 +242,17 @@ The React frontend will typically run on:
 http://localhost:5173
 ```
 
+## 👤 Author
+
+**Rudra Gupta**
+* Portfolio: [rudraguptaportfolio.live](https://rudraguptaportfolio.live)
+* LinkedIn: [@rudrag23](https://linkedin.com/in/rudrag23)
+* GitHub: [@Rudragupta23](https://github.com/Rudragupta23)
+* Email: 23rudragupta@gmail.com
+
 ---
 
 # 📄 License
 
 This project is intended for educational purposes.
 
----
