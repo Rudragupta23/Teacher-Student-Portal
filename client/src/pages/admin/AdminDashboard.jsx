@@ -4810,9 +4810,12 @@ const handleAssignSubmit = async (e) => {
             const needsSupport = studentAverages.filter(s => parseFloat(s.avg) < 60).slice(-5).reverse();
 
             // 6. Actionable Admin KPIs
-            const needsGradingCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Submitted').length;
+            const assignedCount = filteredHomeworksForAnalytics.length;
             const overdueCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Pending' && new Date(h.dueDate) < new Date()).length;
-            const completedTaskCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Graded').length;
+            const submittedCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Submitted' || h.status === 'Graded').length;
+            const needsGradingCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Submitted').length;
+            const gradedCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Graded').length;
+            
             const classAvg = (() => {
               let earned = 0, possible = 0;
               filteredHomeworksForAnalytics.filter(h => h.status === 'Graded').forEach(h => {
@@ -4822,7 +4825,9 @@ const handleAssignSubmit = async (e) => {
               });
               return possible > 0 ? ((earned / possible) * 100).toFixed(1) : 0;
             })();
+            
             const classesTakenCount = filteredSchemesForAnalytics.filter(s => s.classStatus === 'Class Taken').length;
+            const topicsCoveredCount = filteredTopicsForAnalytics.length;
 
             return (
               <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in relative">
@@ -4856,26 +4861,38 @@ const handleAssignSubmit = async (e) => {
                 {/* PDF EXPORT */}
                 <div id="analytics-export-area" className="space-y-8 bg-white p-2">
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 flex flex-col justify-center">
+                      <h3 className="text-indigo-800 font-black text-sm uppercase tracking-wider">Assigned HomeWorks</h3>
+                      <p className="text-4xl font-black text-indigo-600 mt-2">{assignedCount}</p>
+                    </div>
+                    <div className="bg-rose-50 p-6 rounded-3xl border border-rose-100 flex flex-col justify-center">
+                      <h3 className="text-rose-800 font-black text-sm uppercase tracking-wider">Overdue HomeWorks</h3>
+                      <p className="text-4xl font-black text-rose-600 mt-2">{overdueCount}</p>
+                    </div>
+                    <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 flex flex-col justify-center">
+                      <h3 className="text-blue-800 font-black text-sm uppercase tracking-wider">Submitted HomeWorks</h3>
+                      <p className="text-4xl font-black text-blue-600 mt-2">{submittedCount}</p>
+                    </div>
                     <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100 flex flex-col justify-center">
                       <h3 className="text-amber-800 font-black text-sm uppercase tracking-wider">Needs Grading</h3>
                       <p className="text-4xl font-black text-amber-600 mt-2">{needsGradingCount}</p>
                     </div>
-                    <div className="bg-rose-50 p-6 rounded-3xl border border-rose-100 flex flex-col justify-center">
-                      <h3 className="text-rose-800 font-black text-sm uppercase tracking-wider">Overdue Tasks</h3>
-                      <p className="text-4xl font-black text-rose-600 mt-2">{overdueCount}</p>
+                    <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 flex flex-col justify-center">
+                      <h3 className="text-emerald-800 font-black text-sm uppercase tracking-wider">Graded HomeWorks</h3>
+                      <p className="text-4xl font-black text-emerald-600 mt-2">{gradedCount}</p>
                     </div>
                     <div className="bg-fuchsia-50 p-6 rounded-3xl border border-fuchsia-100 flex flex-col justify-center">
-                      <h3 className="text-fuchsia-800 font-black text-sm uppercase tracking-wider">Completed Tasks</h3>
-                      <p className="text-4xl font-black text-fuchsia-600 mt-2">{completedTaskCount}</p>
-                    </div>
-                    <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 flex flex-col justify-center">
-                      <h3 className="text-emerald-800 font-black text-sm uppercase tracking-wider">Avg Score</h3>
-                      <p className="text-4xl font-black text-emerald-600 mt-2">{classAvg}%</p>
+                      <h3 className="text-fuchsia-800 font-black text-sm uppercase tracking-wider">Avg Score</h3>
+                      <p className="text-4xl font-black text-fuchsia-600 mt-2">{classAvg}%</p>
                     </div>
                     <div className="bg-sky-50 p-6 rounded-3xl border border-sky-100 flex flex-col justify-center">
-                      <h3 className="text-sky-800 font-black text-sm uppercase tracking-wider">{selectedStudentForChart === 'all' ? 'Classes Logged' : 'Student Classes Logged'}</h3>
+                      <h3 className="text-sky-800 font-black text-sm uppercase tracking-wider">Student Classes Logged</h3>
                       <p className="text-4xl font-black text-sky-600 mt-2">{classesTakenCount}</p>
+                    </div>
+                    <div className="bg-violet-50 p-6 rounded-3xl border border-violet-100 flex flex-col justify-center">
+                      <h3 className="text-violet-800 font-black text-sm uppercase tracking-wider">Topics Covered</h3>
+                      <p className="text-4xl font-black text-violet-600 mt-2">{topicsCoveredCount}</p>
                     </div>
                   </div>
 
