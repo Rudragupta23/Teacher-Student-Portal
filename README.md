@@ -15,51 +15,6 @@ MathCom Mentors is a full-stack MERN educational platform built to centralize th
 **🔐 Direct Login Portal:** [https://mathcommentors.com/login](https://mathcommentors.com/login)
 
 ---
-## 📱 Download / Install the App (PWA)
-
-MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it directly to your phone or computer for a seamless, native app experience!
-
-**To install the app, go to [mathcommentors.com](https://mathcommentors.com/) and follow these steps:**
-
-*   **For iOS (iPhone/iPad):** Open the site in **Safari**, tap the **Share** icon at the bottom of the screen, and select **"Add to Home Screen"**.
-*   **For Android:** Open the site in **Chrome**. A banner will appear at the bottom—simply tap **"Add MathCom Mentors to Home screen"**. (Alternatively, tap the 3 dots in the top right and select "Install app").
-*   **For Desktop (Windows/Mac):** Open the site in **Chrome or Edge**. Click the small **Install icon** (a computer screen with a downward arrow) located on the far right side of your URL address bar.
-
----
-
-## 🌟 Comprehensive Feature Breakdown
-
-| Category | Feature | Description | Accessible Roles |
-| :--- | :--- | :--- | :--- |
-| **Security & Auth** | **Social OAuth Integration** | Seamless, one-click "Sign in with Google" and "Sign in with Microsoft" functionality utilizing secure Progressive Profiling. | All Users |
-| | **Role-Based Access (RBAC)** | Strict access control ensuring users only see dashboards and data relevant to their specific role. | All Users |
-| | **JWT Authentication** | Secure, stateless session management and protected API endpoints using JSON Web Tokens. | All Users |
-| | **Secure Password Recovery** | Automated email system using Nodemailer to send encrypted password reset links for local accounts. | All Users |
-| **Dashboards** | **Admin Control Center** | Complete system oversight, user account creation/management, and platform-wide configuration. | Admin |
-| | **Teacher Workspace** | Hub for creating classes, tracking syllabus progress, and monitoring overall class performance. | Teacher |
-| | **Student Portal** | Personalized view of pending tasks, submitted work, grades, and upcoming deadlines. | Student |
-| | **Parent Hub** | Real-time tracking of their child's attendance, grades, and teacher feedback. | Parent |
-| | **Grader Interface** | Dedicated pipeline for reviewing submissions, assigning marks, and writing feedback. | Grader |
-| **Academic Tools** | **Homework Management** | End-to-end system to create, distribute, submit, and evaluate digital assignments. | Teacher, Student, Grader |
-| | **Cloud Resource Library** | Secure, scalable centralized repository powered by AWS S3 and accelerated by AWS CloudFront for lightning-fast global delivery of study materials, PDFs, and media. | Teacher, Student |
-| | **Class Planner & Scheme** | Tools to map out the curriculum, schedule upcoming lessons, and track syllabus completion. | Admin, Teacher |
-| | **Topic Progress Tracking** | Granular tracking of student and class progress through specific curriculum topics. | Teacher, Student, Parent |
-| **Communication** | **Contextual Feedback** | Attach specific, constructive comments directly to a student's graded submission. | Teacher, Grader, Student |
-| | **Contact & Support** | Streamlined contact routing for platform support and administrative inquiries. | All Users |
-| | **Internal Messaging** | Secure direct communication channel connecting educators with parents. | Teacher, Parent |
-| **Automation** | **CRON Job Reminders** | Background server tasks that automatically detect approaching deadlines and send warning emails. | Student, Parent |
-| | **Automated Alerts** | Instant email notifications triggered by new assignments or newly published grades. | Student, Parent |
-
-## 🎭 User Roles & Dashboards
-
-| Role | Capabilities & Access |
-| :--- | :--- |
-| **👨‍🏫 Teacher/Admin** | Creates classes, assigns homework, uploads study materials, publishes announcements, monitors student performance, and communicates with parents. |
-| **📝 Grader** | Reviews and grades student submissions, provides constructive feedback, and tracks overall assignment completion rates. |
-| **🎓 Student** | Views upcoming assignments, submits homework, accesses study resources, checks grades, tracks personal academic progress, and receives automated reminders. |
-| **👪 Parent** | Monitors their child’s attendance, grades, homework status, teacher feedback, and overall academic performance in real-time. |
-
----
 
 ## 🖼️ Website Images
 
@@ -108,6 +63,40 @@ MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it d
 
 ---
 
+## 🌟 Comprehensive Feature Breakdown
+
+| Category | Feature | Description | Accessible Roles |
+| :--- | :--- | :--- | :--- |
+| **Security & Auth** | **Social OAuth Integration** | Seamless, one-click "Sign in with Google" and "Sign in with Microsoft" functionality utilizing secure Progressive Profiling. | All Users |
+| | **Role-Based Access (RBAC)** | Strict access control ensuring users only see dashboards and data relevant to their specific role. | All Users |
+| | **JWT Authentication** | Secure, stateless session management and protected API endpoints using JSON Web Tokens. | All Users |
+| | **Secure Password Recovery** | Automated email system using Nodemailer to send encrypted password reset links for local accounts. | All Users |
+| **Dashboards** | **Admin Control Center** | Complete system oversight, user account creation/management, and platform-wide configuration. | Admin |
+| | **Teacher Workspace** | Hub for creating classes, tracking syllabus progress, and monitoring overall class performance. | Teacher |
+| | **Student Portal** | Personalized view of pending tasks, submitted work, grades, and upcoming deadlines. | Student |
+| | **Parent Hub** | Real-time tracking of their child's attendance, grades, and teacher feedback. | Parent |
+| | **Grader Interface** | Dedicated pipeline for reviewing submissions, assigning marks, and writing feedback. | Grader |
+| **Academic Tools** | **Homework Management** | End-to-end system to create, distribute, submit, and evaluate digital assignments. | Teacher, Student, Grader |
+| | **Cloud Resource Library** | Secure, scalable centralized repository powered by AWS S3 and accelerated by AWS CloudFront for lightning-fast global delivery of study materials, PDFs, and media. | Teacher, Student |
+| | **Class Planner & Scheme** | Tools to map out the curriculum, schedule upcoming lessons, and track syllabus completion. | Admin, Teacher |
+| | **Topic Progress Tracking** | Granular tracking of student and class progress through specific curriculum topics. | Teacher, Student, Parent |
+| **Communication** | **Contextual Feedback** | Attach specific, constructive comments directly to a student's graded submission. | Teacher, Grader, Student |
+| | **Contact & Support** | Streamlined contact routing for platform support and administrative inquiries. | All Users |
+| | **Internal Messaging** | Secure direct communication channel connecting educators with parents. | Teacher, Parent |
+| **Automation** | **CRON Job Reminders** | Background server tasks that automatically detect approaching deadlines and send warning emails. | Student, Parent |
+| | **Automated Alerts** | Instant email notifications triggered by new assignments or newly published grades. | Student, Parent |
+
+## 🎭 User Roles & Dashboards
+
+| Role | Capabilities & Access |
+| :--- | :--- |
+| **👨‍🏫 Teacher/Admin** | Creates classes, assigns homework, uploads study materials, publishes announcements, monitors student performance, and communicates with parents. |
+| **📝 Grader** | Reviews and grades student submissions, provides constructive feedback, and tracks overall assignment completion rates. |
+| **🎓 Student** | Views upcoming assignments, submits homework, accesses study resources, checks grades, tracks personal academic progress, and receives automated reminders. |
+| **👪 Parent** | Monitors their child’s attendance, grades, homework status, teacher feedback, and overall academic performance in real-time. |
+
+---
+
 ## 🛠️ Technology Stack
 
 ### **Frontend**
@@ -129,6 +118,17 @@ MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it d
 - **Node-Cron** (Automated background tasks)
 
 ---
+## 📱 Download / Install the App (PWA)
+
+MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it directly to your phone or computer for a seamless, native app experience!
+
+**To install the app, go to [mathcommentors.com](https://mathcommentors.com/) and follow these steps:**
+
+*   **For iOS (iPhone/iPad):** Open the site in **Safari**, tap the **Share** icon at the bottom of the screen, and select **"Add to Home Screen"**.
+*   **For Android:** Open the site in **Chrome**. A banner will appear at the bottom—simply tap **"Add MathCom Mentors to Home screen"**. (Alternatively, tap the 3 dots in the top right and select "Install app").
+*   **For Desktop (Windows/Mac):** Open the site in **Chrome or Edge**. Click the small **Install icon** (a computer screen with a downward arrow) located on the far right side of your URL address bar.
+
+---
 
 # 📂 Exact Project Structure
 
@@ -145,12 +145,15 @@ client/
 ├── eslint.config.js
 ├── index.html
 ├── public/
-│   └── mathcom-logo.png
+│   ├── blank.html
+│   └── mathcom-logo.pn
 └── src/
     ├── main.jsx
     ├── App.jsx
     ├── index.css
     ├── App.css
+    ├── config/
+    │   └── msalConfig.js
     ├── services/
     │   └── api.js
     ├── context/
