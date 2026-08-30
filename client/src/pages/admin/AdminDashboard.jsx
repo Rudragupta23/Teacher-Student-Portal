@@ -4811,8 +4811,9 @@ const handleAssignSubmit = async (e) => {
 
             // 6. Actionable Admin KPIs
             const assignedCount = filteredHomeworksForAnalytics.length;
-            const overdueCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Pending' && new Date(h.dueDate) < new Date()).length;
             const submittedCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Submitted' || h.status === 'Graded').length;
+            const pendingCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Pending').length;
+            const overdueCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Pending' && new Date(h.dueDate) < new Date()).length;
             const needsGradingCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Submitted').length;
             const gradedCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Graded').length;
             
@@ -4827,7 +4828,6 @@ const handleAssignSubmit = async (e) => {
             })();
             
             const classesTakenCount = filteredSchemesForAnalytics.filter(s => s.classStatus === 'Class Taken').length;
-            const topicsCoveredCount = filteredTopicsForAnalytics.length;
 
             return (
               <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in relative">
@@ -4863,16 +4863,20 @@ const handleAssignSubmit = async (e) => {
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 flex flex-col justify-center">
-                      <h3 className="text-indigo-800 font-black text-sm uppercase tracking-wider">Assigned HomeWorks</h3>
+                      <h3 className="text-indigo-800 font-black text-sm uppercase tracking-wider">Assigned HomeWorks till date</h3>
                       <p className="text-4xl font-black text-indigo-600 mt-2">{assignedCount}</p>
-                    </div>
-                    <div className="bg-rose-50 p-6 rounded-3xl border border-rose-100 flex flex-col justify-center">
-                      <h3 className="text-rose-800 font-black text-sm uppercase tracking-wider">Overdue HomeWorks</h3>
-                      <p className="text-4xl font-black text-rose-600 mt-2">{overdueCount}</p>
                     </div>
                     <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 flex flex-col justify-center">
                       <h3 className="text-blue-800 font-black text-sm uppercase tracking-wider">Submitted HomeWorks</h3>
                       <p className="text-4xl font-black text-blue-600 mt-2">{submittedCount}</p>
+                    </div>
+                    <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100 flex flex-col justify-center">
+                      <h3 className="text-orange-800 font-black text-sm uppercase tracking-wider">Pending HomeWorks</h3>
+                      <p className="text-4xl font-black text-orange-600 mt-2">{pendingCount}</p>
+                    </div>
+                    <div className="bg-rose-50 p-6 rounded-3xl border border-rose-100 flex flex-col justify-center">
+                      <h3 className="text-rose-800 font-black text-sm uppercase tracking-wider">Overdue HomeWorks</h3>
+                      <p className="text-4xl font-black text-rose-600 mt-2">{overdueCount}</p>
                     </div>
                     <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100 flex flex-col justify-center">
                       <h3 className="text-amber-800 font-black text-sm uppercase tracking-wider">Needs Grading</h3>
@@ -4889,10 +4893,6 @@ const handleAssignSubmit = async (e) => {
                     <div className="bg-sky-50 p-6 rounded-3xl border border-sky-100 flex flex-col justify-center">
                       <h3 className="text-sky-800 font-black text-sm uppercase tracking-wider">Student Classes Logged</h3>
                       <p className="text-4xl font-black text-sky-600 mt-2">{classesTakenCount}</p>
-                    </div>
-                    <div className="bg-violet-50 p-6 rounded-3xl border border-violet-100 flex flex-col justify-center">
-                      <h3 className="text-violet-800 font-black text-sm uppercase tracking-wider">Topics Covered</h3>
-                      <p className="text-4xl font-black text-violet-600 mt-2">{topicsCoveredCount}</p>
                     </div>
                   </div>
 
