@@ -1275,11 +1275,13 @@ const handleAssignSubmit = async (e) => {
       valB = new Date(b.submission?.submittedAt || 0).getTime();
     }
 
-    if (valA < valB) return hwSortConfig.direction === 'asc' ? -1 : 1;
+        if (valA < valB) return hwSortConfig.direction === 'asc' ? -1 : 1;
     if (valA > valB) return hwSortConfig.direction === 'asc' ? 1 : -1;
     return 0;
   });
-  
+
+  const activeHomeworks = filteredHomeworks.filter(hw => hw.status !== 'Graded');
+
   const filteredTests = homeworks.filter(hw => {
     if (!hw.isTest) return false;
     if (hwYearFilter !== 'all') {
@@ -2887,7 +2889,6 @@ const handleAssignSubmit = async (e) => {
                       <option value="all">All Status</option>
                       <option value="Pending">Pending</option>
                       <option value="Submitted">Submitted (Review)</option>
-                      <option value="Graded">Graded</option>
                     </select>
                   </div>
                 </div>
@@ -2915,7 +2916,7 @@ const handleAssignSubmit = async (e) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredHomeworks.map((hw, index) => {
+                      {activeHomeworks.map((hw, index) => {
                         const isLate = new Date() > new Date(hw.dueDate);
                         
                         return (
@@ -3041,7 +3042,7 @@ const handleAssignSubmit = async (e) => {
                         );
                       })}
                       
-                      {filteredHomeworks.length === 0 && (
+                       {activeHomeworks.length === 0 && (
                         <tr>
                           <td colSpan="6" className="text-center py-20">
                             <div className="flex flex-col items-center justify-center">
