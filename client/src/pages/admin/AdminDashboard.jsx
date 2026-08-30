@@ -1712,9 +1712,27 @@ const handleAssignSubmit = async (e) => {
       let heightLeft = imgHeight;
       let position = 40; 
 
+      // Dynamically generate Document Title and File Name based on selected filter
+      let reportTitle = "Class Performance & Analytics Report";
+      let fileName = `Analytics_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      if (selectedStudentForChart !== 'all') {
+        const st = students.find(s => s._id === selectedStudentForChart);
+        if (st) {
+          const studentName = st.registrationName || st.name;
+          const yearInfo = st.yearGroup ? ` (${st.yearGroup})` : '';
+          
+          reportTitle = `${studentName}${yearInfo} - Analytics Report`;
+          
+          const safeName = studentName.replace(/\s+/g, '_');
+          const safeYear = st.yearGroup ? `_${st.yearGroup.replace(/\s+/g, '')}` : '';
+          fileName = `${safeName}${safeYear}_Analytics_${new Date().toISOString().split('T')[0]}.pdf`;
+        }
+      }
+
       doc.setFontSize(22);
       doc.setTextColor(27, 37, 89);
-      doc.text("Class Performance & Analytics Report", 14, 22);
+      doc.text(reportTitle, 14, 22);
       doc.setFontSize(11);
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
@@ -1730,7 +1748,7 @@ const handleAssignSubmit = async (e) => {
         heightLeft -= pageHeight;
       }
       
-      doc.save(`Analytics_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      doc.save(fileName);
       showToast("Analytics successfully exported to PDF!");
     } catch (error) {
       console.error("PDF Export Error:", error);
