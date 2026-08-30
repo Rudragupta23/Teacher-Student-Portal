@@ -4812,6 +4812,7 @@ const handleAssignSubmit = async (e) => {
             // 6. Actionable Admin KPIs
             const needsGradingCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Submitted').length;
             const overdueCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Pending' && new Date(h.dueDate) < new Date()).length;
+            const completedTaskCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Graded').length;
             const classAvg = (() => {
               let earned = 0, possible = 0;
               filteredHomeworksForAnalytics.filter(h => h.status === 'Graded').forEach(h => {
@@ -4855,7 +4856,7 @@ const handleAssignSubmit = async (e) => {
                 {/* PDF EXPORT */}
                 <div id="analytics-export-area" className="space-y-8 bg-white p-2">
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
                     <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100 flex flex-col justify-center">
                       <h3 className="text-amber-800 font-black text-sm uppercase tracking-wider">Needs Grading</h3>
                       <p className="text-4xl font-black text-amber-600 mt-2">{needsGradingCount}</p>
@@ -4864,8 +4865,12 @@ const handleAssignSubmit = async (e) => {
                       <h3 className="text-rose-800 font-black text-sm uppercase tracking-wider">Overdue Tasks</h3>
                       <p className="text-4xl font-black text-rose-600 mt-2">{overdueCount}</p>
                     </div>
+                    <div className="bg-fuchsia-50 p-6 rounded-3xl border border-fuchsia-100 flex flex-col justify-center">
+                      <h3 className="text-fuchsia-800 font-black text-sm uppercase tracking-wider">Completed Tasks</h3>
+                      <p className="text-4xl font-black text-fuchsia-600 mt-2">{completedTaskCount}</p>
+                    </div>
                     <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 flex flex-col justify-center">
-                      <h3 className="text-emerald-800 font-black text-sm uppercase tracking-wider">{selectedStudentForChart === 'all' ? 'Class Avg Score' : 'Avg Score'}</h3>
+                      <h3 className="text-emerald-800 font-black text-sm uppercase tracking-wider">Avg Score</h3>
                       <p className="text-4xl font-black text-emerald-600 mt-2">{classAvg}%</p>
                     </div>
                     <div className="bg-sky-50 p-6 rounded-3xl border border-sky-100 flex flex-col justify-center">
