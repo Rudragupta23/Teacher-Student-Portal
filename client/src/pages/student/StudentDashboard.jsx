@@ -206,6 +206,7 @@ export default function StudentDashboard() {
         studentId: res.data.studentId, 
         yearGroup: res.data.yearGroup || 'Y?',
         boardName: res.data.boardName || '',
+        authProvider: res.data.authProvider || 'local',
         schoolName: res.data.adminOverrides?.schoolName || res.data.schoolName || '',
         city: res.data.adminOverrides?.city || res.data.city || ''
       });
@@ -1241,56 +1242,64 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
-              {/* Change Password Section */}
-              <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] mt-8">
-                <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
-                  <div className="bg-emerald-500 w-2 h-8 rounded-full"></div>
-                  <h2 className="text-2xl font-black text-[#1B2559]">Change Password</h2>
-                </div>
-
-                <form onSubmit={handleChangePassword} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Current Password</label>
-                      <div className="relative">
-                        <input type={showPasswords.current ? "text" : "password"} required className="w-full p-4 pr-12 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20 font-bold text-[#1B2559]" 
-                          value={passwordForm.currentPassword} onChange={e => setPasswordForm({...passwordForm, currentPassword: e.target.value})} />
-                        <button type="button" onClick={() => togglePassword('current')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 outline-none">
-                          {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">New Password</label>
-                      <div className="relative">
-                        <input type={showPasswords.new ? "text" : "password"} required className="w-full p-4 pr-12 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20 font-bold text-[#1B2559]" 
-                          value={passwordForm.newPassword} onChange={e => setPasswordForm({...passwordForm, newPassword: e.target.value})} />
-                        <button type="button" onClick={() => togglePassword('new')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 outline-none">
-                          {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Confirm New Password</label>
-                      <div className="relative">
-                        <input type={showPasswords.confirm ? "text" : "password"} required className="w-full p-4 pr-12 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20 font-bold text-[#1B2559]" 
-                          value={passwordForm.confirmPassword} onChange={e => setPasswordForm({...passwordForm, confirmPassword: e.target.value})} />
-                        <button type="button" onClick={() => togglePassword('confirm')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 outline-none">
-                          {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                      </div>
-                    </div>
-
+              {/* Change Password Section - Only for standard email/password users */}
+              {studentProfile.authProvider !== 'google' ? (
+                <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] mt-8">
+                  <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
+                    <div className="bg-emerald-500 w-2 h-8 rounded-full"></div>
+                    <h2 className="text-2xl font-black text-[#1B2559]">Change Password</h2>
                   </div>
 
-                  <button type="submit" className="w-full mt-2 py-4 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-2xl shadow-lg transition-transform hover:-translate-y-1">
-                    Update Password
-                  </button>
-                </form>
-              </div>
+                  <form onSubmit={handleChangePassword} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Current Password</label>
+                        <div className="relative">
+                          <input type={showPasswords.current ? "text" : "password"} required className="w-full p-4 pr-12 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20 font-bold text-[#1B2559]" 
+                            value={passwordForm.currentPassword} onChange={e => setPasswordForm({...passwordForm, currentPassword: e.target.value})} />
+                          <button type="button" onClick={() => togglePassword('current')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 outline-none">
+                            {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">New Password</label>
+                        <div className="relative">
+                          <input type={showPasswords.new ? "text" : "password"} required className="w-full p-4 pr-12 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20 font-bold text-[#1B2559]" 
+                            value={passwordForm.newPassword} onChange={e => setPasswordForm({...passwordForm, newPassword: e.target.value})} />
+                          <button type="button" onClick={() => togglePassword('new')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 outline-none">
+                            {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Confirm New Password</label>
+                        <div className="relative">
+                          <input type={showPasswords.confirm ? "text" : "password"} required className="w-full p-4 pr-12 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20 font-bold text-[#1B2559]" 
+                            value={passwordForm.confirmPassword} onChange={e => setPasswordForm({...passwordForm, confirmPassword: e.target.value})} />
+                          <button type="button" onClick={() => togglePassword('confirm')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 outline-none">
+                            {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    <button type="submit" className="w-full mt-2 py-4 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-2xl shadow-lg transition-transform hover:-translate-y-1">
+                      Update Password
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-[2rem] mt-8 text-center">
+                  <p className="text-indigo-900 font-bold text-sm">
+                    🔒 You are signed in via Google. Password management is handled by your Google account.
+                  </p>
+                </div>
+              )}
 
               {/* Platform Feedback Submission */}
               <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] mt-8 relative overflow-hidden">

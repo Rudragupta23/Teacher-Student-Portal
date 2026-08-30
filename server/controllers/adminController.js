@@ -302,7 +302,13 @@ exports.allocateStudentsToGrader = async (req, res) => {
 // @route   GET /api/admin/students/pending
 exports.getPendingStudents = async (req, res) => {
   try {
-    const pendingStudents = await User.find({ role: 'student', status: 'pending' }).select('-password');
+    // ONLY fetch students who are pending AND have finished their profile
+    const pendingStudents = await User.find({ 
+      role: 'student', 
+      status: 'pending',
+      isProfileComplete: true 
+    }).select('-password');
+    
     res.status(200).json(pendingStudents);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });

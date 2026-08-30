@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true }, 
   registrationName: { type: String },    
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },  
+  password: { type: String, required: false },
   isVerified: { type: Boolean, default: false }, 
   otp: { type: String },                       
   otpExpires: { type: Date },                    
@@ -18,9 +18,18 @@ const userSchema = new mongoose.Schema({
   studentId: { type: String, unique: true, sparse: true }, 
   linkedStudentId: { type: String },                     
 
+  authProvider: {
+    type: String,
+    enum: ['local', 'google'],
+    default: 'local'
+  },
+  isProfileComplete: {
+    type: Boolean,
+    default: true
+  },
+
   profilePic: { type: String, default: '' },
   phone: { type: String },
-  // classCode: { type: String },
   schoolName: { type: String },
   city: { type: String },
   country: { type: String, default: 'United Kingdom' },
@@ -35,7 +44,7 @@ const userSchema = new mongoose.Schema({
     phone: { type: String },
     schoolName: { type: String },
     city: { type: String }
-    },
+  },
   resetPasswordExpires: { type: Date },
   
   performance: {

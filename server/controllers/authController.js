@@ -30,31 +30,17 @@ exports.register = async (req, res) => {
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'User already exists' });
 
-    // Determine Role
     let role = email === process.env.ADMIN_EMAIL ? 'admin' : (isParent ? 'parent' : 'student');
     
-    // Require School Name and City for Students
     if (role === 'student' && (!schoolName || !city)) {
       return res.status(400).json({ message: 'School name and city are required.' });
     }
-    
-    // if (role === 'student' && classCode !== process.env.ADMIN_CLASS_CODE) {
-    //   return res.status(403).json({ message: 'Invalid Class Code' });
-    // }
 
-    // Logic for Student ID Generation and Parent Validation
     let newStudentId = undefined;
     if (role === 'student') {
-      // 1. Count how many students already exist in this specific year group
       const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
-      
-      // 2. Add 1 for the new student, and ensure it is 2 digits (e.g., 1 becomes '01')
       const sequenceNumber = String(studentCount + 1).padStart(2, '0');
-      
-      // 3. Remove any spaces from the year group for a clean ID (e.g., 'AS Level' becomes 'ASLevel')
-      const cleanYearGroup = yearGroup.replace(/\s+/g, '');
-      
-      // 4. Combine them into the final ID
+      const cleanYearGroup = (yearGroup || '').replace(/\s+/g, '');
       newStudentId = `MCM-${cleanYearGroup}-${sequenceNumber}`;
     }
 
@@ -63,13 +49,11 @@ exports.register = async (req, res) => {
         return res.status(400).json({ message: 'Please provide your child\'s Student ID.' });
       }
       
-      // 1. Verify that the child actually exists in the database
       const childExists = await User.findOne({ studentId: linkedStudentId, role: 'student' });
       if (!childExists) {
         return res.status(404).json({ message: 'Invalid Student ID. Child not found.' });
       }
 
-      // 2. NEW: Check if a parent is already linked to this student
       const parentAlreadyExists = await User.findOne({ linkedStudentId: linkedStudentId, role: 'parent' });
       if (parentAlreadyExists) {
         return res.status(400).json({ message: 'An account for this student\'s parent already exists. Only one parent account is allowed per student.' });
@@ -89,8 +73,9 @@ exports.register = async (req, res) => {
       password: hashedPassword, 
       phone: cleanPhone, 
       role,
-      status: role === 'admin' ? 'active' : 'pending',
-      // classCode: role === 'admin' ? process.env.ADMIN_CLASS_CODE : (role === 'student' ? classCode : undefined),
+      status: (role === 'admin' || role === 'parent') ? 'active' : 'pending',
+      authProvider: 'local',
+      isProfileComplete: true,
       yearGroup: role === 'student' ? yearGroup : undefined,
       schoolName: role === 'student' ? schoolName : undefined,
       city: role === 'student' ? city : undefined,
@@ -102,7 +87,6 @@ exports.register = async (req, res) => {
       otpExpires
     });
 
-    // Send the OTP Email
     const emailHtml = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 16px;">
         <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
@@ -130,6 +114,7 @@ exports.register = async (req, res) => {
       subject: 'Verify Your Account - MathCom Mentors',
       html: emailHtml
     });
+
     if (role === 'student') {
       const adminAlertHtml = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 16px;">
@@ -202,6 +187,11 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
+    // If registered via Google, prompt to use Google Login
+    if (user.authProvider === 'google' && !user.password) {
+      return res.status(400).json({ message: 'This account was created with Google. Please use "Sign in with Google".' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
     
@@ -217,10 +207,191 @@ exports.login = async (req, res) => {
     res.status(200).json({
       message: 'Login successful',
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, authProvider: user.authProvider || 'local' }
     });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Google OAuth Sign-In / Start Sign-Up
+// @route   POST /api/auth/google
+exports.googleAuth = async (req, res) => {
+  const { email, name, profilePic } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({ message: 'Email from Google is required.' });
+    }
+
+    let user = await User.findOne({ email });
+
+    // Scenario 1: User does not exist -> Create initial incomplete profile
+    if (!user) {
+      const isInitialAdmin = email === process.env.ADMIN_EMAIL;
+      user = await User.create({
+        name: name || 'Google User',
+        registrationName: name || 'Google User',
+        email,
+        profilePic: profilePic || '',
+        authProvider: 'google',
+        isProfileComplete: isInitialAdmin,
+        role: isInitialAdmin ? 'admin' : 'student',
+        status: isInitialAdmin ? 'active' : 'pending',
+        isVerified: true
+      });
+
+      if (isInitialAdmin) {
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        return res.status(200).json({
+          requiresProfileCompletion: false,
+          token,
+          user: { id: user._id, name: user.name, email: user.email, role: user.role, authProvider: 'google' }
+        });
+      }
+
+      return res.status(200).json({
+        requiresProfileCompletion: true,
+        user: { email: user.email, name: user.name, profilePic: user.profilePic }
+      });
+    }
+
+    // Scenario 2: User exists but profile is incomplete
+    if (!user.isProfileComplete) {
+      return res.status(200).json({
+        requiresProfileCompletion: true,
+        user: { email: user.email, name: user.name, profilePic: user.profilePic }
+      });
+    }
+
+    // Scenario 3: Returning user with complete profile
+    if (user.role === 'student' && user.status === 'pending') {
+      return res.status(403).json({ message: 'Your account is pending teacher approval. Please wait until your teacher activates your account.' });
+    }
+    if (user.status === 'rejected') {
+      return res.status(403).json({ message: 'Your registration was rejected by the teacher.' });
+    }
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+    res.status(200).json({
+      requiresProfileCompletion: false,
+      message: 'Login successful',
+      token,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, authProvider: user.authProvider || 'google' }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error during Google Authentication', error: error.message });
+  }
+};
+
+// @desc    Complete Google Profile (Step 2 of Onboarding)
+// @route   POST /api/auth/complete-google-profile
+exports.completeGoogleProfile = async (req, res) => {
+  const { email, name, phone, yearGroup, isParent, linkedStudentId, schoolName, city, country } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'Account not found. Please start with Google Sign In.' });
+    }
+
+    if (!phone) {
+      return res.status(400).json({ message: 'Phone number is required.' });
+    }
+    const cleanPhone = phone.replace(/[\s-]/g, '');
+    const phoneRegex = /^\+?[0-9]{7,15}$/;
+    if (!phoneRegex.test(cleanPhone)) {
+      return res.status(400).json({ message: 'Please enter a valid phone number.' });
+    }
+
+    let role = email === process.env.ADMIN_EMAIL ? 'admin' : (isParent ? 'parent' : 'student');
+    
+    if (role === 'student' && (!schoolName || !city)) {
+      return res.status(400).json({ message: 'School name and city are required.' });
+    }
+
+    let newStudentId = user.studentId;
+    if (role === 'student' && !newStudentId) {
+      const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
+      const sequenceNumber = String(studentCount + 1).padStart(2, '0');
+      const cleanYearGroup = (yearGroup || '').replace(/\s+/g, '');
+      newStudentId = `MCM-${cleanYearGroup}-${sequenceNumber}`;
+    }
+
+    if (role === 'parent') {
+      if (!linkedStudentId) {
+        return res.status(400).json({ message: 'Please provide your child\'s Student ID.' });
+      }
+      
+      const childExists = await User.findOne({ studentId: linkedStudentId, role: 'student' });
+      if (!childExists) {
+        return res.status(404).json({ message: 'Invalid Student ID. Child not found.' });
+      }
+
+      const parentAlreadyExists = await User.findOne({ linkedStudentId: linkedStudentId, role: 'parent', _id: { $ne: user._id } });
+      if (parentAlreadyExists) {
+        return res.status(400).json({ message: 'An account for this student\'s parent already exists. Only one parent account is allowed per student.' });
+      }
+    }
+
+    user.name = name || user.name;
+    user.registrationName = name || user.name;
+    user.phone = cleanPhone;
+    user.role = role;
+    user.status = (role === 'admin' || role === 'parent') ? 'active' : 'pending';
+    user.yearGroup = role === 'student' ? yearGroup : undefined;
+    user.schoolName = role === 'student' ? schoolName : undefined;
+    user.city = role === 'student' ? city : undefined;
+    user.country = role === 'student' ? country : undefined;
+    user.studentId = newStudentId;
+    user.linkedStudentId = role === 'parent' ? linkedStudentId : undefined;
+    user.isProfileComplete = true;
+    user.isVerified = true;
+
+    await user.save();
+
+    if (role === 'student') {
+      const adminAlertHtml = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 16px;">
+          <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
+            <h2 style="color: #6d28d9; margin-top: 0; font-size: 24px; font-weight: 800;">Action Required</h2>
+            <h3 style="color: #1e293b; font-size: 20px; margin-bottom: 16px;">New Google Student Registration</h3>
+            
+            <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+              A new student, <strong>${user.name}</strong> (${user.email}), has registered via Google.
+            </p>
+            
+            <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+              <p style="color: #b45309; font-size: 15px; font-weight: 600; margin: 0;">
+                Their account is currently pending admin approval.
+              </p>
+            </div>
+            
+            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
+            
+            <p style="color: #64748b; font-size: 14px; line-height: 1.5; margin: 0;">
+              Please log in to your Admin Dashboard to review and approve their access.
+            </p>
+          </div>
+        </div>
+      `;
+
+      await sendEmail({
+        email: process.env.ADMIN_EMAIL,
+        subject: 'Pending Approval: New Student Registration (Google)',
+        html: adminAlertHtml
+      }).catch(err => console.error("Admin Email Alert Failed:", err.message));
+    }
+
+    res.status(200).json({ 
+      message: role === 'parent' 
+        ? 'Profile completed successfully! You can now log in.' 
+        : 'Profile completed successfully! Your account is now pending admin approval.',
+      isPending: user.status === 'pending'
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error completing profile', error: error.message });
   }
 };
 
@@ -232,10 +403,17 @@ exports.forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Safeguard: Check if account uses Google OAuth
+    if (user.authProvider === 'google') {
+      return res.status(400).json({ 
+        message: 'This email is linked to a Google account. Password reset is not applicable. Please use "Sign in with Google".' 
+      });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
     user.resetPasswordOtp = otp;
-    user.resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    user.resetPasswordExpires = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
     const emailHtml = `
@@ -254,7 +432,7 @@ exports.forgotPassword = async (req, res) => {
           </p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
           <p style="color: #94a3b8; font-size: 13px; line-height: 1.5;">
-            If you did not request this password reset, you can safely ignore this email. Your account remains secure and no changes will be made.
+            If you did not request this password reset, you can safely ignore this email.
           </p>
         </div>
       </div>
@@ -280,13 +458,18 @@ exports.resetPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    if (user.authProvider === 'google') {
+      return res.status(400).json({ message: 'This account uses Google Sign In. Password changes are not supported.' });
+    }
+
     if (user.resetPasswordOtp !== otp) return res.status(400).json({ message: 'Invalid OTP' });
     if (user.resetPasswordExpires < new Date()) return res.status(400).json({ message: 'OTP has expired' });
 
-    // Check if the new password is the same as the old password
-    const isSamePassword = await bcrypt.compare(newPassword, user.password);
-    if (isSamePassword) {
-      return res.status(400).json({ message: 'Your new password cannot be the same as your old password.' });
+    if (user.password) {
+      const isSamePassword = await bcrypt.compare(newPassword, user.password);
+      if (isSamePassword) {
+        return res.status(400).json({ message: 'Your new password cannot be the same as your old password.' });
+      }
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -321,7 +504,6 @@ exports.updateProfile = async (req, res) => {
     
     if (name) user.name = name; 
     
-    // Delete old profile picture from AWS S3 
     if (profilePic !== undefined) {
       if (user.profilePic && user.profilePic !== profilePic) {
         await deleteFileFromS3(user.profilePic);
@@ -346,19 +528,23 @@ exports.changePassword = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // 1. Verify current password
+    // Safeguard for Google users
+    if (user.authProvider === 'google') {
+      return res.status(400).json({ 
+        message: 'Your account is authenticated via Google. Password changes are managed through Google.' 
+      });
+    }
+
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Incorrect current password.' });
     }
 
-    // 2. Ensure new password is not the same as the old one
     const isSamePassword = await bcrypt.compare(newPassword, user.password);
     if (isSamePassword) {
       return res.status(400).json({ message: 'Your new password cannot be the same as your old password.' });
     }
 
-    // 3. Hash and save new password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
@@ -383,10 +569,9 @@ exports.resendVerificationOTP = async (req, res) => {
 
     const otp = generateOTP();
     user.otp = otp;
-    user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    // Send the OTP Email again
     const emailHtml = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 16px;">
         <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
