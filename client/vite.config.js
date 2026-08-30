@@ -28,13 +28,17 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png'
           },
-          {
+                    {
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable' 
           }
         ]
+      },
+      workbox: {
+        // Bundle grew past the 2 MiB default after adding MSAL
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
       }
     })
   ],
