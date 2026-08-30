@@ -1813,7 +1813,7 @@ const handleAssignSubmit = async (e) => {
                       <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Attach Marked Work</label>
                       <div className="relative border-2 border-dashed border-emerald-300 bg-emerald-50/50 rounded-2xl p-4 text-center hover:bg-emerald-50 transition-colors cursor-pointer group">
                         <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAnswerSheetUpload} />
-                        <p className="font-bold text-emerald-800 text-sm truncate px-2">Click to Attach Files (Max 5MB combined)</p>
+                        <p className="font-bold text-emerald-800 text-sm truncate px-2">Click to Attach Files (Max 50MB combined)</p>
                         {answerSheet.isUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
                       </div>
 
@@ -2003,7 +2003,7 @@ const handleAssignSubmit = async (e) => {
                     <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Attach Student's Files</label>
                     <div className="relative border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-2xl p-4 text-center hover:bg-indigo-50 transition-colors cursor-pointer group">
                       <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAdminSubmitFileUpload} />
-                      <p className="font-bold text-indigo-800 text-sm truncate px-2">Drag or Click to Attach Files (Max 5MB combined)</p>
+                      <p className="font-bold text-indigo-800 text-sm truncate px-2">Drag or Click to Attach Files (Max 50MB combined)</p>
                       {adminSubmitFile.isUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
                     </div>
                     
@@ -2709,7 +2709,7 @@ const handleAssignSubmit = async (e) => {
                                 <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
                                 <p className="font-black text-[#1B2559]">Drag & Drop or Click to Attach Files</p>
-                                <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG (Combined Max 5MB)</p>
+                                <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG (Combined Max 50MB)</p>
                                 {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file(s)...</p>}
                               </div>
                           
@@ -3201,7 +3201,7 @@ const handleAssignSubmit = async (e) => {
                                 <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleTestFileUpload} />
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
                                 <p className="font-black text-[#1B2559]">Drag & Drop or Click to Attach Files</p>
-                                <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG (Combined Max 5MB)</p>
+                                <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG (Combined Max 50MB)</p>
                                 {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file(s)...</p>}
                               </div>
 
@@ -4735,31 +4735,36 @@ const handleAssignSubmit = async (e) => {
 
           {/* VIEW 4: ANALYTICS TAB */}
           {activeTab === 'analytics' && (() => {
-            // 1. Task Completion Breakdown
-            const studentHwForPie = selectedStudentForChart === 'all' 
+            // 0. Base Data Filters based on Selected Student
+            const filteredHomeworksForAnalytics = selectedStudentForChart === 'all' 
               ? homeworks 
               : homeworks.filter(h => h.studentId?._id === selectedStudentForChart);
-              
-            const pieData = [
-              { name: 'Graded', value: studentHwForPie.filter(h => h.status === 'Graded').length, color: '#10B981' }, 
-              { name: 'Needs Grading', value: studentHwForPie.filter(h => h.status === 'Submitted').length, color: '#F59E0B' }, 
-              { name: 'Pending/Overdue', value: studentHwForPie.filter(h => h.status === 'Pending').length, color: '#EF4444' } 
-            ].filter(d => d.value > 0);
 
-            // 2. Topic Confidence Data
-            const studentTopicsForPie = selectedStudentForChart === 'all'
+            const filteredTopicsForAnalytics = selectedStudentForChart === 'all'
               ? topics
               : topics.filter(t => (t.studentId?._id || t.studentId) === selectedStudentForChart);
 
+            const filteredSchemesForAnalytics = selectedStudentForChart === 'all'
+              ? schemes
+              : schemes.filter(s => s.studentId === selectedStudentForChart || s.studentId === 'all');
+
+            // 1. Task Completion Breakdown
+            const pieData = [
+              { name: 'Graded', value: filteredHomeworksForAnalytics.filter(h => h.status === 'Graded').length, color: '#10B981' }, 
+              { name: 'Needs Grading', value: filteredHomeworksForAnalytics.filter(h => h.status === 'Submitted').length, color: '#F59E0B' }, 
+              { name: 'Pending/Overdue', value: filteredHomeworksForAnalytics.filter(h => h.status === 'Pending').length, color: '#EF4444' } 
+            ].filter(d => d.value > 0);
+
+            // 2. Topic Confidence Data
             const confidenceData = [
-              { name: 'High (Green)', value: studentTopicsForPie.filter(t => t.studentConfidence === 'Green').length, color: '#10B981' },
-              { name: 'Medium (Amber)', value: studentTopicsForPie.filter(t => t.studentConfidence === 'Amber').length, color: '#F59E0B' },
-              { name: 'Low (Red)', value: studentTopicsForPie.filter(t => t.studentConfidence === 'Red').length, color: '#EF4444' },
-              { name: 'Unrated', value: studentTopicsForPie.filter(t => !t.studentConfidence).length, color: '#94A3B8' }
+              { name: 'High (Green)', value: filteredTopicsForAnalytics.filter(t => t.studentConfidence === 'Green').length, color: '#10B981' },
+              { name: 'Medium (Amber)', value: filteredTopicsForAnalytics.filter(t => t.studentConfidence === 'Amber').length, color: '#F59E0B' },
+              { name: 'Low (Red)', value: filteredTopicsForAnalytics.filter(t => t.studentConfidence === 'Red').length, color: '#EF4444' },
+              { name: 'Unrated', value: filteredTopicsForAnalytics.filter(t => !t.studentConfidence).length, color: '#94A3B8' }
             ].filter(d => d.value > 0);
 
             // 3. Average Scores by Assignment
-            const scoreData = Object.values(homeworks.reduce((acc, hw) => {
+            const scoreData = Object.values(filteredHomeworksForAnalytics.reduce((acc, hw) => {
               if (hw.status === 'Graded' && hw.grading?.score != null && hw.grading?.totalScore) {
                 if (!acc[hw.title]) {
                   acc[hw.title] = { title: hw.title, totalEarned: 0, totalPossible: 0 };
@@ -4774,16 +4779,20 @@ const handleAssignSubmit = async (e) => {
             })).slice(0, 15);
 
             // 4. Timeliness Breakdown (On-Time vs Late)
-            const lateSubmissions = studentHwForPie.filter(h => h.submission?.submittedAt && new Date(h.submission.submittedAt) > new Date(h.dueDate)).length;
-            const onTimeSubmissions = studentHwForPie.filter(h => h.submission?.submittedAt && new Date(h.submission.submittedAt) <= new Date(h.dueDate)).length;
+            const lateSubmissions = filteredHomeworksForAnalytics.filter(h => h.submission?.submittedAt && new Date(h.submission.submittedAt) > new Date(h.dueDate)).length;
+            const onTimeSubmissions = filteredHomeworksForAnalytics.filter(h => h.submission?.submittedAt && new Date(h.submission.submittedAt) <= new Date(h.dueDate)).length;
             const timelinessData = [
               { name: 'On Time', value: onTimeSubmissions, color: '#0EA5E9' },
               { name: 'Late', value: lateSubmissions, color: '#F43F5E' }
             ].filter(d => d.value > 0);
 
             // 5. Student Performance Rankings
-            const studentAverages = students.map(s => {
-              const sHw = homeworks.filter(h => h.studentId?._id === s._id && h.status === 'Graded');
+            const studentsToRank = selectedStudentForChart === 'all' 
+              ? students 
+              : students.filter(s => s._id === selectedStudentForChart);
+
+            const studentAverages = studentsToRank.map(s => {
+              const sHw = filteredHomeworksForAnalytics.filter(h => h.studentId?._id === s._id && h.status === 'Graded');
               let earned = 0, possible = 0;
               sHw.forEach(h => {
                 if (h.grading?.score != null && h.grading?.totalScore) {
@@ -4801,18 +4810,18 @@ const handleAssignSubmit = async (e) => {
             const needsSupport = studentAverages.filter(s => parseFloat(s.avg) < 60).slice(-5).reverse();
 
             // 6. Actionable Admin KPIs
-            const needsGradingCount = homeworks.filter(h => h.status === 'Submitted').length;
-            const overdueCount = homeworks.filter(h => h.status === 'Pending' && new Date(h.dueDate) < new Date()).length;
+            const needsGradingCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Submitted').length;
+            const overdueCount = filteredHomeworksForAnalytics.filter(h => h.status === 'Pending' && new Date(h.dueDate) < new Date()).length;
             const classAvg = (() => {
               let earned = 0, possible = 0;
-              homeworks.filter(h => h.status === 'Graded').forEach(h => {
+              filteredHomeworksForAnalytics.filter(h => h.status === 'Graded').forEach(h => {
                 if (h.grading?.score != null && h.grading?.totalScore) {
                   earned += h.grading.score; possible += h.grading.totalScore;
                 }
               });
               return possible > 0 ? ((earned / possible) * 100).toFixed(1) : 0;
             })();
-            const classesTakenCount = schemes.filter(s => s.classStatus === 'Class Taken').length;
+            const classesTakenCount = filteredSchemesForAnalytics.filter(s => s.classStatus === 'Class Taken').length;
 
             return (
               <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] min-h-[600px] animate-fade-in relative">
@@ -4856,11 +4865,11 @@ const handleAssignSubmit = async (e) => {
                       <p className="text-4xl font-black text-rose-600 mt-2">{overdueCount}</p>
                     </div>
                     <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 flex flex-col justify-center">
-                      <h3 className="text-emerald-800 font-black text-sm uppercase tracking-wider">Class Avg Score</h3>
+                      <h3 className="text-emerald-800 font-black text-sm uppercase tracking-wider">{selectedStudentForChart === 'all' ? 'Class Avg Score' : 'Avg Score'}</h3>
                       <p className="text-4xl font-black text-emerald-600 mt-2">{classAvg}%</p>
                     </div>
                     <div className="bg-sky-50 p-6 rounded-3xl border border-sky-100 flex flex-col justify-center">
-                      <h3 className="text-sky-800 font-black text-sm uppercase tracking-wider">Classes Logged</h3>
+                      <h3 className="text-sky-800 font-black text-sm uppercase tracking-wider">{selectedStudentForChart === 'all' ? 'Classes Logged' : 'Student Classes Logged'}</h3>
                       <p className="text-4xl font-black text-sky-600 mt-2">{classesTakenCount}</p>
                     </div>
                   </div>
