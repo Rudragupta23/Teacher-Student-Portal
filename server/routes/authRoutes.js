@@ -10,9 +10,10 @@ const {
   getProfile,      
   updateProfile,
   changePassword,
-  resendVerificationOTP,
+    resendVerificationOTP,
   googleAuth,
-  completeGoogleProfile
+  completeGoogleProfile,
+  microsoftAuth
 } = require('../controllers/authController');
 
 const { protect } = require('../middlewares/authMiddleware');
@@ -25,6 +26,9 @@ router.post('/login', login);
 // Google Auth Endpoints
 router.post('/google', googleAuth);
 router.post('/complete-google-profile', completeGoogleProfile);
+
+// Microsoft Auth Endpoint
+router.post('/microsoft', microsoftAuth);
 
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);

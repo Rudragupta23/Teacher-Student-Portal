@@ -187,9 +187,10 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-    // If registered via Google, prompt to use Google Login
-    if (user.authProvider === 'google' && !user.password) {
-      return res.status(400).json({ message: 'This account was created with Google. Please use "Sign in with Google".' });
+        // If registered via a social provider, prompt to use that provider
+    if (user.authProvider && user.authProvider !== 'local' && !user.password) {
+      const providerName = user.authProvider === 'microsoft' ? 'Microsoft' : 'Google';
+      return res.status(400).json({ message: `This account was created with ${providerName}. Please use "Sign in with ${providerName}".` });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -285,6 +286,114 @@ exports.googleAuth = async (req, res) => {
   }
 };
 
+// @desc    Microsoft OAuth Sign-In / Start Sign-Up
+// @route   POST /api/auth/microsoft
+exports.microsoftAuth = async (req, res) => {
+  const { accessToken } = req.body;
+
+  try {
+    if (!accessToken) {
+      return res.status(400).json({ message: 'Microsoft access token is required.' });
+    }
+
+    // Verify the token by asking Microsoft Graph who it belongs to.
+    // If the token is fake or expired, Graph rejects it and we stop here.
+    const graphRes = await fetch('https://graph.microsoft.com/v1.0/me', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    if (!graphRes.ok) {
+      return res.status(401).json({ message: 'Microsoft sign-in could not be verified. Please try again.' });
+    }
+
+    const profile = await graphRes.json();
+
+    // Work accounts populate `mail`; personal accounts sometimes only have userPrincipalName.
+    const email = (profile.mail || profile.userPrincipalName || '').trim().toLowerCase();
+    const name = profile.displayName || 'Microsoft User';
+
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({
+        message: 'Your Microsoft account does not expose an email address. Please sign up with email instead.'
+      });
+    }
+
+    // Case-insensitive lookup so we never create a duplicate of an existing account.
+    const safeEmail = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    let user = await User.findOne({ email: new RegExp(`^${safeEmail}$`, 'i') });
+
+    // Scenario 1: Brand new user -> create an incomplete profile
+    if (!user) {
+      const isInitialAdmin = email === (process.env.ADMIN_EMAIL || '').toLowerCase();
+
+      user = await User.create({
+        name,
+        registrationName: name,
+        email,
+        profilePic: '',
+        authProvider: 'microsoft',
+        isProfileComplete: isInitialAdmin,
+        role: isInitialAdmin ? 'admin' : 'student',
+        status: isInitialAdmin ? 'active' : 'pending',
+        isVerified: true
+      });
+
+      if (isInitialAdmin) {
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        return res.status(200).json({
+          requiresProfileCompletion: false,
+          token,
+          user: { id: user._id, name: user.name, email: user.email, role: user.role, authProvider: 'microsoft' }
+        });
+      }
+
+      return res.status(200).json({
+        requiresProfileCompletion: true,
+        user: { email: user.email, name: user.name, profilePic: user.profilePic }
+      });
+    }
+
+    // Scenario 2: Email already belongs to a different sign-in method
+    if (user.authProvider === 'local') {
+      return res.status(400).json({
+        message: 'This email is already registered with a password. Please sign in with your email and password.'
+      });
+    }
+    if (user.authProvider === 'google') {
+      return res.status(400).json({
+        message: 'This email is already registered with Google. Please use "Sign in with Google".'
+      });
+    }
+
+    // Scenario 3: Existing Microsoft user who never finished onboarding
+    if (!user.isProfileComplete) {
+      return res.status(200).json({
+        requiresProfileCompletion: true,
+        user: { email: user.email, name: user.name, profilePic: user.profilePic }
+      });
+    }
+
+    // Scenario 4: Returning Microsoft user with a complete profile
+    if (user.role === 'student' && user.status === 'pending') {
+      return res.status(403).json({ message: 'Your account is pending teacher approval. Please wait until your teacher activates your account.' });
+    }
+    if (user.status === 'rejected') {
+      return res.status(403).json({ message: 'Your registration was rejected by the teacher.' });
+    }
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+    res.status(200).json({
+      requiresProfileCompletion: false,
+      message: 'Login successful',
+      token,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, authProvider: user.authProvider || 'microsoft' }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error during Microsoft Authentication', error: error.message });
+  }
+};
+
 // @desc    Complete Google Profile (Step 2 of Onboarding)
 // @route   POST /api/auth/complete-google-profile
 exports.completeGoogleProfile = async (req, res) => {
@@ -351,15 +460,17 @@ exports.completeGoogleProfile = async (req, res) => {
 
     await user.save();
 
-    if (role === 'student') {
+        if (role === 'student') {
+      const providerLabel = user.authProvider === 'microsoft' ? 'Microsoft'
+        : user.authProvider === 'google' ? 'Google' : 'Email';
       const adminAlertHtml = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 16px;">
           <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center;">
             <h2 style="color: #6d28d9; margin-top: 0; font-size: 24px; font-weight: 800;">Action Required</h2>
-            <h3 style="color: #1e293b; font-size: 20px; margin-bottom: 16px;">New Google Student Registration</h3>
+                        <h3 style="color: #1e293b; font-size: 20px; margin-bottom: 16px;">New ${providerLabel} Student Registration</h3>
             
             <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-              A new student, <strong>${user.name}</strong> (${user.email}), has registered via Google.
+              A new student, <strong>${user.name}</strong> (${user.email}), has registered via ${providerLabel}.
             </p>
             
             <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
@@ -379,7 +490,7 @@ exports.completeGoogleProfile = async (req, res) => {
 
       await sendEmail({
         email: process.env.ADMIN_EMAIL,
-        subject: 'Pending Approval: New Student Registration (Google)',
+                subject: `Pending Approval: New Student Registration (${providerLabel})`,
         html: adminAlertHtml
       }).catch(err => console.error("Admin Email Alert Failed:", err.message));
     }
@@ -403,10 +514,11 @@ exports.forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Safeguard: Check if account uses Google OAuth
-    if (user.authProvider === 'google') {
+        // Safeguard: Check if account uses a social provider
+    if (user.authProvider && user.authProvider !== 'local') {
+      const providerName = user.authProvider === 'microsoft' ? 'Microsoft' : 'Google';
       return res.status(400).json({ 
-        message: 'This email is linked to a Google account. Password reset is not applicable. Please use "Sign in with Google".' 
+        message: `This email is linked to a ${providerName} account. Password reset is not applicable. Please use "Sign in with ${providerName}".` 
       });
     }
 
@@ -458,8 +570,9 @@ exports.resetPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    if (user.authProvider === 'google') {
-      return res.status(400).json({ message: 'This account uses Google Sign In. Password changes are not supported.' });
+        if (user.authProvider && user.authProvider !== 'local') {
+      const providerName = user.authProvider === 'microsoft' ? 'Microsoft' : 'Google';
+      return res.status(400).json({ message: `This account uses ${providerName} Sign In. Password changes are not supported.` });
     }
 
     if (user.resetPasswordOtp !== otp) return res.status(400).json({ message: 'Invalid OTP' });
@@ -528,10 +641,11 @@ exports.changePassword = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Safeguard for Google users
-    if (user.authProvider === 'google') {
+        // Safeguard for social sign-in users
+    if (user.authProvider && user.authProvider !== 'local') {
+      const providerName = user.authProvider === 'microsoft' ? 'Microsoft' : 'Google';
       return res.status(400).json({ 
-        message: 'Your account is authenticated via Google. Password changes are managed through Google.' 
+        message: `Your account is authenticated via ${providerName}. Password changes are managed through ${providerName}.` 
       });
     }
 

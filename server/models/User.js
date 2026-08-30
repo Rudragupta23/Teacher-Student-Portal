@@ -18,9 +18,9 @@ const userSchema = new mongoose.Schema({
   studentId: { type: String, unique: true, sparse: true }, 
   linkedStudentId: { type: String },                     
 
-  authProvider: {
+    authProvider: {
     type: String,
-    enum: ['local', 'google'],
+    enum: ['local', 'google', 'microsoft'],
     default: 'local'
   },
   isProfileComplete: {

@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@azure/msal-browser": "^5.20.0",
+    "@azure/msal-react": "^5.7.0",
     "@jitsi/react-sdk": "^1.4.4",
     "@react-oauth/google": "^0.13.5",
     "axios": "^1.18.0",
