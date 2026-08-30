@@ -4799,8 +4799,12 @@ const handleAssignSubmit = async (e) => {
                   earned += h.grading.score; possible += h.grading.totalScore;
                 }
               });
+              
+              // Append year group to the display name
+              const displayName = `${s.registrationName || s.name} ${s.yearGroup ? `(${s.yearGroup})` : ''}`;
+              
               return {
-                name: s.registrationName || s.name,
+                name: displayName.trim(),
                 avg: possible > 0 ? ((earned / possible) * 100).toFixed(1) : null,
                 completed: sHw.length
               };
