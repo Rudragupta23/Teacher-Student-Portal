@@ -15,7 +15,6 @@ MathCom Mentors is a full-stack MERN educational platform built to centralize th
 **🔐 Direct Login Portal:** [https://mathcommentors.com/login](https://mathcommentors.com/login)
 
 ---
-
 ## 📱 Download / Install the App (PWA)
 
 MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it directly to your phone or computer for a seamless, native app experience!
@@ -32,9 +31,10 @@ MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it d
 
 | Category | Feature | Description | Accessible Roles |
 | :--- | :--- | :--- | :--- |
-| **Security & Auth** | **Role-Based Access (RBAC)** | Strict access control ensuring users only see dashboards and data relevant to their specific role. | All Users |
+| **Security & Auth** | **Social OAuth Integration** | Seamless, one-click "Sign in with Google" and "Sign in with Microsoft" functionality utilizing secure Progressive Profiling. | All Users |
+| | **Role-Based Access (RBAC)** | Strict access control ensuring users only see dashboards and data relevant to their specific role. | All Users |
 | | **JWT Authentication** | Secure, stateless session management and protected API endpoints using JSON Web Tokens. | All Users |
-| | **Secure Password Recovery** | Automated email system using Nodemailer to send encrypted password reset links. | All Users |
+| | **Secure Password Recovery** | Automated email system using Nodemailer to send encrypted password reset links for local accounts. | All Users |
 | **Dashboards** | **Admin Control Center** | Complete system oversight, user account creation/management, and platform-wide configuration. | Admin |
 | | **Teacher Workspace** | Hub for creating classes, tracking syllabus progress, and monitoring overall class performance. | Teacher |
 | | **Student Portal** | Personalized view of pending tasks, submitted work, grades, and upcoming deadlines. | Student |
@@ -61,6 +61,53 @@ MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it d
 
 ---
 
+## 🖼️ Website Images
+
+<table border="1" align="center">
+  <tr>
+    <td align="center">
+      <b>Admin Dashboard</b><br>
+      <img src="screenshots/admin.png" alt="Admin Dashboard" width="450"/>
+    </td>
+    <td align="center">
+      <b>Grader Interface</b><br>
+      <img src="screenshots/grader.png" alt="Grader Interface" width="450"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <b>Student Portal</b><br>
+      <img src="screenshots/student.png" alt="Student Portal" width="450"/>
+    </td>
+    <td align="center">
+      <b>Parent Hub</b><br>
+      <img src="screenshots/parent.png" alt="Parent Hub" width="450"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <b>Login Screen</b><br>
+      <img src="screenshots/login.png" alt="Login Screen" width="450"/>
+    </td>
+    <td align="center">
+      <b>Student Sign Up</b><br>
+      <img src="screenshots/signup.png" alt="Student Sign Up" width="450"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <b>Parent Sign Up</b><br>
+      <img src="screenshots/parent-signup.png" alt="Parent Sign Up" width="450"/>
+    </td>
+    <td align="center">
+      <b>Landing / Home Page</b><br>
+      <img src="screenshots/home.png" alt="Home Page" width="450"/>
+    </td>
+  </tr>
+</table>
+
+---
+
 ## 🛠️ Technology Stack
 
 ### **Frontend**
@@ -70,6 +117,7 @@ MathCom Mentors is a **Progressive Web App (PWA)**, meaning you can install it d
 - **React Router DOM** (Application routing)
 - **Axios** (API communication)
 - **Framer Motion** (Smooth UI animations)
+- **@react-oauth/google & @azure/msal-react** (Social Authentication)
 
 ### **Backend**
 - **Node.js & Express.js** (Server & API architecture)
