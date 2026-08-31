@@ -6578,8 +6578,10 @@ const handleAssignSubmit = async (e) => {
                 {/* BULK DATE & INLINE ANALYTICS */}
                 {topicSelectedStudent && processedTopics.length > 0 && (() => {
                   const studentTopics = topics.filter(t => (t.studentId?._id || t.studentId) === topicSelectedStudent);
-                  const coveredCount = studentTopics.filter(t => t.datesCovered && t.datesCovered.length > 0 && t.datesCovered[0].trim() !== '').length;
-                  const totalTopicsMax = 166;
+                  
+                  // Calculate topic coverage dynamically
+                  const totalTopicsMax = studentTopics.length;
+                  const coveredCount = studentTopics.filter(t => t.datesCovered && t.datesCovered.some(d => d.trim() !== '')).length;
                   
                   const confidenceData = [
                     { name: 'High', value: studentTopics.filter(t => t.studentConfidence === 'Green').length, color: '#10B981' },
@@ -6607,12 +6609,13 @@ const handleAssignSubmit = async (e) => {
                           if (selectedTopicIds.length === processedTopics.length && processedTopics.length > 0) setSelectedTopicIds([]);
                           else setSelectedTopicIds(processedTopics.map(t => t._id));
                         }}
-                        className="text-sm font-bold text-indigo-500 hover:text-indigo-700 transition-colors flex items-center gap-1 outline-none whitespace-nowrap"
+                        className="text-sm font-bold text-indigo-500 hover:text-indigo-700 transition-colors flex items-center gap-1 outline-none whitespace-nowrap mt-1"
                       >
                         {selectedTopicIds.length === processedTopics.length && processedTopics.length > 0 ? '⨯ Deselect All' : '✓ Select All'}
                       </button>
                     </div>
 
+                    {/* MIDDLE: INLINE ANALYTICS */}
                     <div className="flex items-center justify-center gap-8 flex-1 shrink-0 px-4">
                       
                       {/* Pie Chart Box */}
@@ -6652,7 +6655,7 @@ const handleAssignSubmit = async (e) => {
                     </div>
 
                     {/* RIGHT: Assign Date */}
-                    <div className="flex items-center gap-4 shrink-0">
+                    <div className="flex items-center gap-4 shrink-0 pr-2">
                       <div className="flex items-center gap-3 bg-[#F4F7FE] p-2 rounded-xl border border-slate-100">
                         <span className="text-sm font-black text-[#A3AED0] uppercase tracking-wide pl-4">Assign Date</span>
                         <input 
