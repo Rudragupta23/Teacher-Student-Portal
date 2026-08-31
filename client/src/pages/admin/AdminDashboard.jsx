@@ -6583,11 +6583,21 @@ const handleAssignSubmit = async (e) => {
                   const totalTopicsMax = studentTopics.length;
                   const coveredCount = studentTopics.filter(t => t.datesCovered && t.datesCovered.some(d => d.trim() !== '')).length;
                   
+                  // Calculate Confidence Breakdown
+                  const highCount = studentTopics.filter(t => t.studentConfidence === 'Green').length;
+                  const medCount = studentTopics.filter(t => t.studentConfidence === 'Amber').length;
+                  const lowCount = studentTopics.filter(t => t.studentConfidence === 'Red').length;
+                  const unratedCount = studentTopics.filter(t => !t.studentConfidence).length;
+
+                  const highPct = totalTopicsMax > 0 ? Math.round((highCount / totalTopicsMax) * 100) : 0;
+                  const medPct = totalTopicsMax > 0 ? Math.round((medCount / totalTopicsMax) * 100) : 0;
+                  const lowPct = totalTopicsMax > 0 ? Math.round((lowCount / totalTopicsMax) * 100) : 0;
+
                   const confidenceData = [
-                    { name: 'High', value: studentTopics.filter(t => t.studentConfidence === 'Green').length, color: '#10B981' },
-                    { name: 'Medium', value: studentTopics.filter(t => t.studentConfidence === 'Amber').length, color: '#F59E0B' },
-                    { name: 'Low', value: studentTopics.filter(t => t.studentConfidence === 'Red').length, color: '#EF4444' },
-                    { name: 'Unrated', value: studentTopics.filter(t => !t.studentConfidence).length, color: '#94A3B8' }
+                    { name: 'High', value: highCount, color: '#10B981' },
+                    { name: 'Medium', value: medCount, color: '#F59E0B' },
+                    { name: 'Low', value: lowCount, color: '#EF4444' },
+                    { name: 'Unrated', value: unratedCount, color: '#94A3B8' }
                   ].filter(d => d.value > 0);
 
                   return (
@@ -6635,11 +6645,20 @@ const handleAssignSubmit = async (e) => {
                           )}
                         </div>
                         <div className="flex flex-col justify-center">
-                           <span className="text-sm font-black text-[#1B2559] mb-1.5">Topic Confidence</span>
+                           <span className="text-sm font-black text-[#1B2559] mb-1.5 text-center">Topic Confidence</span>
                            <div className="flex gap-4 text-xs font-bold">
-                             <span className="text-emerald-500 flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-emerald-500 rounded-sm"></div>High</span>
-                             <span className="text-amber-500 flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-amber-500 rounded-sm"></div>Med</span>
-                             <span className="text-rose-500 flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-rose-500 rounded-sm"></div>Low</span>
+                             <div className="flex flex-col items-center">
+                               <span className="text-emerald-500 flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-emerald-500 rounded-sm"></div>High</span>
+                               <span className="text-[10px] text-slate-500 mt-0.5">{highPct}% ({highCount})</span>
+                             </div>
+                             <div className="flex flex-col items-center">
+                               <span className="text-amber-500 flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-amber-500 rounded-sm"></div>Med</span>
+                               <span className="text-[10px] text-slate-500 mt-0.5">{medPct}% ({medCount})</span>
+                             </div>
+                             <div className="flex flex-col items-center">
+                               <span className="text-rose-500 flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-rose-500 rounded-sm"></div>Low</span>
+                               <span className="text-[10px] text-slate-500 mt-0.5">{lowPct}% ({lowCount})</span>
+                             </div>
                            </div>
                         </div>
                       </div>
