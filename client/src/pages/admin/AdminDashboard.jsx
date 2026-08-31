@@ -6575,20 +6575,31 @@ const handleAssignSubmit = async (e) => {
                   </div>
                 </div>
 
-                {/* BULK DATE */}
-                {topicSelectedStudent && processedTopics.length > 0 && (
-                  <div className="mb-6 p-5 bg-white border-2 border-indigo-50 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] animate-fade-in relative overflow-hidden">
+                {/* BULK DATE & INLINE ANALYTICS */}
+                {topicSelectedStudent && processedTopics.length > 0 && (() => {
+                  const studentTopics = topics.filter(t => (t.studentId?._id || t.studentId) === topicSelectedStudent);
+                  const coveredCount = studentTopics.filter(t => t.datesCovered && t.datesCovered.length > 0 && t.datesCovered[0].trim() !== '').length;
+                  const totalTopicsMax = 166;
+                  
+                  const confidenceData = [
+                    { name: 'High', value: studentTopics.filter(t => t.studentConfidence === 'Green').length, color: '#10B981' },
+                    { name: 'Medium', value: studentTopics.filter(t => t.studentConfidence === 'Amber').length, color: '#F59E0B' },
+                    { name: 'Low', value: studentTopics.filter(t => t.studentConfidence === 'Red').length, color: '#EF4444' },
+                    { name: 'Unrated', value: studentTopics.filter(t => !t.studentConfidence).length, color: '#94A3B8' }
+                  ].filter(d => d.value > 0);
+
+                  return (
+                  <div className="mb-6 p-5 bg-white border-2 border-indigo-50 rounded-2xl flex items-center justify-between gap-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] animate-fade-in relative overflow-x-auto flex-nowrap custom-scrollbar">
                     <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500"></div>
                     
-                    <div className="flex items-center gap-4 pl-2">
+                    {/* LEFT: Selection Actions */}
+                    <div className="flex flex-col items-center justify-center gap-1.5 pl-4 shrink-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-[#A3AED0] uppercase tracking-wide">Selected</span>
-                        <span className={`text-xs font-black px-2.5 py-1 rounded-lg transition-colors ${selectedTopicIds.length > 0 ? 'bg-indigo-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500'}`}>
+                        <span className="text-sm font-black text-[#A3AED0] uppercase tracking-wide">Selected</span>
+                        <span className={`text-base font-black px-3 py-1.5 rounded-lg transition-colors ${selectedTopicIds.length > 0 ? 'bg-indigo-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500'}`}>
                           {selectedTopicIds.length}
                         </span>
                       </div>
-                      
-                      <div className="w-px h-5 bg-slate-200"></div>
                       
                       <button 
                         type="button"
@@ -6596,20 +6607,59 @@ const handleAssignSubmit = async (e) => {
                           if (selectedTopicIds.length === processedTopics.length && processedTopics.length > 0) setSelectedTopicIds([]);
                           else setSelectedTopicIds(processedTopics.map(t => t._id));
                         }}
-                        className="text-xs font-bold text-indigo-500 hover:text-indigo-700 transition-colors flex items-center gap-1.5 outline-none"
+                        className="text-sm font-bold text-indigo-500 hover:text-indigo-700 transition-colors flex items-center gap-1 outline-none whitespace-nowrap"
                       >
                         {selectedTopicIds.length === processedTopics.length && processedTopics.length > 0 ? '⨯ Deselect All' : '✓ Select All'}
                       </button>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                      <div className="flex items-center gap-3 w-full sm:w-auto bg-[#F4F7FE] p-1.5 rounded-xl border border-slate-100">
-                        <span className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide pl-3 hidden sm:block">Assign Date</span>
+                    <div className="flex items-center justify-center gap-8 flex-1 shrink-0 px-4">
+                      
+                      {/* Pie Chart Box */}
+                      <div className="flex items-center gap-6 bg-white p-3 px-8 rounded-2xl border border-slate-200 shadow-sm shrink-0">
+                        <div className="h-20 w-20 shrink-0">
+                          {confidenceData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie data={confidenceData} cx="50%" cy="50%" innerRadius={20} outerRadius={36} paddingAngle={3} dataKey="value">
+                                  {confidenceData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                </Pie>
+                                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', fontWeight: 'bold', fontSize: '12px', padding: '6px' }} />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          ) : (
+                            <div className="h-full w-full rounded-full border-[8px] border-slate-100"></div>
+                          )}
+                        </div>
+                        <div className="flex flex-col justify-center">
+                           <span className="text-sm font-black text-[#1B2559] mb-1.5">Topic Confidence</span>
+                           <div className="flex gap-4 text-xs font-bold">
+                             <span className="text-emerald-500 flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-emerald-500 rounded-sm"></div>High</span>
+                             <span className="text-amber-500 flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-amber-500 rounded-sm"></div>Med</span>
+                             <span className="text-rose-500 flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-rose-500 rounded-sm"></div>Low</span>
+                           </div>
+                        </div>
+                      </div>
+
+                      {/* Covered Topics Box */}
+                      <div className="flex flex-col justify-center items-center bg-violet-50 px-10 py-4 rounded-2xl border border-violet-100 shadow-sm shrink-0">
+                         <span className="text-xs font-black text-violet-800 uppercase tracking-widest mb-1">Topics Covered</span>
+                         <div className="flex items-baseline gap-1.5">
+                           <span className="text-4xl font-black text-violet-600">{coveredCount}</span>
+                           <span className="text-xl font-black text-violet-400">/{totalTopicsMax}</span>
+                         </div>
+                      </div>
+                    </div>
+
+                    {/* RIGHT: Assign Date */}
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="flex items-center gap-3 bg-[#F4F7FE] p-2 rounded-xl border border-slate-100">
+                        <span className="text-sm font-black text-[#A3AED0] uppercase tracking-wide pl-4">Assign Date</span>
                         <input 
                           type="date" 
                           value={bulkDate} 
                           onChange={e => setBulkDate(e.target.value)} 
-                          className="py-2.5 px-4 bg-white border border-slate-200 rounded-lg font-bold text-sm text-[#1B2559] outline-none focus:ring-2 focus:ring-indigo-500 flex-1 sm:flex-none cursor-pointer" 
+                          className="py-3 px-5 bg-white border border-slate-200 rounded-lg font-bold text-base text-[#1B2559] outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer min-w-[160px]" 
                         />
                       </div>
                       <button 
@@ -6626,17 +6676,18 @@ const handleAssignSubmit = async (e) => {
                             showToast("Failed to assign dates", "error");
                           }
                         }}
-                        className={`w-full sm:w-auto px-6 py-3.5 font-black rounded-xl text-sm transition-all flex items-center justify-center gap-2 whitespace-nowrap
+                        className={`px-8 py-4 font-black rounded-xl text-base transition-all flex items-center justify-center gap-2 whitespace-nowrap
                           ${selectedTopicIds.length === 0 
                             ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' 
                             : 'bg-[#1B2559] hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 transform hover:-translate-y-1'}`}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
                         Apply to {selectedTopicIds.length}
                       </button>
                     </div>
                   </div>
-                )}
+                  );
+                })()}
 
                 <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
                   <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
