@@ -2911,6 +2911,63 @@ const handleAssignSubmit = async (e) => {
                   </div>
                 </div>
 
+                {/* INLINE STUDENT HOMEWORK ANALYTICS */}
+                {(() => {
+                  const studentHws = homeworks.filter(h => {
+                    if (h.isTest) return false;
+                    
+                    // Filter by Year Group if selected
+                    if (hwYearFilter !== 'all') {
+                      const stuYear = h.studentId?.yearGroup || '';
+                      if (stuYear !== hwYearFilter) return false;
+                    }
+                    
+                    // Filter by Specific Student if selected
+                    if (hwStudentFilter !== 'all') {
+                      const stuId = h.studentId?._id || h.studentId;
+                      if (String(stuId) !== String(hwStudentFilter)) return false;
+                    }
+  
+                    return true;
+                  });
+                  
+                  const assignedCount = studentHws.length;
+                  const submittedCount = studentHws.filter(h => h.status === 'Submitted' || h.status === 'Graded').length;
+                  const dueCount = studentHws.filter(h => h.status === 'Pending' && new Date(h.dueDate) >= new Date()).length;
+                  const overdueCount = studentHws.filter(h => h.status === 'Pending' && new Date(h.dueDate) < new Date()).length;
+                  const gradedCount = studentHws.filter(h => h.status === 'Graded').length;
+                  const needsGradingCount = studentHws.filter(h => h.status === 'Submitted').length;
+
+                  return (
+                    <div className="flex flex-row items-center gap-4 mb-6 overflow-x-auto flex-nowrap custom-scrollbar pb-2 animate-fade-in">
+                      <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 flex-1 min-w-[150px] text-center shadow-sm shrink-0">
+                        <h3 className="text-indigo-800 font-black text-[10px] uppercase tracking-wider">Assigned HW</h3>
+                        <p className="text-2xl font-black text-indigo-600 mt-1">{assignedCount}</p>
+                      </div>
+                      <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex-1 min-w-[150px] text-center shadow-sm shrink-0">
+                        <h3 className="text-blue-800 font-black text-[10px] uppercase tracking-wider">Submitted HW</h3>
+                        <p className="text-2xl font-black text-blue-600 mt-1">{submittedCount}</p>
+                      </div>
+                      <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex-1 min-w-[150px] text-center shadow-sm shrink-0">
+                        <h3 className="text-amber-800 font-black text-[10px] uppercase tracking-wider">Due HW</h3>
+                        <p className="text-2xl font-black text-amber-600 mt-1">{dueCount}</p>
+                      </div>
+                      <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100 flex-1 min-w-[150px] text-center shadow-sm shrink-0">
+                        <h3 className="text-rose-800 font-black text-[10px] uppercase tracking-wider">Overdue HW</h3>
+                        <p className="text-2xl font-black text-rose-600 mt-1">{overdueCount}</p>
+                      </div>
+                      <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex-1 min-w-[150px] text-center shadow-sm shrink-0">
+                        <h3 className="text-emerald-800 font-black text-[10px] uppercase tracking-wider">Graded HW</h3>
+                        <p className="text-2xl font-black text-emerald-600 mt-1">{gradedCount}</p>
+                      </div>
+                      <div className="bg-fuchsia-50 p-4 rounded-2xl border border-fuchsia-100 flex-1 min-w-[150px] text-center shadow-sm shrink-0">
+                        <h3 className="text-fuchsia-800 font-black text-[10px] uppercase tracking-wider">Needs Grading</h3>
+                        <p className="text-2xl font-black text-fuchsia-600 mt-1">{needsGradingCount}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="overflow-x-auto w-full max-w-full pb-4 relative max-h-[600px] custom-scrollbar">
                   <table className="w-full min-w-[1000px] text-left border-collapse whitespace-nowrap">
                     <thead>
@@ -4893,7 +4950,7 @@ const handleAssignSubmit = async (e) => {
                       <p className="text-4xl font-black text-blue-600 mt-2">{submittedCount}</p>
                     </div>
                     <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100 flex flex-col justify-center">
-                      <h3 className="text-orange-800 font-black text-sm uppercase tracking-wider">Pending HomeWorks</h3>
+                      <h3 className="text-orange-800 font-black text-sm uppercase tracking-wider">Due HomeWorks</h3>
                       <p className="text-4xl font-black text-orange-600 mt-2">{pendingCount}</p>
                     </div>
                     <div className="bg-rose-50 p-6 rounded-3xl border border-rose-100 flex flex-col justify-center">
