@@ -1,48 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, animate, useInView, useScroll, useSpring, useTransform, AnimatePresence } from 'framer-motion';
-import { Calculator, ArrowRight, BookOpen, Cpu, Network, Video, Mail, HeartHandshake, Users, Award, Zap, Star, StarHalf, Moon, Sun, ChevronUp, Plus, Minus, GraduationCap, PlayCircle, Send, Loader2, CheckCircle, AlertCircle, Download, Smartphone } from 'lucide-react';
+import { motion, animate, useInView, useScroll, useSpring, AnimatePresence } from 'framer-motion';
+import { Calculator, ArrowRight, BookOpen, Cpu, Network, Mail, HeartHandshake, Users, Star, StarHalf, ChevronUp, Plus, Minus, GraduationCap, PlayCircle, Send, Loader2, CheckCircle, AlertCircle, Download, Smartphone } from 'lucide-react';
 
-const MagneticElement = ({ children, className }) => {
-  const ref = useRef(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-
-  const handleMouse = (e) => {
-    const { clientX, clientY } = e;
-    const { height, width, left, top } = ref.current.getBoundingClientRect();
-    const middleX = clientX - (left + width / 2);
-    const middleY = clientY - (top + height / 2);
-    setPosition({ x: middleX * 0.2, y: middleY * 0.2 });
-  };
-
-  const reset = () => setPosition({ x: 0, y: 0 });
-
-  return (
-    <motion.div
-      ref={ref}
-      onMouseMove={handleMouse}
-      onMouseLeave={reset}
-      animate={{ x: position.x, y: position.y }}
-      transition={{ type: "spring", stiffness: 150, damping: 15, mass: 0.1 }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-};
-
-const TextReveal = ({ text, className, isDark }) => {
+const TextReveal = ({ text, className }) => {
   const words = text.split(" ");
   return (
     <motion.h2 
       initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-10%" }}
       variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
-      className={`flex flex-wrap gap-x-2 justify-center ${className} ${isDark ? 'text-white' : 'text-slate-900'}`}
+      className={`flex flex-wrap justify-center gap-x-2 text-stone-800 ${className}`}
     >
       {words.map((word, i) => (
         <motion.span key={i} variants={{
-          hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
-          visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.6, ease: "easeOut" } }
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
         }}>
           {word}
         </motion.span>
@@ -76,14 +48,14 @@ const Typewriter = ({ words }) => {
   }, [currentWord, isDeleting, loopNum, words, typingSpeed]);
 
   return (
-    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-400 to-cyan-400 inline-block min-w-[3ch]">
+    <span className="text-orange-600 inline-block min-w-[3ch]">
       {currentWord}
-      <span className="animate-pulse text-indigo-400">|</span>
+      <span className="animate-pulse text-orange-400">|</span>
     </span>
   );
 };
 
-const AnimatedCounter = ({ target, suffix, isDark }) => {
+const AnimatedCounter = ({ target, suffix }) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
@@ -101,16 +73,16 @@ const AnimatedCounter = ({ target, suffix, isDark }) => {
     }
   }, [isInView, target, suffix]);
 
-  return <span ref={ref} className={isDark ? "text-white" : "text-slate-900"}>0{suffix}</span>;
+  return <span ref={ref} className="text-stone-800">0{suffix}</span>;
 };
 
-const FAQItem = ({ q, a, isDark }) => {
+const FAQItem = ({ q, a }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className={`border-b ${isDark ? 'border-slate-800' : 'border-slate-200'} py-5 overflow-hidden`}>
+    <div className="border-b border-stone-200 py-5 overflow-hidden">
       <button onClick={() => setIsOpen(!isOpen)} className="flex justify-between w-full text-left font-bold text-lg items-center gap-4 focus:outline-none">
-        <span className={isDark ? 'text-slate-200' : 'text-slate-800'}>{q}</span>
-        <span className={`p-1 rounded-full ${isDark ? 'bg-slate-800 text-indigo-400' : 'bg-indigo-50 text-indigo-600'} transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
+        <span className="text-stone-800">{q}</span>
+        <span className={`p-1 rounded-full bg-orange-50 text-orange-600 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
           {isOpen ? <Minus className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
         </span>
       </button>
@@ -122,7 +94,7 @@ const FAQItem = ({ q, a, isDark }) => {
             exit={{ height: 0, opacity: 0 }} 
             className="overflow-hidden"
           >
-            <p className={`mt-4 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{a}</p>
+            <p className="mt-4 leading-relaxed text-stone-600">{a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -130,7 +102,7 @@ const FAQItem = ({ q, a, isDark }) => {
   );
 };
 
-const FlipCard = ({ subject, isDark }) => {
+const FlipCard = ({ subject }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   
   return (
@@ -147,27 +119,27 @@ const FlipCard = ({ subject, isDark }) => {
         transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
       >
         <div 
-          className={`absolute w-full h-full backdrop-blur-sm p-8 rounded-3xl border transition-all ${isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-sm'} ${subject.border}`} 
+          className={`absolute w-full h-full bg-[#FCFBF9] p-8 rounded-3xl border border-stone-200 shadow-sm transition-all hover:shadow-md ${subject.border}`} 
           style={{ backfaceVisibility: "hidden" }}
         >
           <div className={`${subject.bg} w-16 h-16 rounded-2xl flex items-center justify-center mb-6`}>
             <subject.icon className={`w-8 h-8 ${subject.color}`} />
           </div>
-          <h3 className={`text-xl font-bold mb-3 transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>{subject.title}</h3>
-          <p className={`leading-relaxed text-sm transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{subject.desc}</p>
-          <div className="absolute bottom-6 right-8 text-sm font-semibold text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">
+          <h3 className="text-xl font-bold mb-3 text-stone-800">{subject.title}</h3>
+          <p className="leading-relaxed text-sm text-stone-600">{subject.desc}</p>
+          <div className="absolute bottom-6 right-8 text-sm font-semibold text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity">
             View Syllabus →
           </div>
         </div>
 
         <div 
-          className={`absolute w-full h-full backdrop-blur-sm p-8 rounded-3xl border transition-all flex flex-col justify-center ${isDark ? 'bg-slate-800/90 border-slate-700 shadow-[0_0_20px_rgba(79,70,229,0.1)]' : 'bg-white border-indigo-100 shadow-xl'}`} 
+          className="absolute w-full h-full bg-stone-100 p-8 rounded-3xl border border-stone-200 shadow-md transition-all flex flex-col justify-center" 
           style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
         >
-          <h3 className={`text-xl font-extrabold mb-5 ${isDark ? 'text-white' : 'text-slate-900'}`}>{subject.title} Syllabus</h3>
+          <h3 className="text-xl font-extrabold mb-5 text-stone-800">{subject.title} Syllabus</h3>
           <ul className="space-y-3">
             {subject.topics.map((topic, i) => (
-              <li key={i} className={`flex items-start gap-3 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              <li key={i} className="flex items-start gap-3 text-stone-600">
                 <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${subject.bulletColor}`}></div>
                 <span className="text-sm font-medium">{topic}</span>
               </li>
@@ -179,19 +151,14 @@ const FlipCard = ({ subject, isDark }) => {
   );
 };
 
-// MAIN PAGE COMPONENT
 const HomePage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showTopBtn, setShowTopBtn] = useState(false);
   const [showAllFaqs, setShowAllFaqs] = useState(false);
   const [activeSection, setActiveSection] = useState(''); 
-  
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 }); 
-  const [themeRipple, setThemeRipple] = useState(false); 
   const [contactData, setContactData] = useState({ name: '', email: '', message: '' });
   const [contactStatus, setContactStatus] = useState({ loading: false, message: '', isError: false });
 
-  // PWA Install Prompt States
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
@@ -257,41 +224,14 @@ const HomePage = () => {
     }
   };
 
-  const [isDark, setIsDark] = useState(() => {
-    const savedTheme = localStorage.getItem('theme');
-    return savedTheme ? savedTheme === 'dark' : true;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
-
-  useEffect(() => {
-    const handleGlobalMouse = (e) => setMousePos({ x: e.clientX, y: e.clientY });
-    window.addEventListener('mousemove', handleGlobalMouse);
-    return () => window.removeEventListener('mousemove', handleGlobalMouse);
-  }, []);
-
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
-
-  const yParallaxFast = useTransform(scrollYProgress, [0, 1], [0, -500]);
-  const yParallaxSlow = useTransform(scrollYProgress, [0, 1], [0, -250]);
-  const rotateParallax = useTransform(scrollYProgress, [0, 1], [0, 360]);
 
   useEffect(() => {
     const handleScroll = () => setShowTopBtn(window.scrollY > 400);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const handleThemeToggle = () => {
-    setThemeRipple(true);
-    setTimeout(() => {
-      setIsDark(!isDark);
-      setTimeout(() => setThemeRipple(false), 500); 
-    }, 100); 
-  };
 
   const fadeUp = {
     hidden: { opacity: 0, y: 40 },
@@ -303,113 +243,58 @@ const HomePage = () => {
     visible: { opacity: 1, transition: { staggerChildren: 0.2 } }
   };
 
+  // Using a warm palette: Amber, Orange, Rose, Red
   const curriculumSubjects = [
     { 
       icon: Calculator, title: "Engineering Math", desc: "Deep dives into the foundational mathematics required for advanced engineering concepts.", 
       topics: ["Calculus & Differential Equations", "Linear Algebra & Matrices", "Complex Variables"], 
-      color: "text-indigo-500", bg: "bg-indigo-500/10", border: isDark ? "hover:border-indigo-500/50" : "hover:border-indigo-400", bulletColor: "bg-indigo-500" 
+      color: "text-orange-600", bg: "bg-orange-100/50", border: "hover:border-orange-300", bulletColor: "bg-orange-500" 
     },
     { 
       icon: BookOpen, title: "Discrete Math", desc: "Essential logic, set theory, and statistical modeling for computer science students.", 
       topics: ["Propositional Logic", "Set Theory & Relations", "Graph Theory & Trees"], 
-      color: "text-violet-500", bg: "bg-violet-500/10", border: isDark ? "hover:border-violet-500/50" : "hover:border-violet-400", bulletColor: "bg-violet-500" 
+      color: "text-amber-600", bg: "bg-amber-100/50", border: "hover:border-amber-300", bulletColor: "bg-amber-500" 
     },
     { 
       icon: Cpu, title: "Automata Theory", desc: "Master the theory of computation, finite automata, and formal languages.", 
       topics: ["Finite Automata (DFA/NFA)", "Context-Free Grammars", "Turing Machines"], 
-      color: "text-cyan-500", bg: "bg-cyan-500/10", border: isDark ? "hover:border-cyan-500/50" : "hover:border-cyan-400", bulletColor: "bg-cyan-500" 
+      color: "text-rose-600", bg: "bg-rose-100/50", border: "hover:border-rose-300", bulletColor: "bg-rose-500" 
     },
     { 
       icon: Network, title: "Data Structures", desc: "Build efficient algorithms and understand core data structures for problem-solving.", 
       topics: ["Arrays & Linked Lists", "Stacks & Queues", "Sorting & Searching Algorithms"], 
-      color: "text-emerald-500", bg: "bg-emerald-500/10", border: isDark ? "hover:border-emerald-500/50" : "hover:border-emerald-400", bulletColor: "bg-emerald-500" 
+      color: "text-red-600", bg: "bg-red-100/50", border: "hover:border-red-300", bulletColor: "bg-red-500" 
     },
   ];
 
   const testimonials = [
-  {
-    name: "Rahul S.",
-    role: "B.Tech CSE Student",
-    rating: 5,
-    text: "Dr. Goyal's teaching style is unparalleled. He breaks down complex math into simple logical steps. I aced my Engineering Math exam because of him!"
-  },
-  {
-    name: "Priya M.",
-    role: "Computer Science Major",
-    rating: 4.5,
-    text: "The Discrete Math series was a lifesaver. Never thought I would actually enjoy studying Graph Theory. Highly recommended for every engineering student."
-  },
-  {
-    name: "Ankit K.",
-    role: "Software Engineer",
-    rating: 5,
-    text: "Even after college, I come back to these lectures to brush up on my Automata Theory. Pure gold content, absolutely free."
-  },
-  {
-    name: "Sneha R.",
-    role: "B.Tech IT",
-    rating: 4.5,
-    text: "I was struggling with Data Structures, but the way concepts are visualized and explained here made everything crystal clear. Best mentor ever!"
-  },
-  {
-    name: "Aman D.",
-    role: "B.Tech CSE Student",
-    rating: 5,
-    text: "The community support and the quality of these free lectures are better than any paid coaching I've attended."
-  },
-];
+    { name: "Rahul S.", role: "B.Tech CSE Student", rating: 5, text: "Dr. Goyal's teaching style is unparalleled. He breaks down complex math into simple logical steps. I aced my Engineering Math exam because of him!" },
+    { name: "Priya M.", role: "Computer Science Major", rating: 4.5, text: "The Discrete Math series was a lifesaver. Never thought I would actually enjoy studying Graph Theory. Highly recommended for every engineering student." },
+    { name: "Ankit K.", role: "Software Engineer", rating: 5, text: "Even after college, I come back to these lectures to brush up on my Automata Theory. Pure gold content, absolutely free." },
+    { name: "Sneha R.", role: "B.Tech IT", rating: 4.5, text: "I was struggling with Data Structures, but the way concepts are visualized and explained here made everything crystal clear. Best mentor ever!" },
+    { name: "Aman D.", role: "B.Tech CSE Student", rating: 5, text: "The community support and the quality of these free lectures are better than any paid coaching I've attended." },
+  ];
 
   const faqs = [
-    { 
-      q: "Is this platform completely free?", 
-      a: "Yes! All core lectures, announcements, and study materials are 100% free. Dr. Goyal established this portal especially for students who cannot afford expensive coaching classes." 
-    },
-    { 
-      q: "Are the classes live or pre-recorded?", 
-      a: "The platform utilizes a hybrid educational approach. Core concept videos are pre-recorded for high-quality playback, while specific topics and doubt sessions are hosted live." 
-    },
-    { 
-      q: "How do students access study notes and assignments?", 
-      a: "Simply click on the 'Portal Login' button at the top of the homepage and sign in with your student credentials. Once logged in, you can access the 'Study Materials Hub' and the 'Submissions Board'." 
-    },
-    { 
-      q: "How will I know if my homework submission is late?", 
-      a: "The Submissions Board actively tracks deadlines. If you submit past the due date, the system will flag your assignment with an 'Overdue' or 'LATE SUBMISSION' warning." 
-    },
-    { 
-      q: "How do teachers track overall class performance?", 
-      a: "The 'Analytics' tab provides visual performance metrics like bar charts for average scores and pie charts for task statuses. Admins can also export these grades and charts as a CSV or PDF report." 
-    },
-    { 
-      q: "How do admins communicate with students and parents?", 
-      a: "Admins can broadcast announcements to specific audiences. In the Direct Messages tab, Admins can participate in a Global Class Chat, message individual students, or chat directly with a linked parent account." 
-    },
-    { 
-      q: "What sections of the portal do graders have access to?", 
-      a: "Grader accounts are granted access to the Create Homework, Submitted Work, Google Drive, Schedule Tests, Lesson Schedule, and Direct Messages tabs." 
-    },
-    { 
-      q: "How do graders know which students to evaluate?", 
-      a: "Admins have the ability to allocate specific students to a grader's profile. The views, such as the lesson schedule, will be automatically filtered to show reports corresponding only to the assigned students." 
-    }
+    { q: "Is this platform completely free?", a: "Yes! All core lectures, announcements, and study materials are 100% free. Dr. Goyal established this portal especially for students who cannot afford expensive coaching classes." },
+    { q: "Are the classes live or pre-recorded?", a: "The platform utilizes a hybrid educational approach. Core concept videos are pre-recorded for high-quality playback, while specific topics and doubt sessions are hosted live." },
+    { q: "How do students access study notes and assignments?", a: "Simply click on the 'Portal Login' button at the top of the homepage and sign in with your student credentials. Once logged in, you can access the 'Study Materials Hub' and the 'Submissions Board'." },
+    { q: "How will I know if my homework submission is late?", a: "The Submissions Board actively tracks deadlines. If you submit past the due date, the system will flag your assignment with an 'Overdue' or 'LATE SUBMISSION' warning." },
+    { q: "How do teachers track overall class performance?", a: "The 'Analytics' tab provides visual performance metrics like bar charts for average scores and pie charts for task statuses. Admins can also export these grades and charts as a CSV or PDF report." },
+    { q: "How do admins communicate with students and parents?", a: "Admins can broadcast announcements to specific audiences. In the Direct Messages tab, Admins can participate in a Global Class Chat, message individual students, or chat directly with a linked parent account." },
+    { q: "What sections of the portal do graders have access to?", a: "Grader accounts are granted access to the Create Homework, Submitted Work, Google Drive, Schedule Tests, Lesson Schedule, and Direct Messages tabs." },
+    { q: "How do graders know which students to evaluate?", a: "Admins have the ability to allocate specific students to a grader's profile. The views, such as the lesson schedule, will be automatically filtered to show reports corresponding only to the assigned students." }
   ];
+  
   const visibleFaqs = showAllFaqs ? faqs : faqs.slice(0, 4);
+
   return (
     <>
-      <div className={`min-h-screen font-sans overflow-x-hidden selection:bg-indigo-500/30 transition-colors duration-500 ${isDark ? 'bg-[#070B14] text-slate-300' : 'bg-slate-50 text-slate-700'}`}>
+      <div className="min-h-screen font-sans bg-stone-50 text-stone-700 selection:bg-orange-200 overflow-x-hidden">
         
-        <AnimatePresence>
-          {themeRipple && (
-            <motion.div 
-              initial={{ scale: 0, opacity: 1 }} animate={{ scale: 50, opacity: 0 }} exit={{ opacity: 0 }} transition={{ duration: 1.2, ease: "circOut" }}
-              className={`fixed top-6 right-10 w-10 h-10 rounded-full z-[9999] pointer-events-none ${isDark ? 'bg-white' : 'bg-[#070B14]'}`}
-            />
-          )}
-        </AnimatePresence>
-
         <motion.div 
           style={{ scaleX }} 
-          className="fixed top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-500 origin-left z-[100]" 
+          className="fixed top-0 left-0 right-0 h-1.5 bg-orange-600 origin-left z-[100]" 
         />
 
         <AnimatePresence>
@@ -419,7 +304,7 @@ const HomePage = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }} 
               exit={{ opacity: 0, y: 20, scale: 0.8 }}
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="fixed bottom-8 right-8 p-3 rounded-full bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)] z-50 hover:bg-indigo-500 hover:-translate-y-1 transition-all"
+              className="fixed bottom-8 right-8 p-3 rounded-full bg-orange-600 text-white shadow-lg z-50 hover:bg-orange-700 hover:-translate-y-1 transition-all"
             >
               <ChevronUp className="w-6 h-6" />
             </motion.button>
@@ -431,70 +316,44 @@ const HomePage = () => {
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, type: "spring", stiffness: 100, damping: 20 }}
-            className={`w-full max-w-6xl rounded-full backdrop-blur-2xl border transition-colors duration-500 pointer-events-auto ${isDark ? 'bg-[#0A0F1C]/85 border-slate-700/60 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)]' : 'bg-white/85 border-slate-200/60 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)]'}`}
+            className="w-full max-w-6xl rounded-full bg-[#FCFBF9]/90 backdrop-blur-md border border-stone-200 shadow-sm pointer-events-auto"
           >
             <div className="px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center h-20">
                 
                 <button onClick={() => window.location.reload()} className="flex items-center gap-3 outline-none group cursor-pointer">
-                  <img src="/mathcom-logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-full shadow-sm border border-indigo-500/20 group-hover:scale-105 transition-transform" />
-                  <span className={`font-extrabold text-lg sm:text-xl tracking-tight transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    MathCom <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-cyan-400">Mentors</span>
+                  <img src="/mathcom-logo.png" alt="Logo" className="w-10 h-10 object-contain rounded-full shadow-sm border border-stone-200 group-hover:scale-105 transition-transform" />
+                  <span className="font-extrabold text-lg sm:text-xl tracking-tight text-stone-800">
+                    MathCom <span className="text-orange-600">Mentors</span>
                   </span>
                 </button>
                 
-                {/* Desktop Links */}
                 <div className="hidden md:flex items-center gap-8 font-medium">
-                  <a 
-                    href="#about" 
-                    onClick={() => setActiveSection('about')}
-                    className={`relative group transition-colors py-2 text-sm sm:text-base font-bold ${activeSection === 'about' ? (isDark ? 'text-white' : 'text-indigo-600') : (isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600')}`}
-                  >
+                  <a href="#about" onClick={() => setActiveSection('about')} className={`relative group py-2 text-sm sm:text-base font-bold ${activeSection === 'about' ? 'text-orange-600' : 'text-stone-600 hover:text-orange-600'}`}>
                     Mission
-                    <span className={`absolute bottom-0 left-0 h-[3px] bg-indigo-500 transition-all duration-300 rounded-t-md ${activeSection === 'about' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
+                    <span className={`absolute bottom-0 left-0 h-[3px] bg-orange-600 transition-all duration-300 rounded-t-md ${activeSection === 'about' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
                   </a>
-                  <a 
-                    href="#subjects" 
-                    onClick={() => setActiveSection('subjects')}
-                    className={`relative group transition-colors py-2 text-sm sm:text-base font-bold ${activeSection === 'subjects' ? (isDark ? 'text-white' : 'text-indigo-600') : (isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600')}`}
-                  >
+                  <a href="#subjects" onClick={() => setActiveSection('subjects')} className={`relative group py-2 text-sm sm:text-base font-bold ${activeSection === 'subjects' ? 'text-orange-600' : 'text-stone-600 hover:text-orange-600'}`}>
                     Curriculum
-                    <span className={`absolute bottom-0 left-0 h-[3px] bg-indigo-500 transition-all duration-300 rounded-t-md ${activeSection === 'subjects' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
+                    <span className={`absolute bottom-0 left-0 h-[3px] bg-orange-600 transition-all duration-300 rounded-t-md ${activeSection === 'subjects' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
                   </a>
-                  <a 
-                    href="#contact" 
-                    onClick={() => setActiveSection('contact')}
-                    className={`relative group transition-colors py-2 text-sm sm:text-base font-bold ${activeSection === 'contact' ? (isDark ? 'text-white' : 'text-indigo-600') : (isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600')}`}
-                  >
+                  <a href="#contact" onClick={() => setActiveSection('contact')} className={`relative group py-2 text-sm sm:text-base font-bold ${activeSection === 'contact' ? 'text-orange-600' : 'text-stone-600 hover:text-orange-600'}`}>
                     Contact Us
-                    <span className={`absolute bottom-0 left-0 h-[3px] bg-indigo-500 transition-all duration-300 rounded-t-md ${activeSection === 'contact' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
+                    <span className={`absolute bottom-0 left-0 h-[3px] bg-orange-600 transition-all duration-300 rounded-t-md ${activeSection === 'contact' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
                   </a>
                   
-                  <div className="flex items-center gap-3 ml-2 pl-6 border-l border-slate-400/30">
-                    <Link to="/login" className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:from-indigo-500 hover:to-violet-500 transition-colors shadow-md">
+                  <div className="flex items-center gap-3 ml-2 pl-6 border-l border-stone-200">
+                    <Link to="/login" className="bg-orange-600 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-orange-700 transition-colors shadow-sm">
                       Portal Login
                     </Link>
-                    <button 
-                      onClick={handleThemeToggle} 
-                      className={`p-2.5 rounded-full transition-colors outline-none ${isDark ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-slate-100 text-indigo-600 hover:bg-indigo-50 border border-slate-200/60'}`}
-                    >
-                      {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                    </button>
                   </div>
                 </div>
 
-                {/* Mobile Links */}
                 <div className="md:hidden flex items-center gap-3">
-                  <Link to="/login" className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-5 py-2 rounded-full font-bold text-xs shadow-md transition-colors hover:from-indigo-500 hover:to-violet-500">
+                  <Link to="/login" className="bg-orange-600 text-white px-5 py-2 rounded-full font-bold text-xs shadow-sm hover:bg-orange-700">
                     Login
                   </Link>
-                  <button 
-                    onClick={handleThemeToggle} 
-                    className={`p-2 rounded-full transition-colors outline-none ${isDark ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-slate-100 text-indigo-600 border border-slate-200/60 hover:bg-indigo-50'}`}
-                  >
-                    {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  </button>
-                  <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={`focus:outline-none transition-colors p-1 ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-indigo-600'}`}>
+                  <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="focus:outline-none text-stone-600 hover:text-orange-600 p-1">
                     <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       {isMobileMenuOpen ? (
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -507,19 +366,18 @@ const HomePage = () => {
               </div>
             </div>
 
-            {/* Mobile Dropdown Menu */}
             <AnimatePresence>
               {isMobileMenuOpen && (
                 <motion.div 
                   initial={{ height: 0, opacity: 0, y: -10 }} 
                   animate={{ height: 'auto', opacity: 1, y: 0 }} 
                   exit={{ height: 0, opacity: 0, y: -10 }} 
-                  className={`md:hidden absolute w-full left-0 top-[110%] shadow-2xl overflow-hidden border rounded-3xl ${isDark ? 'bg-[#0A0F1C]/95 border-slate-700/60 backdrop-blur-xl' : 'bg-white/95 border-slate-200/60 backdrop-blur-xl'}`}
+                  className="md:hidden absolute w-full left-0 top-[110%] shadow-lg overflow-hidden border border-stone-200 rounded-3xl bg-[#FCFBF9]"
                 >
                   <div className="px-4 py-4 space-y-2 flex flex-col">
-                    <a href="#about" onClick={() => { setIsMobileMenuOpen(false); setActiveSection('about'); }} className={`font-bold text-base p-3 block rounded-xl transition-colors ${activeSection === 'about' ? (isDark ? 'bg-slate-800 text-white' : 'bg-indigo-50 text-indigo-600') : (isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}>Mission</a>
-                    <a href="#subjects" onClick={() => { setIsMobileMenuOpen(false); setActiveSection('subjects'); }} className={`font-bold text-base p-3 block rounded-xl transition-colors ${activeSection === 'subjects' ? (isDark ? 'bg-slate-800 text-white' : 'bg-indigo-50 text-indigo-600') : (isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}>Curriculum</a>
-                    <a href="#contact" onClick={() => { setIsMobileMenuOpen(false); setActiveSection('contact'); }} className={`font-bold text-base p-3 block rounded-xl transition-colors ${activeSection === 'contact' ? (isDark ? 'bg-slate-800 text-white' : 'bg-indigo-50 text-indigo-600') : (isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50')}`}>Contact Us</a>
+                    <a href="#about" onClick={() => { setIsMobileMenuOpen(false); setActiveSection('about'); }} className={`font-bold text-base p-3 block rounded-xl ${activeSection === 'about' ? 'bg-orange-50 text-orange-600' : 'text-stone-600 hover:bg-stone-100'}`}>Mission</a>
+                    <a href="#subjects" onClick={() => { setIsMobileMenuOpen(false); setActiveSection('subjects'); }} className={`font-bold text-base p-3 block rounded-xl ${activeSection === 'subjects' ? 'bg-orange-50 text-orange-600' : 'text-stone-600 hover:bg-stone-100'}`}>Curriculum</a>
+                    <a href="#contact" onClick={() => { setIsMobileMenuOpen(false); setActiveSection('contact'); }} className={`font-bold text-base p-3 block rounded-xl ${activeSection === 'contact' ? 'bg-orange-50 text-orange-600' : 'text-stone-600 hover:bg-stone-100'}`}>Contact Us</a>
                   </div>
                 </motion.div>
               )}
@@ -527,57 +385,41 @@ const HomePage = () => {
           </motion.nav>
         </div>
 
-        {/* Hero Section */}
-        <div className="relative pt-24 pb-16 sm:pt-32 sm:pb-24 lg:min-h-screen flex items-center overflow-hidden">
+        <div className="relative pt-24 pb-16 sm:pt-32 sm:pb-24 lg:min-h-screen flex items-center overflow-hidden bg-stone-50">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#e7e5e4_1px,transparent_1px),linear-gradient(to_bottom,#e7e5e4_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:linear-gradient(to_bottom,white,transparent)] opacity-60"></div>
           
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className={`absolute inset-0 bg-[size:3rem_3rem] [mask-image:linear-gradient(to_bottom,white,transparent)] opacity-20 ${isDark ? 'bg-[linear-gradient(to_right,#ffffff15_1px,transparent_1px),linear-gradient(to_bottom,#ffffff15_1px,transparent_1px)]' : 'bg-[linear-gradient(to_right,#00000010_1px,transparent_1px),linear-gradient(to_bottom,#00000010_1px,transparent_1px)]'}`}></div>
-            
-            <motion.div animate={{ x: mousePos.x * 0.03, y: mousePos.y * 0.03 }} className={`absolute -top-[10%] -right-[5%] w-[600px] h-[600px] rounded-full blur-[120px] -z-10 mix-blend-screen transition-opacity duration-700 ${isDark ? 'bg-indigo-600/30' : 'bg-indigo-300/40'}`} />
-            <motion.div animate={{ x: mousePos.x * -0.03, y: mousePos.y * -0.03 }} className={`absolute -bottom-[10%] -left-[5%] w-[500px] h-[500px] rounded-full blur-[100px] -z-10 mix-blend-screen transition-opacity duration-700 ${isDark ? 'bg-cyan-600/20' : 'bg-cyan-300/40'}`} />
-          </div>
-
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full mt-10 lg:mt-0">
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
               
-              {/* Left Column */}
-              <motion.div 
-                initial="hidden" animate="visible" variants={staggerContainer}
-                className="text-left"
-              >
-                <motion.h1 variants={fadeUp} className={`text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter mb-6 leading-[1.1] ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="text-left">
+                <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter mb-6 leading-[1.1] text-stone-800">
                   Engineer Your <br/>
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-cyan-500">
-                    <Typewriter words={['Logic.', 'Future.', 'Career.']} />
-                  </span>
+                  <Typewriter words={['Logic.', 'Future.', 'Career.']} />
                   <br/>With Precision.
                 </motion.h1>
                 
-                <motion.p variants={fadeUp} className={`text-lg sm:text-xl mb-10 leading-relaxed font-medium max-w-xl ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                  Master the core concepts of Engineering Mathematics, Discrete Mathematics, and advanced B.Tech CSE subjects. High-quality education, <strong className={`font-black ${isDark ? 'text-white border-b-2 border-indigo-500' : 'text-slate-900 border-b-2 border-indigo-500'}`}>completely free</strong> for those who need it most.
+                <motion.p variants={fadeUp} className="text-lg sm:text-xl mb-10 leading-relaxed font-medium max-w-xl text-stone-600">
+                  Master the core concepts of Engineering Mathematics, Discrete Mathematics, and advanced B.Tech CSE subjects. High-quality education, <strong className="font-black text-stone-900 border-b-2 border-orange-500">completely free</strong> for those who need it most.
                 </motion.p>
                 
                 <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center gap-4 mt-2">
                   {!isAppInstalled && (
                     <button 
                       onClick={handleInstallClick}
-                      className={`flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-lg transition-colors w-full sm:w-auto shadow-xl ${isDark ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                      className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-lg transition-colors w-full sm:w-auto shadow-sm bg-stone-800 text-stone-50 hover:bg-stone-700"
                     >
                       <Download className="w-5 h-5" /> Install App
                     </button>
                   )}
 
                   <Link to="/login" className="block w-full sm:w-auto">
-                    <button 
-                      className={`flex items-center justify-center px-8 py-4 rounded-2xl font-black text-lg transition-colors w-full border-2 ${isDark ? 'border-slate-700 hover:border-slate-500 hover:bg-slate-800 text-white' : 'border-slate-300 hover:border-indigo-400 hover:bg-white bg-white/50 text-slate-800 shadow-sm'}`}
-                    >
+                    <button className="flex items-center justify-center px-8 py-4 rounded-2xl font-black text-lg transition-colors w-full border-2 border-stone-300 hover:border-orange-600 hover:bg-orange-50 bg-[#FCFBF9] text-stone-800 shadow-sm">
                       Portal Login
                     </button>
                   </Link>
                 </motion.div>
               </motion.div>
 
-              {/* Right Column */}
               <motion.div 
                 initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -586,60 +428,53 @@ const HomePage = () => {
               >
                 <motion.div 
                   animate={{ y: [-10, 10, -10] }} transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-                  className={`absolute top-[10%] right-[5%] w-[280px] p-6 rounded-3xl backdrop-blur-xl border border-white/20 shadow-2xl z-20 ${isDark ? 'bg-slate-800/80 text-white' : 'bg-white/90 text-slate-900'}`}
+                  className="absolute top-[10%] right-[5%] w-[280px] p-6 rounded-3xl bg-[#FCFBF9] border border-stone-200 shadow-xl z-20"
                 >
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
-                      <Calculator className="w-6 h-6 text-indigo-500" />
+                    <div className="w-12 h-12 rounded-xl bg-orange-100/50 flex items-center justify-center">
+                      <Calculator className="w-6 h-6 text-orange-600" />
                     </div>
                     <div>
-                      <h3 className="font-black text-lg">Engineering</h3>
-                      <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>Advanced Calculus</p>
+                      <h3 className="font-black text-lg text-stone-800">Engineering</h3>
+                      <p className="text-xs font-bold uppercase tracking-wider text-orange-600">Advanced Calculus</p>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div className="h-full bg-indigo-500 w-[85%] rounded-full"></div>
+                    <div className="h-2 w-full bg-stone-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-orange-500 w-[85%] rounded-full"></div>
                     </div>
-                    <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div className="h-full bg-cyan-500 w-[60%] rounded-full"></div>
+                    <div className="h-2 w-full bg-stone-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-500 w-[60%] rounded-full"></div>
                     </div>
                   </div>
                 </motion.div>
 
                 <motion.div 
                   animate={{ y: [10, -10, 10] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-                  className={`absolute bottom-[15%] left-[5%] w-[250px] p-6 rounded-3xl backdrop-blur-xl border border-white/20 shadow-2xl z-30 ${isDark ? 'bg-[#0F172A]/90 text-white' : 'bg-slate-50/90 text-slate-900'}`}
+                  className="absolute bottom-[15%] left-[5%] w-[250px] p-6 rounded-3xl bg-[#FCFBF9] border border-stone-200 shadow-xl z-30"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center mb-4">
-                    <Cpu className="w-6 h-6 text-cyan-500" />
+                  <div className="w-12 h-12 rounded-xl bg-rose-100/50 flex items-center justify-center mb-4">
+                    <Cpu className="w-6 h-6 text-rose-600" />
                   </div>
-                  <h3 className="font-black text-xl mb-1">Automata</h3>
-                  <p className={`text-sm font-bold ${isDark ? 'text-cyan-400' : 'text-cyan-600'}`}>DFA, NFA & Turing</p>
+                  <h3 className="font-black text-xl mb-1 text-stone-800">Automata</h3>
+                  <p className="text-sm font-bold text-rose-600">DFA, NFA & Turing</p>
                 </motion.div>
 
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full border-[2px] border-dashed animate-[spin_20s_linear_infinite] opacity-30 border-indigo-500"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] rounded-full border-[1px] opacity-40 border-fuchsia-500"></div>
-                
-                {/* Floating symbols */}
-                <motion.div style={{ y: yParallaxFast }} className="absolute top-[5%] left-[20%] text-6xl text-indigo-500 font-mono font-black opacity-30">∑</motion.div>
-                <motion.div style={{ y: yParallaxSlow }} className="absolute bottom-[5%] right-[20%] text-7xl text-cyan-500 font-mono font-black opacity-30">∫</motion.div>
-                <motion.div style={{ y: yParallaxFast, rotate: rotateParallax }} className="absolute top-[40%] right-[30%] text-5xl text-fuchsia-500 font-mono font-black opacity-20">π</motion.div>
-
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full border-2 border-dashed border-stone-300 animate-[spin_20s_linear_infinite]"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] rounded-full border border-stone-200"></div>
               </motion.div>
             </div>
           </div>
         </div>
 
-        {/* Featured Video Section */}
-        <div id="featured-video" className={`py-16 relative z-10 transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-indigo-50/50'}`}>
+        <div id="featured-video" className="py-16 relative z-10 bg-[#FCFBF9] border-t border-stone-200">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className={`p-4 md:p-6 rounded-3xl border shadow-2xl transition-colors ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-indigo-100'}`}>
+            <div className="p-4 md:p-6 rounded-3xl bg-stone-50 border border-stone-200 shadow-md">
               <div className="flex items-center justify-between mb-4 px-2">
-                <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Most Popular: Complex Analysis & Analytic Functions</h3>
-                <a href="https://www.youtube.com/@MathComMentors" target="_blank" rel="noreferrer" className="text-indigo-500 hover:text-indigo-400 font-semibold text-sm flex items-center gap-1">View Channel <ArrowRight className="w-4 h-4" /></a>
+                <h3 className="text-xl font-bold text-stone-800">Most Popular: Complex Analysis & Analytic Functions</h3>
+                <a href="https://www.youtube.com/@MathComMentors" target="_blank" rel="noreferrer" className="text-orange-600 hover:text-orange-700 font-semibold text-sm flex items-center gap-1">View Channel <ArrowRight className="w-4 h-4" /></a>
               </div>
-              <div className="relative w-full overflow-hidden pt-[56.25%] rounded-2xl bg-slate-900">
+              <div className="relative w-full overflow-hidden pt-[56.25%] rounded-2xl bg-stone-200 border border-stone-200">
                 <iframe 
                   className="absolute top-0 left-0 bottom-0 right-0 w-full h-full"
                   src="https://www.youtube.com/embed/jm0JLx9cT5c" 
@@ -653,15 +488,11 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* Statistics / Impact Section */}
-        <div className={`py-16 border-y relative z-10 transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C] border-slate-800/50' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <div className="py-16 border-y relative z-10 bg-stone-100/50 border-stone-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div 
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={staggerContainer}
-              className={`grid grid-cols-2 md:grid-cols-4 gap-8 divide-x ${isDark ? 'divide-slate-800/50' : 'divide-slate-200'}`}
+              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
+              className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-stone-200"
             >
               {[
                 { target: 140, suffix: "K+", label: "Active Students" },
@@ -670,112 +501,95 @@ const HomePage = () => {
                 { target: 100, suffix: "%", label: "Free Access" }
               ].map((stat, i) => (
                 <motion.div key={i} variants={fadeUp} className="text-center px-4">
-                  <h3 className="text-4xl md:text-5xl font-extrabold mb-2 tracking-tight">
-                    <AnimatedCounter target={stat.target} suffix={stat.suffix} isDark={isDark} />
+                  <h3 className="text-4xl md:text-5xl font-extrabold mb-2 tracking-tight text-stone-800">
+                    <AnimatedCounter target={stat.target} suffix={stat.suffix} />
                   </h3>
-                  <p className={`${isDark ? 'text-indigo-400' : 'text-indigo-600'} font-medium`}>{stat.label}</p>
+                  <p className="text-orange-600 font-medium">{stat.label}</p>
                 </motion.div>
               ))}
             </motion.div>
           </div>
         </div>
 
-        {/* Mentor & Mission Sections */}
-        <div className={`py-24 relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#070B14]' : 'bg-slate-50'}`}>
-          <div className={`absolute inset-0 bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30 ${isDark ? 'bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)]' : 'bg-[linear-gradient(to_right,#cbd5e1_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e1_1px,transparent_1px)]'}`}></div>
-          
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col gap-24"> {/* gap-24 creates the large separation */}
+        <div className="py-24 relative overflow-hidden bg-[#FCFBF9]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col gap-24">
             
-            {/* Mentor Card */}
             <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className={`max-w-5xl mx-auto w-full p-8 md:p-12 rounded-3xl border shadow-xl transition-colors ${isDark ? 'bg-slate-900/60 border-slate-700/50' : 'bg-white border-slate-200'}`}
+              initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
+              className="max-w-5xl mx-auto w-full p-8 md:p-12 rounded-3xl bg-stone-50 border border-stone-200 shadow-sm"
             >
               <div className="w-full">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 text-indigo-500 text-sm font-bold mb-4">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100/50 text-orange-700 text-sm font-bold mb-4">
                   <GraduationCap className="w-4 h-4" /> Chief Mentor & Founder
                 </div>
-                <TextReveal text="Meet Dr. Goyal" className="text-4xl font-extrabold mb-4 !justify-start" isDark={isDark} />
-                <p className={`text-lg mb-6 leading-relaxed transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                <TextReveal text="Meet Dr. Goyal" className="text-4xl font-extrabold mb-4 !justify-start" />
+                <p className="text-lg mb-6 leading-relaxed text-stone-600">
                   With over a decade of teaching experience in advanced mathematics and computer science, Dr. Goyal has dedicated his career to simplifying complex engineering concepts. His unique approach bridges the gap between theoretical math and practical software engineering.
                 </p>
                 <div className="grid sm:grid-cols-2 gap-4 mb-2">
-                  <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <h4 className={`font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Teaching Philosophy</h4>
-                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Logic over memorization. Building foundations that last a lifetime.</p>
+                  <div className="p-4 rounded-xl bg-[#FCFBF9] border border-stone-200 shadow-sm">
+                    <h4 className="font-bold mb-1 text-stone-800">Teaching Philosophy</h4>
+                    <p className="text-sm text-stone-600">Logic over memorization. Building foundations that last a lifetime.</p>
                   </div>
-                  <div className={`p-4 rounded-xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <h4 className={`font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Professional Impact</h4>
-                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Mentored 100,000+ students across India to ace their university exams.</p>
+                  <div className="p-4 rounded-xl bg-[#FCFBF9] border border-stone-200 shadow-sm">
+                    <h4 className="font-bold mb-1 text-stone-800">Professional Impact</h4>
+                    <p className="text-sm text-stone-600">Mentored 100,000+ students across India to ace their university exams.</p>
                   </div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Mission Card */}
             <motion.div 
-              id="about"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className={`scroll-mt-28 max-w-5xl mx-auto w-full text-center p-8 md:p-12 rounded-3xl border shadow-xl relative transition-colors ${isDark ? 'bg-slate-900/60 border-slate-700/50' : 'bg-white border-slate-200'}`}
+              id="about" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}
+              className="scroll-mt-28 max-w-5xl mx-auto w-full text-center p-8 md:p-12 rounded-3xl bg-stone-50 border border-stone-200 shadow-sm relative"
             >
-              <div className={`absolute -top-8 left-1/2 -translate-x-1/2 p-4 rounded-full border shadow-sm transition-colors ${isDark ? 'bg-[#0b1221] border-slate-700/50' : 'bg-indigo-50 border-indigo-200'}`}>
-                <HeartHandshake className="w-8 h-8 text-indigo-500" />
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 p-4 rounded-full bg-orange-50 border border-orange-200 shadow-sm">
+                <HeartHandshake className="w-8 h-8 text-orange-600" />
               </div>
 
-              <TextReveal text="Our Core Mission" className="text-3xl md:text-4xl font-extrabold mb-8 mt-4" isDark={isDark} />
-              <p className={`text-xl md:text-2xl leading-relaxed italic font-light transition-colors ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              <TextReveal text="Our Core Mission" className="text-3xl md:text-4xl font-extrabold mb-8 mt-4" />
+              <p className="text-xl md:text-2xl leading-relaxed italic font-light text-stone-700">
                 "These Online Classes are started especially for those students who can't come for classes or tuitions & for those who can't afford to go to coaching Classes. All I need is your Support & engagement with us. So I can help you more achieving best in your sessionals & semester exams."
               </p>
               <div className="mt-10 inline-flex items-center gap-4">
-                <div className="h-[1px] w-12 bg-indigo-500/50"></div>
-                <p className="text-indigo-500 font-bold text-lg tracking-wide uppercase">Dr. Goyal</p>
-                <div className="h-[1px] w-12 bg-indigo-500/50"></div>
+                <div className="h-[1px] w-12 bg-stone-300"></div>
+                <p className="text-orange-600 font-bold text-lg tracking-wide uppercase">Dr. Goyal</p>
+                <div className="h-[1px] w-12 bg-stone-300"></div>
               </div>
             </motion.div>
 
           </div>
         </div>
 
-        {/* FEATURE 5: Interactive Learning Roadmap */}
-        <div id="roadmap" className={`py-24 relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-slate-50'}`}>
+        <div id="roadmap" className="py-24 relative overflow-hidden bg-stone-100/50 border-t border-stone-200">
            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
              <div className="text-center mb-24">
-               <TextReveal text="The Engineering Pathway" className="text-4xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
-               <p className={`text-xl ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Follow the logical progression of subjects to build a rock-solid foundation.</p>
+               <TextReveal text="The Engineering Pathway" className="text-4xl md:text-5xl font-extrabold mb-4" />
+               <p className="text-xl text-stone-600">Follow the logical progression of subjects to build a rock-solid foundation.</p>
              </div>
              
              <div className="relative max-w-5xl mx-auto">
-                <div className="absolute left-[28px] md:left-1/2 top-0 bottom-0 w-1 bg-indigo-500/30 md:-translate-x-1/2 rounded-full"></div>
+                <div className="absolute left-[28px] md:left-1/2 top-0 bottom-0 w-1 bg-stone-200 md:-translate-x-1/2 rounded-full"></div>
                 
                 <div className="space-y-12">
                   {curriculumSubjects.map((sub, i) => {
                     const isEven = i % 2 === 0;
                     return (
                       <motion.div 
-                        key={i}
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, margin: "-100px" }}
-                        transition={{ duration: 0.6 }}
+                        key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.6 }}
                         className={`relative flex items-center justify-between flex-col md:flex-row w-full ${isEven ? 'md:flex-row-reverse' : ''}`}
                       >
                         <div className="hidden md:block w-[45%]"></div>
                         
-                        <div className={`absolute left-[28px] md:left-1/2 top-8 md:top-1/2 w-5 h-5 rounded-full border-4 ${isDark ? 'border-[#0A0F1C]' : 'border-slate-50'} ${sub.bulletColor} shadow-[0_0_15px_rgba(99,102,241,0.6)] -translate-x-1/2 md:-translate-y-1/2 z-10`}></div>
+                        <div className={`absolute left-[28px] md:left-1/2 top-8 md:top-1/2 w-5 h-5 rounded-full border-4 border-[#FCFBF9] ${sub.bulletColor} shadow-sm -translate-x-1/2 md:-translate-y-1/2 z-10`}></div>
                         
                         <div className={`w-full pl-16 md:pl-0 md:w-[45%] ${isEven ? 'md:text-right' : 'text-left'}`}>
-                          <div className={`p-6 rounded-2xl border backdrop-blur-sm transition-transform hover:-translate-y-1 ${isDark ? 'bg-slate-900/60 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-200 shadow-sm hover:border-slate-300'}`}>
+                          <div className="p-6 rounded-2xl bg-[#FCFBF9] border border-stone-200 shadow-sm transition-transform hover:-translate-y-1 hover:border-stone-300">
                             <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl mb-4 ${sub.bg} ${sub.color} ${isEven ? 'md:ml-auto md:mr-0' : ''}`}>
                               <sub.icon className="w-6 h-6" />
                             </div>
-                            <h4 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>{sub.title}</h4>
-                            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{sub.desc}</p>
+                            <h4 className="text-2xl font-bold mb-2 text-stone-800">{sub.title}</h4>
+                            <p className="text-sm text-stone-600">{sub.desc}</p>
                           </div>
                         </div>
                       </motion.div>
@@ -786,37 +600,33 @@ const HomePage = () => {
            </div>
         </div>
 
-        <div id="subjects" className={`py-32 relative transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-white'}`}>
+        <div id="subjects" className="py-32 relative bg-[#FCFBF9] border-t border-stone-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-20">
-              <TextReveal text="Master the Curriculum" className="text-4xl md:text-5xl font-extrabold mb-6" isDark={isDark} />
-              <p className={`text-xl transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Hover over any subject to view the core syllabus.</p>
+              <TextReveal text="Master the Curriculum" className="text-4xl md:text-5xl font-extrabold mb-6" />
+              <p className="text-xl text-stone-600">Hover over any subject to view the core syllabus.</p>
             </div>
 
             <motion.div 
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
+              initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }}
               className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
             >
               {curriculumSubjects.map((subject, index) => (
-                <FlipCard key={index} subject={subject} isDark={isDark} />
+                <FlipCard key={index} subject={subject} />
               ))}
             </motion.div>
           </div>
         </div>
 
-        {/* Testimonials Section */}
-        <div className={`py-24 relative overflow-hidden border-t transition-colors duration-500 ${isDark ? 'bg-[#070B14] border-slate-800/50' : 'bg-indigo-50/50 border-slate-200'}`}>
+        <div className="py-24 relative overflow-hidden bg-stone-50 border-y border-stone-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-16 relative z-10">
-            <TextReveal text="Student Success Stories" className="text-4xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
-            <p className={`text-xl transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Join thousands of students who have transformed their engineering journey.</p>
+            <TextReveal text="Student Success Stories" className="text-4xl md:text-5xl font-extrabold mb-4" />
+            <p className="text-xl text-stone-600">Join thousands of students who have transformed their engineering journey.</p>
           </div>
 
           <div className="relative w-full flex overflow-hidden group">
-            <div className={`absolute left-0 top-0 bottom-0 w-24 sm:w-40 z-10 pointer-events-none transition-colors duration-500 ${isDark ? 'bg-gradient-to-r from-[#070B14] to-transparent' : 'bg-gradient-to-r from-indigo-50/50 to-transparent'}`}></div>
-            <div className={`absolute right-0 top-0 bottom-0 w-24 sm:w-40 z-10 pointer-events-none transition-colors duration-500 ${isDark ? 'bg-gradient-to-l from-[#070B14] to-transparent' : 'bg-gradient-to-l from-indigo-50/50 to-transparent'}`}></div>
+            <div className="absolute left-0 top-0 bottom-0 w-24 sm:w-40 z-10 pointer-events-none bg-gradient-to-r from-stone-50 to-transparent"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-24 sm:w-40 z-10 pointer-events-none bg-gradient-to-l from-stone-50 to-transparent"></div>
 
             <motion.div 
               className="flex gap-6 w-max"
@@ -824,28 +634,24 @@ const HomePage = () => {
               transition={{ ease: "linear", duration: 35, repeat: Infinity }}
             >
               {[...testimonials, ...testimonials].map((t, index) => (
-                <div key={index} className={`w-[350px] sm:w-[420px] backdrop-blur-md p-8 rounded-3xl border flex flex-col justify-between flex-shrink-0 transition-colors ${isDark ? 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60' : 'bg-white border-slate-200 hover:border-indigo-200 shadow-sm'}`}>
+                <div key={index} className="w-[350px] sm:w-[420px] bg-[#FCFBF9] p-8 rounded-3xl border border-stone-200 shadow-sm flex flex-col justify-between flex-shrink-0">
                   <div>
                     <div className="flex mb-4 gap-1">
                       {[...Array(5)].map((_, i) => {
-                        if (t.rating >= i + 1) {
-                          return <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />;
-                        } else if (t.rating >= i + 0.5) {
-                          return <StarHalf key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />;
-                        } else {
-                          return <Star key={i} className={`w-5 h-5 ${isDark ? 'text-slate-700' : 'text-slate-200'}`} />;
-                        }
+                        if (t.rating >= i + 1) return <Star key={i} className="w-5 h-5 text-amber-500 fill-amber-500" />;
+                        else if (t.rating >= i + 0.5) return <StarHalf key={i} className="w-5 h-5 text-amber-500 fill-amber-500" />;
+                        else return <Star key={i} className="w-5 h-5 text-stone-200" />;
                       })}
                     </div>
-                    <p className={`leading-relaxed mb-6 italic transition-colors ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>"{t.text}"</p>
+                    <p className="leading-relaxed mb-6 italic text-stone-600">"{t.text}"</p>
                   </div>
-                  <div className={`flex items-center gap-4 border-t pt-5 transition-colors ${isDark ? 'border-slate-800/80' : 'border-slate-100'}`}>
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-extrabold text-lg shadow-lg">
+                  <div className="flex items-center gap-4 border-t border-stone-200 pt-5">
+                    <div className="w-12 h-12 rounded-full bg-orange-100/50 flex items-center justify-center text-orange-700 font-extrabold text-lg">
                       {t.name.charAt(0)}
                     </div>
                     <div>
-                      <h4 className={`font-bold transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.name}</h4>
-                      <p className="text-xs text-indigo-500 font-bold">{t.role}</p>
+                      <h4 className="font-bold text-stone-800">{t.name}</h4>
+                      <p className="text-xs text-orange-600 font-bold">{t.role}</p>
                     </div>
                   </div>
                 </div>
@@ -854,135 +660,106 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* FAQ ACCORDION SECTION */}
-        <div className={`py-24 relative transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-white'}`}>
+        <div className="py-24 relative bg-[#FCFBF9]">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <TextReveal text="Frequently Asked Questions" className="text-3xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
-              <p className={`text-lg transition-colors ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Everything you need to know about the MathCom Mentors portal.</p>
+              <TextReveal text="Frequently Asked Questions" className="text-3xl md:text-5xl font-extrabold mb-4" />
+              <p className="text-lg text-stone-600">Everything you need to know about the MathCom Mentors portal.</p>
             </div>
-            <div className={`rounded-3xl p-6 md:p-10 border shadow-lg transition-colors ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50 border-slate-200'} `}>
-              
-              {/* Map only the visible FAQs with a smooth animation */}
+            <div className="rounded-3xl p-6 md:p-10 bg-stone-50 border border-stone-200 shadow-sm">
               <AnimatePresence>
                 {visibleFaqs.map((faq, index) => (
                   <motion.div
-                    key={index}
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
+                    key={index} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }}
                   >
-                    <FAQItem q={faq.q} a={faq.a} isDark={isDark} />
+                    <FAQItem q={faq.q} a={faq.a} />
                   </motion.div>
                 ))}
               </AnimatePresence>
-
-              {/* Show More / Show Less Button */}
               {faqs.length > 4 && (
                 <div className="mt-8 flex justify-center">
                   <button
                     onClick={() => setShowAllFaqs(!showAllFaqs)}
-                    className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-all border ${
-                      isDark 
-                        ? 'bg-slate-800 border-slate-700 text-indigo-400 hover:bg-slate-700 hover:text-indigo-300' 
-                        : 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700'
-                    }`}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-all border bg-[#FCFBF9] border-stone-200 text-orange-600 hover:bg-stone-100 shadow-sm"
                   >
                     {showAllFaqs ? 'Show Less' : 'Read More'}
                     <ChevronUp className={`w-4 h-4 transition-transform duration-300 ${showAllFaqs ? '' : 'rotate-180'}`} />
                   </button>
                 </div>
               )}
-              
             </div>
           </div>
         </div>
 
-        {/* Contact Us Section */}
-        <div id="contact" className={`py-24 relative overflow-hidden transition-colors duration-500 ${isDark ? 'bg-[#0A0F1C]' : 'bg-slate-50'}`}>
-          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none"></div>
-          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none"></div>
-
+        <div id="contact" className="py-24 relative overflow-hidden bg-stone-100/50 border-t border-stone-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="text-center mb-16">
-              <TextReveal text="Let's Connect" className="text-4xl md:text-5xl font-extrabold mb-4" isDark={isDark} />
-              <p className={`text-lg transition-colors max-w-2xl mx-auto ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              <TextReveal text="Let's Connect" className="text-4xl md:text-5xl font-extrabold mb-4" />
+              <p className="text-lg text-stone-600 max-w-2xl mx-auto">
                 Have a question about the lectures or facing an issue with the portal? Drop us a message and we'll get back to you.
               </p>
             </div>
             
             <div className="grid lg:grid-cols-5 gap-12 items-start">
-              
               <motion.div 
-                initial={{ opacity: 0, x: -30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
+                initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
                 className="lg:col-span-2 space-y-6"
               >
-                 <div className={`p-8 rounded-3xl border shadow-lg transition-transform hover:-translate-y-1 ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-6 border border-indigo-500/20">
-                      <Mail className="w-7 h-7 text-indigo-500" />
+                 <div className="p-8 rounded-3xl bg-[#FCFBF9] border border-stone-200 shadow-sm transition-transform hover:-translate-y-1">
+                    <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center mb-6">
+                      <Mail className="w-7 h-7 text-orange-600" />
                     </div>
-                    <h3 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Email Us</h3>
-                    <p className={`mb-6 text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Send us an email directly. We usually respond within 24 hours.</p>
-                    <a href="mailto:mathcommentors@gmail.com" className="inline-flex items-center gap-2 text-indigo-500 font-bold hover:text-indigo-400 transition-colors">
+                    <h3 className="text-2xl font-bold mb-2 text-stone-800">Email Us</h3>
+                    <p className="mb-6 text-sm text-stone-600">Send us an email directly. We usually respond within 24 hours.</p>
+                    <a href="mailto:mathcommentors@gmail.com" className="inline-flex items-center gap-2 text-orange-600 font-bold hover:text-orange-700 transition-colors">
                       mathcommentors@gmail.com <ArrowRight className="w-4 h-4" />
                     </a>
                  </div>
 
-                 <div className={`p-8 rounded-3xl border shadow-lg transition-transform hover:-translate-y-1 ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center mb-6 border border-cyan-500/20">
-                      <Users className="w-7 h-7 text-cyan-500" />
+                 <div className="p-8 rounded-3xl bg-[#FCFBF9] border border-stone-200 shadow-sm transition-transform hover:-translate-y-1">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mb-6">
+                      <Users className="w-7 h-7 text-amber-600" />
                     </div>
-                    <h3 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Join Community</h3>
-                    <p className={`mb-6 text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Connect with thousands of students on our official channel.</p>
-                    <a href="https://www.youtube.com/@MathComMentors" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-cyan-500 font-bold hover:text-cyan-400 transition-colors">
+                    <h3 className="text-2xl font-bold mb-2 text-stone-800">Join Community</h3>
+                    <p className="mb-6 text-sm text-stone-600">Connect with thousands of students on our official channel.</p>
+                    <a href="https://www.youtube.com/@MathComMentors" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-amber-600 font-bold hover:text-amber-700 transition-colors">
                       Visit YouTube <ArrowRight className="w-4 h-4" />
                     </a>
                  </div>
               </motion.div>
 
               <motion.div 
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className={`lg:col-span-3 p-8 md:p-10 rounded-3xl border shadow-2xl relative overflow-hidden transition-colors ${isDark ? 'bg-slate-900/80 border-slate-800 shadow-indigo-900/10' : 'bg-white border-slate-200 shadow-indigo-100'}`}
+                initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                className="lg:col-span-3 p-8 md:p-10 rounded-3xl bg-[#FCFBF9] border border-stone-200 shadow-sm relative overflow-hidden"
               >
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-500"></div>
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-orange-600"></div>
 
-                <h3 className={`text-2xl font-bold mb-8 ${isDark ? 'text-white' : 'text-slate-900'}`}>Send a Message</h3>
+                <h3 className="text-2xl font-bold mb-8 text-stone-800">Send a Message</h3>
 
                 <form onSubmit={handleContactSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="relative">
-                      <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Your Name</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-stone-500">Your Name</label>
                       <input 
-                        type="text" required
-                        value={contactData.name}
-                        onChange={(e) => setContactData({...contactData, name: e.target.value})}
-                        className={`w-full px-5 py-4 rounded-xl border-2 focus:border-indigo-500 focus:ring-0 outline-none transition-all ${isDark ? 'bg-[#0A0F1C] border-slate-800 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                        type="text" required value={contactData.name} onChange={(e) => setContactData({...contactData, name: e.target.value})}
+                        className="w-full px-5 py-4 rounded-xl border border-stone-300 focus:border-orange-600 focus:ring-1 focus:ring-orange-600 outline-none transition-all bg-stone-50 text-stone-800"
                         placeholder="Enter your full name"
                       />
                     </div>
                     <div className="relative">
-                      <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Your Email</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-stone-500">Your Email</label>
                       <input 
-                        type="email" required
-                        value={contactData.email}
-                        onChange={(e) => setContactData({...contactData, email: e.target.value})}
-                        className={`w-full px-5 py-4 rounded-xl border-2 focus:border-indigo-500 focus:ring-0 outline-none transition-all ${isDark ? 'bg-[#0A0F1C] border-slate-800 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                        type="email" required value={contactData.email} onChange={(e) => setContactData({...contactData, email: e.target.value})}
+                        className="w-full px-5 py-4 rounded-xl border border-stone-300 focus:border-orange-600 focus:ring-1 focus:ring-orange-600 outline-none transition-all bg-stone-50 text-stone-800"
                         placeholder="Enter your email address"
                       />
                     </div>
                   </div>
                   <div className="relative">
-                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Your Message</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-stone-500">Your Message</label>
                     <textarea 
-                      required rows="5"
-                      value={contactData.message}
-                      onChange={(e) => setContactData({...contactData, message: e.target.value})}
-                      className={`w-full px-5 py-4 rounded-xl border-2 focus:border-indigo-500 focus:ring-0 outline-none transition-all resize-none ${isDark ? 'bg-[#0A0F1C] border-slate-800 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                      required rows="5" value={contactData.message} onChange={(e) => setContactData({...contactData, message: e.target.value})}
+                      className="w-full px-5 py-4 rounded-xl border border-stone-300 focus:border-orange-600 focus:ring-1 focus:ring-orange-600 outline-none transition-all resize-none bg-stone-50 text-stone-800"
                       placeholder="How can we help you today?"
                     ></textarea>
                   </div>
@@ -990,10 +767,8 @@ const HomePage = () => {
                   <AnimatePresence>
                     {contactStatus.message && (
                       <motion.div 
-                        initial={{ opacity: 0, height: 0, y: -10 }}
-                        animate={{ opacity: 1, height: 'auto', y: 0 }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className={`p-4 rounded-xl text-sm font-bold flex items-center gap-3 ${contactStatus.isError ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'}`}
+                        initial={{ opacity: 0, height: 0, y: -10 }} animate={{ opacity: 1, height: 'auto', y: 0 }} exit={{ opacity: 0, height: 0 }}
+                        className={`p-4 rounded-xl text-sm font-bold flex items-center gap-3 ${contactStatus.isError ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`}
                       >
                         {contactStatus.isError ? <AlertCircle className="w-5 h-5 shrink-0" /> : <CheckCircle className="w-5 h-5 shrink-0" />}
                         {contactStatus.message}
@@ -1002,92 +777,78 @@ const HomePage = () => {
                   </AnimatePresence>
 
                   <motion.button 
-                    whileHover={{ scale: contactStatus.loading ? 1 : 1.02 }}
-                    whileTap={{ scale: contactStatus.loading ? 1 : 0.98 }}
-                    type="submit" 
-                    disabled={contactStatus.loading}
-                    className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-80 flex items-center justify-center gap-3 shadow-lg shadow-indigo-500/30 relative overflow-hidden"
+                    whileHover={{ scale: contactStatus.loading ? 1 : 1.02 }} whileTap={{ scale: contactStatus.loading ? 1 : 0.98 }}
+                    type="submit" disabled={contactStatus.loading}
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-80 flex items-center justify-center gap-3 shadow-sm relative overflow-hidden"
                   >
                     {contactStatus.loading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" /> 
-                        Sending Message...
-                      </>
+                      <><Loader2 className="w-5 h-5 animate-spin" /> Sending Message...</>
                     ) : contactStatus.message && !contactStatus.isError ? (
-                      <>
-                        <CheckCircle className="w-5 h-5" />
-                        Sent Successfully!
-                      </>
+                      <><CheckCircle className="w-5 h-5" /> Sent Successfully!</>
                     ) : (
-                      <>
-                        Send Message <Send className="w-5 h-5" />
-                      </>
+                      <>Send Message <Send className="w-5 h-5" /></>
                     )}
                   </motion.button>
                 </form>
               </motion.div>
-
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className={`pt-16 pb-8 border-t transition-colors duration-500 ${isDark ? 'bg-[#070B14] border-slate-800/50' : 'bg-slate-50 border-slate-200'}`}>
+        <footer className="pt-16 pb-8 border-t bg-[#FCFBF9] border-stone-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-8 mb-16">
               
-              {/* Brand Col */}
               <div className="md:col-span-12 lg:col-span-5">
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm">
+                  <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center p-1 border border-stone-200">
                     <img src="/mathcom-logo.png" alt="MathCom Mentors Logo" className="w-full h-full object-contain rounded-md" />
                   </div>
-                  <span className={`font-black text-xl tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>MathCom Mentors</span>
+                  <span className="font-black text-xl tracking-tight text-stone-800">MathCom Mentors</span>
                 </div>
-                <p className={`mb-6 font-medium leading-relaxed max-w-sm text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className="mb-6 font-medium leading-relaxed max-w-sm text-sm text-stone-500">
                   Empowering B.Tech CSE students with high-quality, accessible education in Mathematics and Computer Science.
                 </p>
-                <a href="mailto:mathcommentors@gmail.com" className={`inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border font-bold text-sm transition-all ${isDark ? 'bg-slate-800/50 border-slate-700/50 text-indigo-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-indigo-600 hover:bg-slate-100 shadow-sm'}`}>
+                <a href="mailto:mathcommentors@gmail.com" className="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl border bg-stone-50 border-stone-200 text-orange-600 hover:bg-stone-100 shadow-sm font-bold text-sm transition-all">
                   <Mail className="w-4 h-4" /> mathcommentors@gmail.com
                 </a>
               </div>
 
               <div className="hidden lg:block lg:col-span-1"></div>
 
-              {/* Socials Col */}
               <div className="md:col-span-6 lg:col-span-3">
-                <h3 className={`font-black text-sm mb-5 uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>Connect</h3>
+                <h3 className="font-black text-sm mb-5 uppercase tracking-widest text-stone-800">Connect</h3>
                 <div className="flex flex-col gap-3">
-                  <motion.a whileHover={{ x: 5 }} href="https://facebook.com/MathComMentors" target="_blank" rel="noreferrer" className={`flex items-center gap-3 text-sm font-medium transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+                  <motion.a whileHover={{ x: 5 }} href="https://facebook.com/MathComMentors" target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm font-medium text-stone-600 hover:text-orange-600 transition-colors">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-stone-100 text-stone-500">
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.891h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>
                     </div>
                     Facebook
                   </motion.a>
-                  
-                  <motion.a whileHover={{ x: 5 }} href="https://linkedin.com/in/mathcom-mentors-6b8a94188" target="_blank" rel="noreferrer" className={`flex items-center gap-3 text-sm font-medium transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+
+                  <motion.a whileHover={{ x: 5 }} href="https://linkedin.com/in/mathcom-mentors-6b8a94188" target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm font-medium text-stone-600 hover:text-orange-600 transition-colors">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-stone-100 text-stone-500">
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clipRule="evenodd" /></svg>
                     </div>
                     LinkedIn
                   </motion.a>
                   
-                  <motion.a whileHover={{ x: 5 }} href="https://twitter.com/mathcom_mentors" target="_blank" rel="noreferrer" className={`flex items-center gap-3 text-sm font-medium transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+                  <motion.a whileHover={{ x: 5 }} href="https://twitter.com/mathcom_mentors" target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm font-medium text-stone-600 hover:text-orange-600 transition-colors">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-stone-100 text-stone-500">
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.005 4.25H5.078z" /></svg>
                     </div>
                     Twitter (X)
                   </motion.a>
 
-                  <motion.a whileHover={{ x: 5 }} href="https://instagram.com/mathcommentors" target="_blank" rel="noreferrer" className={`flex items-center gap-3 text-sm font-medium transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+                  <motion.a whileHover={{ x: 5 }} href="https://instagram.com/mathcommentors" target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm font-medium text-stone-600 hover:text-orange-600 transition-colors">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-stone-100 text-stone-500">
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clipRule="evenodd" /></svg>
                     </div>
                     Instagram
                   </motion.a>
                   
-                  <motion.a whileHover={{ x: 5 }} href="https://www.youtube.com/@MathComMentors" target="_blank" rel="noreferrer" className={`flex items-center gap-3 text-sm font-medium transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+                  <motion.a whileHover={{ x: 5 }} href="https://www.youtube.com/@MathComMentors" target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm font-medium text-stone-600 hover:text-orange-600 transition-colors">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-stone-100 text-stone-500">
                       <PlayCircle className="w-3.5 h-3.5" />
                     </div>
                     YouTube
@@ -1095,17 +856,13 @@ const HomePage = () => {
                 </div>
               </div>
 
-              {/* Developer Col */}
               <div className="md:col-span-6 lg:col-span-3">
-                <h3 className={`font-black text-sm mb-5 uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>Developer</h3>
-                <p className={`text-xs font-medium mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Designed & Built by</p>
+                <h3 className="font-black text-sm mb-5 uppercase tracking-widest text-stone-800">Developer</h3>
+                <p className="text-xs font-medium mb-3 text-stone-500">Designed & Built by</p>
                 <motion.a 
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  href="https://github.com/Rudragupta23" 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm transition-all shadow-sm ${isDark ? 'bg-[#0F172A]/50 border-slate-800 hover:border-slate-600 text-white' : 'bg-white border-slate-200 hover:border-slate-300 text-slate-900'}`}
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  href="https://github.com/Rudragupta23" target="_blank" rel="noreferrer" 
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border bg-[#FCFBF9] border-stone-200 hover:border-stone-300 text-stone-800 text-sm transition-all shadow-sm"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
                   <span className="font-bold">Rudragupta23</span>
@@ -1114,62 +871,58 @@ const HomePage = () => {
 
             </div>
 
-            {/* Bottom Bar */}
-            <div className={`pt-6 border-t flex flex-col md:flex-row justify-between items-center gap-4 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
-              <p className={`text-xs font-semibold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+            <div className="pt-6 border-t border-stone-200 flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-xs font-semibold text-stone-500">
                 © {new Date().getFullYear()} MathCom Mentors by Dr. Goyal. All rights reserved.
               </p>
               <div className="flex gap-6 text-xs font-black uppercase tracking-widest">
-                <Link to="/login" className={`transition-colors ${isDark ? 'text-slate-500 hover:text-white' : 'text-slate-400 hover:text-slate-900'}`}>Portal Login</Link>
+                <Link to="/login" className="text-stone-500 hover:text-orange-600 transition-colors">Portal Login</Link>
               </div>
             </div>
           </div>
         </footer>
 
-        {/* PWA INSTALL INSTRUCTIONS MODAL */}
         <AnimatePresence>
           {showInstallModal && (
-            <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in">
+            <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-stone-900/50 backdrop-blur-sm p-4">
               <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }} 
-                animate={{ opacity: 1, scale: 1 }} 
-                exit={{ opacity: 0, scale: 0.9 }}
-                className={`max-w-md w-full p-8 rounded-3xl border shadow-2xl relative ${isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                className="max-w-md w-full p-8 rounded-3xl bg-[#FCFBF9] border border-stone-200 text-stone-800 shadow-2xl relative"
               >
                 <button 
                   onClick={() => setShowInstallModal(false)}
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800/20 flex items-center justify-center font-bold text-slate-400 hover:text-white transition-colors"
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center font-bold text-stone-500 hover:text-stone-800 transition-colors"
                 >
                   ✕
                 </button>
 
-                <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-2xl flex items-center justify-center mb-6">
+                <div className="w-16 h-16 bg-orange-100/50 text-orange-600 rounded-2xl flex items-center justify-center mb-6">
                   <Smartphone className="w-8 h-8" />
                 </div>
 
                 <h3 className="text-2xl font-black mb-2">How to Install MathCom App</h3>
-                <p className={`text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                <p className="text-sm mb-6 text-stone-600">
                   Follow these quick instructions based on your device:
                 </p>
 
                 <div className="space-y-4 text-left">
-                  <div className={`p-4 rounded-2xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <h4 className="font-bold text-emerald-500 text-sm mb-1">iPhone / iPad (Safari)</h4>
-                    <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+                    <h4 className="font-bold text-orange-600 text-sm mb-1">iPhone / iPad (Safari)</h4>
+                    <p className="text-xs text-stone-600">
                       Tap the <b>Share button</b> (square with an arrow) at the bottom of Safari, then scroll down and tap <b>"Add to Home Screen"</b>.
                     </p>
                   </div>
 
-                  <div className={`p-4 rounded-2xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <h4 className="font-bold text-cyan-500 text-sm mb-1">Android (Chrome)</h4>
-                    <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+                    <h4 className="font-bold text-amber-600 text-sm mb-1">Android (Chrome)</h4>
+                    <p className="text-xs text-stone-600">
                       Tap the 3 dots in the top-right corner of Chrome and select <b>"Install app"</b> or <b>"Add to Home screen"</b>.
                     </p>
                   </div>
 
-                  <div className={`p-4 rounded-2xl border ${isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <h4 className="font-bold text-indigo-500 text-sm mb-1">Desktop (Chrome / Edge)</h4>
-                    <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200">
+                    <h4 className="font-bold text-rose-600 text-sm mb-1">Desktop (Chrome / Edge)</h4>
+                    <p className="text-xs text-stone-600">
                       Click the small <b>Install icon</b> located on the right side of your browser URL address bar.
                     </p>
                   </div>
@@ -1177,7 +930,7 @@ const HomePage = () => {
 
                 <button 
                   onClick={() => setShowInstallModal(false)}
-                  className="w-full mt-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-colors shadow-lg"
+                  className="w-full mt-6 py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl transition-colors shadow-sm"
                 >
                   Got It!
                 </button>
