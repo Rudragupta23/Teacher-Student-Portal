@@ -317,14 +317,14 @@ const handleGoogleLogin = useGoogleLogin({
   };
 
   return (
-    <div className="min-h-screen bg-[#0b1120] flex items-center justify-center p-4 sm:p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-[#F5EAD8] flex items-center justify-center p-4 sm:p-8 relative overflow-hidden">
       
-      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-violet-600/20 rounded-full mix-blend-screen filter blur-[100px] animate-pulse"></div>
-      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-500/20 rounded-full mix-blend-screen filter blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-orange-700/10 rounded-full mix-blend-multiply filter blur-[100px] animate-pulse"></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-amber-700/10 rounded-full mix-blend-multiply filter blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
 
-      <div className="max-w-5xl w-full min-h-[620px] bg-white rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row z-10 relative border border-gray-100/10">
+      <div className="max-w-5xl w-full min-h-[620px] bg-[#FBF4E7] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row z-10 relative border border-[#DCC7A4]">
         
-        <div className="md:w-1/2 p-12 text-white flex flex-col justify-center relative bg-gradient-to-br from-indigo-700 via-violet-800 to-blue-900 overflow-hidden">
+        <div className="md:w-1/2 p-12 text-[#FBF4E7] flex flex-col justify-center relative bg-[#3B2A1B] overflow-hidden">
           <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
           <FloatingMath />
           
@@ -335,13 +335,13 @@ const handleGoogleLogin = useGoogleLogin({
               transition={{ duration: 0.7 }}
               className="text-4xl xl:text-5xl font-extrabold mb-6 tracking-tight drop-shadow-xl whitespace-normal md:whitespace-nowrap"
             >
-              <span className="text-white">MathCom</span> <br className="md:hidden" /> <span className="text-sky-400">Mentors</span>
+              <span className="text-[#FBF4E7]">MathCom</span> <br className="md:hidden" /> <span className="text-orange-600">Mentors</span>
             </motion.h1>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.7 }}
-              className="text-indigo-100 text-lg leading-relaxed max-w-md"
+              className="text-[#E4D3B9] text-lg leading-relaxed max-w-md"
             >
               {view === 'login' ? 'Ready to master maths? Log in to access your dashboard and tackle your next challenge.' 
                : view === 'signup' && !isParentMode ? 'Join your class today. Experience adaptive learning tailored just for you.' 
@@ -354,7 +354,7 @@ const handleGoogleLogin = useGoogleLogin({
           </div>
         </div>
 
-        <div className="md:w-1/2 p-6 sm:p-10 lg:p-14 relative bg-white flex flex-col justify-center">
+        <div className="md:w-1/2 p-6 sm:p-10 lg:p-14 relative bg-[#FBF4E7] flex flex-col justify-center">
           
           {(view === 'forgot' || view === 'reset' || view === 'complete-profile') && (
             <button 
@@ -365,7 +365,7 @@ const handleGoogleLogin = useGoogleLogin({
                 changeView('login');
                 navigate('/login');
               }} 
-              className="absolute top-4 left-6 sm:top-8 sm:left-8 text-gray-400 hover:text-indigo-600 flex items-center gap-2 transition-colors font-semibold outline-none z-20"
+              className="absolute top-4 left-6 sm:top-8 sm:left-8 text-[#8A7358] hover:text-orange-700 flex items-center gap-2 transition-colors font-semibold outline-none z-20"
             >
               <ArrowLeft size={18} /> Back
             </button>
@@ -382,7 +382,7 @@ const handleGoogleLogin = useGoogleLogin({
               className="w-full flex flex-col gap-4"
             >
               <motion.div variants={itemVariants} className="mb-2 pt-8 sm:pt-0">
-                <h2 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
+                <h2 className="text-4xl font-extrabold text-[#3E2C1B] tracking-tight mb-2">
                   {view === 'login' ? 'Sign In' 
                    : view === 'signup' ? 'Create Account' 
                    : view === 'complete-profile' ? 'Complete Profile'
@@ -421,10 +421,10 @@ const handleGoogleLogin = useGoogleLogin({
                  </motion.div>
               )}
               
-                            {/* SOCIAL SIGN IN BUTTONS */}
+              {/* SOCIAL SIGN IN BUTTONS */}
               {(view === 'login' || view === 'signup') && (
                 <motion.div variants={itemVariants} className="w-full mb-2">
-                  <p className="text-sm font-semibold text-gray-500 mb-2">
+                  <p className="text-sm font-semibold text-[#6E5942] mb-2">
                     {view === 'signup' ? 'Sign up with' : 'Sign in with'}
                   </p>
 
@@ -434,7 +434,7 @@ const handleGoogleLogin = useGoogleLogin({
                       onClick={() => handleGoogleLogin()}
                       disabled={isLoading}
                       aria-label={view === 'signup' ? 'Sign up with Google' : 'Sign in with Google'}
-                      className="flex items-center justify-center gap-2 py-3 px-2 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed text-gray-700 text-sm font-semibold rounded-xl shadow-sm outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all"
+                      className="flex items-center justify-center gap-2 py-3 px-2 bg-[#F5EAD8] border border-[#DCC7A4] hover:border-[#3B2A1B] hover:bg-[#EFE0C9] disabled:opacity-60 disabled:cursor-not-allowed text-[#3E2C1B] text-sm font-semibold rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all"
                     >
                       <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -450,7 +450,7 @@ const handleGoogleLogin = useGoogleLogin({
                       onClick={handleMicrosoftLogin}
                       disabled={isLoading}
                       aria-label={view === 'signup' ? 'Sign up with Microsoft' : 'Sign in with Microsoft'}
-                      className="flex items-center justify-center gap-2 py-3 px-2 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed text-gray-700 text-sm font-semibold rounded-xl shadow-sm outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all"
+                      className="flex items-center justify-center gap-2 py-3 px-2 bg-[#F5EAD8] border border-[#DCC7A4] hover:border-[#3B2A1B] hover:bg-[#EFE0C9] disabled:opacity-60 disabled:cursor-not-allowed text-[#3E2C1B] text-sm font-semibold rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all"
                     >
                       <svg className="w-5 h-5 shrink-0" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <path fill="#f35325" d="M1 1h10v10H1z" />
@@ -463,19 +463,18 @@ const handleGoogleLogin = useGoogleLogin({
                   </div>
 
                   <div className="flex items-center mt-4">
-                    <div className="flex-1 border-t border-gray-200"></div>
-                    <span className="px-3 text-xs text-gray-400 font-bold uppercase tracking-wider whitespace-nowrap">
+                    <div className="flex-1 border-t border-[#DCC7A4]"></div>
+                    <span className="px-3 text-xs text-[#A08D74] font-bold uppercase tracking-wider whitespace-nowrap">
                       {view === 'signup' ? 'Or sign up with email' : 'Or use your email'}
                     </span>
-                    <div className="flex-1 border-t border-gray-200"></div>
+                    <div className="flex-1 border-t border-[#DCC7A4]"></div>
                   </div>
                 </motion.div>
               )}
-              {/* SOCIAL SIGN IN BUTTONS */}
 
               {(view === 'login' || view === 'signup' || view === 'complete-profile') && (
                 <motion.div variants={itemVariants} className="relative group">
-                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
                   <input 
                     type="email" 
                     name="email" 
@@ -484,16 +483,16 @@ const handleGoogleLogin = useGoogleLogin({
                     readOnly={view === 'complete-profile'} 
                     onChange={handleChange} 
                     value={formData.email}
-                    className={`w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 outline-none transition-all ${view === 'complete-profile' ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 text-gray-900 focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500'}`} 
+                    className={`w-full pl-12 pr-4 py-4 rounded-xl border outline-none transition-all ${view === 'complete-profile' ? 'bg-[#EFE0C9] border-[#DCC7A4] text-[#6E5942] cursor-not-allowed' : 'bg-[#F5EAD8] border-[#DCC7A4] text-[#3E2C1B] focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B]'}`} 
                   />
                 </motion.div>
               )}
 
               {view === 'forgot' && (
-                <motion.div variants={itemVariants} className="bg-violet-50 border border-violet-100 rounded-2xl p-6 text-center my-2">
-                  <p className="text-violet-600 font-semibold mb-2 text-sm uppercase tracking-wider">Sending reset code to:</p>
-                  <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-900">
-                    <Send size={20} className="text-violet-500" />
+                <motion.div variants={itemVariants} className="bg-[#EFE0C9] border border-[#DCC7A4] rounded-2xl p-6 text-center my-2">
+                  <p className="text-orange-700 font-semibold mb-2 text-sm uppercase tracking-wider">Sending reset code to:</p>
+                  <div className="flex items-center justify-center gap-2 text-xl font-bold text-[#3E2C1B]">
+                    <Send size={20} className="text-orange-600" />
                     {formData.email}
                   </div>
                 </motion.div>
@@ -501,15 +500,15 @@ const handleGoogleLogin = useGoogleLogin({
 
               {(view === 'otp' || view === 'reset') && (
                 <motion.div variants={itemVariants} className="relative group">
-                  <ShieldCheck className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={22} />
+                  <ShieldCheck className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={22} />
                   <input type="text" name="otp" value={formData.otp} placeholder="• • • • • •" required maxLength="6" onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-4 text-center tracking-[0.5em] font-mono text-2xl font-bold bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all placeholder:tracking-normal placeholder:font-sans placeholder:text-xl placeholder:font-normal placeholder:text-gray-400" />
+                    className="w-full pl-12 pr-4 py-4 text-center tracking-[0.5em] font-mono text-2xl font-bold bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all placeholder:tracking-normal placeholder:font-sans placeholder:text-xl placeholder:font-normal placeholder:text-[#A08D74]" />
                 </motion.div>
               )}
 
               {view === 'otp' && (
                 <motion.div variants={itemVariants} className="flex justify-center mt-1 mb-2">
-                  <p className="text-sm text-gray-500 font-medium">
+                  <p className="text-sm text-[#6E5942] font-medium">
                     Didn't receive the code?{' '}
                     <button 
                       type="button" 
@@ -517,8 +516,8 @@ const handleGoogleLogin = useGoogleLogin({
                       disabled={resendTimer > 0 || isResending}
                       className={`font-bold transition-colors outline-none ${
                         resendTimer > 0 || isResending 
-                          ? 'text-gray-400 cursor-not-allowed' 
-                          : 'text-violet-600 hover:text-violet-800 hover:underline'
+                          ? 'text-[#A08D74] cursor-not-allowed' 
+                          : 'text-orange-700 hover:text-orange-800 hover:underline'
                       }`}
                     >
                       {isResending 
@@ -533,10 +532,10 @@ const handleGoogleLogin = useGoogleLogin({
 
               {(view === 'login' || view === 'signup') && (
                 <motion.div variants={itemVariants} className="relative group">
-                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
                   <input type={showPassword ? "text" : "password"} name="password" value={formData.password} placeholder={view === 'signup' ? 'Set password' : 'Enter your password'} required onChange={handleChange}
-                    className="w-full pl-12 pr-12 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 outline-none">
+                    className="w-full pl-12 pr-12 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] hover:text-[#3E2C1B] outline-none">
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </motion.div>
@@ -545,15 +544,15 @@ const handleGoogleLogin = useGoogleLogin({
               {view === 'reset' && (
                 <>
                   <motion.div variants={itemVariants} className="relative group">
-                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
                     <input type={showNewPassword ? "text" : "password"} name="newPassword" value={formData.newPassword} placeholder="Enter New Password" required onChange={handleChange}
-                      className="w-full pl-12 pr-12 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
-                    <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 outline-none">
+                      className="w-full pl-12 pr-12 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all" />
+                    <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] hover:text-[#3E2C1B] outline-none">
                       {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </motion.div>
                   <motion.div variants={itemVariants} className="flex justify-center mt-3">
-                    <p className="text-sm text-gray-500 font-medium">
+                    <p className="text-sm text-[#6E5942] font-medium">
                       Didn't receive the code?{' '}
                       <button 
                         type="button" 
@@ -561,8 +560,8 @@ const handleGoogleLogin = useGoogleLogin({
                         disabled={resendTimer > 0 || isResending}
                         className={`font-bold transition-colors outline-none ${
                           resendTimer > 0 || isResending 
-                            ? 'text-gray-400 cursor-not-allowed' 
-                            : 'text-violet-600 hover:text-violet-800 hover:underline'
+                            ? 'text-[#A08D74] cursor-not-allowed' 
+                            : 'text-orange-700 hover:text-orange-800 hover:underline'
                         }`}
                       >
                         {isResending 
@@ -579,44 +578,44 @@ const handleGoogleLogin = useGoogleLogin({
               {(view === 'signup' || view === 'complete-profile') && (
                 <>
                   <motion.div variants={itemVariants} className="relative group">
-                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
                     <input type="text" name="name" value={formData.name} placeholder={isParentMode ? "Parent's Full Name" : "Student's Full Name"} required onChange={handleChange}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                      className="w-full pl-12 pr-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all" />
                   </motion.div>
                   
                   <motion.div variants={itemVariants} className="relative group">
-                    <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                    <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
                     <input type="tel" name="phone" value={formData.phone} placeholder="Phone Number" required onChange={handleChange}
-                      className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                      className="w-full pl-12 pr-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all" />
                   </motion.div>
 
                   {!isParentMode && (
                     <>
                       <motion.div variants={itemVariants} className="relative group">
-                        <School className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <School className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
                         <input type="text" name="schoolName" placeholder="School Name" required onChange={handleChange} value={formData.schoolName}
-                          className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                          className="w-full pl-12 pr-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all" />
                       </motion.div>
 
                       <motion.div variants={itemVariants} className="relative group">
-                        <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
                         <input type="text" name="city" placeholder="City" required onChange={handleChange} value={formData.city}
-                          className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                          className="w-full pl-12 pr-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all" />
                       </motion.div>
 
                       <motion.div variants={itemVariants} className="relative group">
-                        <Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
                         <select name="country" required onChange={handleChange} value={formData.country}
-                          className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all appearance-none cursor-pointer">
+                          className="w-full pl-12 pr-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all appearance-none cursor-pointer">
                           <option value="United Kingdom">United Kingdom</option>
                           <option value="Others">Others</option>
                         </select>
                       </motion.div>
 
                       <motion.div variants={itemVariants} className="relative group">
-                        <GraduationCap className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                        <GraduationCap className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
                         <select name="yearGroup" required onChange={handleChange} value={formData.yearGroup}
-                          className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all appearance-none cursor-pointer">
+                          className="w-full pl-12 pr-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all appearance-none cursor-pointer">
                           <option value="" disabled>Select Year Group</option>
                           <option value="Y6">Y6</option>
                           <option value="Y7">Y7</option>
@@ -633,9 +632,9 @@ const handleGoogleLogin = useGoogleLogin({
 
                   {isParentMode && (
                     <motion.div variants={itemVariants} className="relative group">
-                      <Key className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-violet-600 transition-colors" size={20} />
+                      <Key className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
                       <input type="text" name="linkedStudentId" placeholder="Child's Student ID (e.g., MCM-YearGroup-XX)" required onChange={handleChange} value={formData.linkedStudentId}
-                        className="w-full pl-12 pr-4 py-4 bg-gray-50 text-gray-900 rounded-xl border border-gray-200 outline-none focus:bg-white focus:ring-4 focus:ring-violet-500/10 focus:border-violet-500 transition-all" />
+                        className="w-full pl-12 pr-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all" />
                     </motion.div>
                   )}
                 </>
@@ -643,7 +642,7 @@ const handleGoogleLogin = useGoogleLogin({
 
               {view === 'login' && (
                 <motion.div variants={itemVariants} className="flex justify-end">
-                  <button type="button" onClick={handleForgotClick} className="text-sm font-semibold text-violet-600 hover:text-violet-800 transition-colors outline-none">
+                  <button type="button" onClick={handleForgotClick} className="text-sm font-semibold text-orange-700 hover:text-orange-800 transition-colors outline-none">
                     Forgot Password?
                   </button>
                 </motion.div>
@@ -655,10 +654,10 @@ const handleGoogleLogin = useGoogleLogin({
                 whileTap={{ scale: isLoading ? 1 : 0.98 }}
                 type="submit" 
                 disabled={isLoading}
-                className={`w-full py-4 mt-2 text-white text-lg font-bold rounded-xl shadow-lg outline-none transition-all ${
+                className={`w-full py-4 mt-2 text-[#FBF4E7] text-lg font-bold rounded-xl outline-none transition-all ${
                   isLoading 
-                    ? 'bg-violet-400 cursor-not-allowed shadow-none' 
-                    : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-violet-200'
+                    ? 'bg-[#8A7358] cursor-not-allowed shadow-none' 
+                    : 'bg-[#3B2A1B] hover:bg-[#4A3524] shadow-md'
                 }`}
               >
                 {isLoading ? (
@@ -677,11 +676,11 @@ const handleGoogleLogin = useGoogleLogin({
               </motion.button>
 
               {(view === 'login' || view === 'signup') && (
-                <motion.div variants={itemVariants} className="text-center text-sm text-gray-500 font-medium mt-2 pt-6 border-t border-gray-100 flex flex-col gap-3">
+                <motion.div variants={itemVariants} className="text-center text-sm text-[#6E5942] font-medium mt-2 pt-6 border-t border-[#DCC7A4] flex flex-col gap-3">
                   {view === 'login' ? (
-                    <p>Don't have an account? <button type="button" onClick={() => navigate('/signup')} className="text-violet-600 font-bold hover:underline outline-none">Sign up</button></p>
+                    <p>Don't have an account? <button type="button" onClick={() => navigate('/signup')} className="text-orange-700 font-bold hover:underline outline-none">Sign up</button></p>
                   ) : (
-                    <p>Already have an account? <button type="button" onClick={() => navigate('/login')} className="text-violet-600 font-bold hover:underline outline-none">Log in</button></p>
+                    <p>Already have an account? <button type="button" onClick={() => navigate('/login')} className="text-orange-700 font-bold hover:underline outline-none">Log in</button></p>
                   )}
                   
                   <button 
@@ -689,7 +688,7 @@ const handleGoogleLogin = useGoogleLogin({
                     onClick={() => {
                       navigate(isParentMode ? '/signup' : '/parent-signup');
                     }} 
-                    className="inline-flex items-center justify-center gap-2 text-gray-600 hover:text-violet-700 transition-colors font-semibold"
+                    className="inline-flex items-center justify-center gap-2 text-[#6E5942] hover:text-[#3E2C1B] transition-colors font-semibold"
                   >
                     <User size={16} />
                     {isParentMode ? "I am a Student" : "Are you a Parent? Click here"}
