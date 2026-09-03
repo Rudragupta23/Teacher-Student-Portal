@@ -10,6 +10,7 @@ MathCom Mentors is a full-stack MERN educational platform built to centralize th
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![AWS S3](https://img.shields.io/badge/AWS_S3-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/s3/)
 [![AWS CloudFront](https://img.shields.io/badge/AWS_CloudFront-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/cloudfront/)
+[![AWS SNS](https://img.shields.io/badge/AWS_SNS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/sns/)
 
 **🚀 Live Platform:** [https://mathcommentors.com/](https://mathcommentors.com/)  
 **🔐 Direct Login Portal:** [https://mathcommentors.com/login](https://mathcommentors.com/login)
@@ -83,8 +84,8 @@ MathCom Mentors is a full-stack MERN educational platform built to centralize th
 | **Communication** | **Contextual Feedback** | Attach specific, constructive comments directly to a student's graded submission. | Teacher, Grader, Student |
 | | **Contact & Support** | Streamlined contact routing for platform support and administrative inquiries. | All Users |
 | | **Internal Messaging** | Secure direct communication channel connecting educators with parents. | Teacher, Parent |
-| **Automation** | **CRON Job Reminders** | Background server tasks that automatically detect approaching deadlines and send warning emails. | Student, Parent |
-| | **Automated Alerts** | Instant email notifications triggered by new assignments or newly published grades. | Student, Parent |
+| **Automation** | **CRON Job Reminders** | Background server tasks that automatically detect approaching deadlines and send warning emails and SMS texts via AWS SNS. | Student, Parent |
+| | **Automated Dual-Alerts** | Instant dual-channel notifications (Email & SMS text messages via AWS SNS) triggered by new assignments, grades, OTPs, and announcements. | All Users |
 
 ## 🎭 User Roles & Dashboards
 
@@ -115,6 +116,7 @@ MathCom Mentors is a full-stack MERN educational platform built to centralize th
 - **JSON Web Tokens (JWT)** (Authentication)
 - **Bcrypt.js** (Password hashing)
 - **Nodemailer** (Email integration)
+- **AWS SNS / @aws-sdk/client-sns** (SMS text messaging service)
 - **Node-Cron** (Automated background tasks)
 
 ---
@@ -224,9 +226,10 @@ server/
 │   └── roleMiddleware.js
 ├── jobs/
 │   └── reminderJob.js
-└── utils/
+└── ├── utils/
     ├── s3Utils.js
-    └── sendEmail.js
+    ├── sendEmail.js
+    └── sendSMS.js
 ```
 
 ## ☁️ Deployment Architecture
