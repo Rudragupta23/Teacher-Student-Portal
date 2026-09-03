@@ -90,12 +90,18 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
   }, [resendTimer]);
 
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', phone: '', otp: '', newPassword: '', yearGroup: '', linkedStudentId: '', schoolName: '', city: '', country: 'United Kingdom'
+    name: '', email: '', password: '', phone: '', countryCode: '+44', otp: '', newPassword: '', yearGroup: '', linkedStudentId: '', schoolName: '', city: '', country: 'United Kingdom'
   });
 
   const handleChange = (e) => {
     setStatusMsg({ type: '', text: '' }); 
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleCountryCodeChange = (e) => {
+    const code = e.target.value;
+    const country = code === '+44' ? 'United Kingdom' : code === '+91' ? 'India' : formData.country;
+    setFormData({ ...formData, countryCode: code, country });
   };
 
   const changeView = (newView) => {
@@ -146,7 +152,8 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
     setStatusMsg({ type: '', text: '' }); 
     setIsLoading(true);
 
-    const errorMsg = validateData(formData.email, formData.phone, view);
+    const fullPhone = formData.countryCode + formData.phone;
+    const errorMsg = validateData(formData.email, fullPhone, view);
     if (errorMsg && (view === 'login' || view === 'signup' || view === 'forgot' || view === 'reset' || view === 'complete-profile')) {
       setStatusMsg({ type: 'error', text: errorMsg });
       setIsLoading(false); 
@@ -155,13 +162,13 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
 
     try {
       if (view === 'signup') {
-        const payload = { ...formData, isParent: isParentMode };
+        const payload = { ...formData, phone: fullPhone, isParent: isParentMode };
         const res = await api.post('/auth/register', payload);
         setStatusMsg({ type: 'success', text: res.data.message });
         changeView('otp');
       }
       else if (view === 'complete-profile') {
-        const payload = { ...formData, isParent: isParentMode };
+        const payload = { ...formData, phone: fullPhone, isParent: isParentMode };
         const res = await api.post('/auth/complete-google-profile', payload);
         setStatusMsg({ type: 'success', text: res.data.message });
         setTimeout(() => {
@@ -583,10 +590,24 @@ const handleGoogleLogin = useGoogleLogin({
                       className="w-full pl-12 pr-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all" />
                   </motion.div>
                   
-                  <motion.div variants={itemVariants} className="relative group">
-                    <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
-                    <input type="tel" name="phone" value={formData.phone} placeholder="Phone Number" required onChange={handleChange}
-                      className="w-full pl-12 pr-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all" />
+                  <motion.div variants={itemVariants} className="flex gap-2 relative group">
+                    <div className="w-[35%] relative">
+                      <select name="countryCode" required onChange={handleCountryCodeChange} value={formData.countryCode}
+                        className="w-full px-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all appearance-none cursor-pointer">
+                        <option value="+44">🇬🇧 +44</option>
+                        <option value="+91">🇮🇳 +91</option>
+                      </select>
+                    </div>
+                    <div className="w-[65%] relative">
+                      <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
+                      <input type="tel" name="phone" value={formData.phone} placeholder="10-digit number" required maxLength="10" 
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/\D/g, ''); // Ensure only numbers
+                          if (val.startsWith('0')) val = val.substring(1); // Exclude 0 from starting
+                          handleChange({ target: { name: 'phone', value: val } });
+                        }}
+                        className="w-full pl-12 pr-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all" />
+                    </div>
                   </motion.div>
 
                   {!isParentMode && (
@@ -604,12 +625,9 @@ const handleGoogleLogin = useGoogleLogin({
                       </motion.div>
 
                       <motion.div variants={itemVariants} className="relative group">
-                        <Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
-                        <select name="country" required onChange={handleChange} value={formData.country}
-                          className="w-full pl-12 pr-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all appearance-none cursor-pointer">
-                          <option value="United Kingdom">United Kingdom</option>
-                          <option value="Others">Others</option>
-                        </select>
+                        <Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] transition-colors" size={20} />
+                        <input type="text" name="country" required value={formData.country} readOnly
+                          className="w-full pl-12 pr-4 py-4 bg-[#EFE0C9] text-[#6E5942] rounded-xl border border-[#DCC7A4] outline-none cursor-not-allowed transition-all font-bold" />
                       </motion.div>
 
                       <motion.div variants={itemVariants} className="relative group">
