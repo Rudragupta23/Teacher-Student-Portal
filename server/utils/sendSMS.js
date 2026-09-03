@@ -12,6 +12,21 @@ const sendSMS = async ({ phone, message }) => {
   try {
     if (!phone) return; 
 
+    // const params = {
+    //   Message: message,
+    //   PhoneNumber: phone, 
+    //   MessageAttributes: {
+    //     'AWS.SNS.SMS.SMSType': {
+    //       DataType: 'String',
+    //       StringValue: 'Transactional' 
+    //     },
+    //     'AWS.SNS.SMS.SenderID': {
+    //       DataType: 'String',
+    //       StringValue: 'MATHCOM' 
+    //     }
+    //   }
+    // };
+
     const params = {
       Message: message,
       PhoneNumber: phone, 
@@ -19,10 +34,6 @@ const sendSMS = async ({ phone, message }) => {
         'AWS.SNS.SMS.SMSType': {
           DataType: 'String',
           StringValue: 'Transactional' 
-        },
-        'AWS.SNS.SMS.SenderID': {
-          DataType: 'String',
-          StringValue: 'MATHCOM' 
         }
       }
     };
