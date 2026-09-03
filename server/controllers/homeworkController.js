@@ -1,6 +1,7 @@
 const Homework = require('../models/Homework');
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail'); 
+const sendSMS = require('../utils/sendSMS');
 const { deleteFileFromS3 } = require('../utils/s3Utils');
 
 exports.assignHomework = async (req, res) => {
@@ -135,6 +136,16 @@ exports.assignHomework = async (req, res) => {
         subject: emailSubject,
         html: emailContent
       }).catch(err => console.error("Email failed, but continuing:", err.message));
+
+      const studentPhones = targetStudents.map(student => student.phone).filter(phone => phone);
+      if (studentPhones.length > 0) {
+        await Promise.all(studentPhones.map(phone => 
+          sendSMS({
+            phone,
+            message: isTest ? `MathCom Mentors: A new test "${title}" has been scheduled.` : `MathCom Mentors: New homework "${title}" has been assigned.`
+          })
+        ));
+      }
     }
     res.status(201).json({ message: `Successfully assigned to ${targetStudents.length} student(s)` });
   } catch (error) {
@@ -217,6 +228,12 @@ exports.submitHomework = async (req, res) => {
         if(admin.email) {
           sendEmail({ email: admin.email, subject: `Homework Submitted by ${studentName}`, html: emailContent });
         }
+        if (admin.phone) {
+          sendSMS({
+            phone: admin.phone,
+            message: `MathCom Mentors: ${studentName} just submitted ${homework.title}.`
+          });
+        }
       });
     };
 
@@ -287,6 +304,13 @@ exports.submitHomework = async (req, res) => {
           subject: `Your Homework has been Graded: ${homework.title}`,
           html: studentEmailContent
         });
+
+        if (student.phone) {
+          sendSMS({
+            phone: student.phone,
+            message: `MathCom Mentors: Your MCQ "${homework.title}" was auto-graded. Score: ${score}/${totalScore}.`
+          });
+        }
       }
 
       // 2. Notify Parent
@@ -327,6 +351,16 @@ exports.submitHomework = async (req, res) => {
             subject: `Update: ${student.registrationName || student.name}'s Homework has been Graded`,
             html: parentEmailContent
           });
+        }
+
+        const parentPhones = parents.map(p => p.phone).filter(phone => phone);
+        if (parentPhones.length > 0) {
+          await Promise.all(parentPhones.map(phone => 
+            sendSMS({
+              phone,
+              message: `MathCom Mentors Update: ${student.registrationName || student.name} scored ${score}/${totalScore} on "${homework.title}".`
+            })
+          ));
         }
       }
 
@@ -438,8 +472,14 @@ exports.gradeHomework = async (req, res) => {
             subject: `Your Homework has been Graded: ${homework.title}`,
             html: studentEmailContent
           }).catch(err => console.error("Email to student failed, but continuing:", err.message));
-        }
 
+          if (student.phone) {
+            sendSMS({
+              phone: student.phone,
+              message: `MathCom Mentors: Your submission for "${homework.title}" has been graded: ${score}/${totalScore}.`
+            }).catch(err => console.error("SMS to student failed:", err.message));
+          }
+        }
         // 2. NOTIFY THE PARENT
         const parents = await User.find({
           role: 'parent',
@@ -478,6 +518,16 @@ exports.gradeHomework = async (req, res) => {
               subject: `Update: ${student.registrationName || student.name}'s Homework has been Graded`,
               html: parentEmailContent
             }).catch(err => console.error("Email to parent failed, but continuing:", err.message));
+          }
+
+          const parentPhones = parents.map(p => p.phone).filter(phone => phone);
+          if (parentPhones.length > 0) {
+            await Promise.all(parentPhones.map(phone => 
+              sendSMS({
+                phone,
+                message: `MathCom Mentors Update: ${student.registrationName || student.name} received a grade of ${score}/${totalScore} for "${homework.title}".`
+              })
+            )).catch(err => console.error("SMS to parents failed:", err.message));
           }
         }
       }
@@ -539,6 +589,13 @@ exports.extendDeadline = async (req, res) => {
         subject: `Deadline Extended: ${homework.title}`,
         html: emailContent
       }).catch(err => console.error("Email failed, but continuing:", err.message));
+
+      if (student.phone) {
+        sendSMS({
+          phone: student.phone,
+          message: `MathCom Mentors: Your deadline for "${homework.title}" has been extended to ${formattedNewDate}.`
+        }).catch(err => console.error("SMS failed:", err.message));
+      }
     }
 
     res.status(200).json({ message: 'Deadline extended successfully!', homework });
@@ -625,6 +682,13 @@ exports.updateHomework = async (req, res) => {
         subject: emailSubject,
         html: emailContent
       });
+
+      if (student.phone) {
+        await sendSMS({
+          phone: student.phone,
+          message: `MathCom Mentors: The assignment "${homework.title}" has been updated by your teacher.`
+        });
+      }
     }
 
     res.status(200).json({ message: 'Homework updated successfully and student notified', homework });

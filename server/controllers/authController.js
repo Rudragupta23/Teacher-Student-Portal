@@ -2,6 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
+const sendSMS = require('../utils/sendSMS');
 const { deleteFileFromS3 } = require('../utils/s3Utils');
 
 // generate a 6-digit OTP
@@ -115,6 +116,11 @@ exports.register = async (req, res) => {
       html: emailHtml
     });
 
+    await sendSMS({
+      phone: user.phone,
+      message: `Welcome to MathCom Mentors! Your verification code is ${otp}. Valid for 10 minutes.`
+    });
+
     if (role === 'student') {
       const adminAlertHtml = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc; padding: 40px 20px; border-radius: 16px;">
@@ -146,6 +152,14 @@ exports.register = async (req, res) => {
         subject: 'Pending Approval: New Student Registration',
         html: adminAlertHtml
       });
+
+      const adminUser = await User.findOne({ email: process.env.ADMIN_EMAIL });
+      if (adminUser && adminUser.phone) {
+        await sendSMS({
+          phone: adminUser.phone,
+          message: `Action Required: New student ${name} registered. Pending approval.`
+        });
+      }
     }
 
     res.status(201).json({ message: 'Account created! Please check your email for the OTP.' });
@@ -493,9 +507,17 @@ exports.completeGoogleProfile = async (req, res) => {
                 subject: `Pending Approval: New Student Registration (${providerLabel})`,
         html: adminAlertHtml
       }).catch(err => console.error("Admin Email Alert Failed:", err.message));
+
+      const adminUser = await User.findOne({ email: process.env.ADMIN_EMAIL });
+      if (adminUser && adminUser.phone) {
+        await sendSMS({
+          phone: adminUser.phone,
+          message: `Action Required: New student ${user.name} registered via ${providerLabel}. Pending approval.`
+        });
+      }
     }
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: role === 'parent' 
         ? 'Profile completed successfully! You can now log in.' 
         : 'Profile completed successfully! Your account is now pending admin approval.',
@@ -556,7 +578,23 @@ exports.forgotPassword = async (req, res) => {
       html: emailHtml
     });
 
-    res.status(200).json({ message: 'Secure code sent! Please check your email.' });
+    let maskedPhone = null;
+    if (user.phone) {
+      await sendSMS({
+        phone: user.phone,
+        message: `MathCom Mentors: Your password reset code is ${otp}. Valid for 10 minutes.`
+      });
+      
+      // Mask the phone number for frontend security (e.g. +44 ****** 0997)
+      const last4 = user.phone.slice(-4);
+      const prefix = user.phone.startsWith('+44') ? '+44' : user.phone.startsWith('+91') ? '+91' : user.phone.slice(0, 3);
+      maskedPhone = `${prefix} ****** ${last4}`;
+    }
+
+    res.status(200).json({ 
+      message: 'Secure code sent! Please check your email.',
+      maskedPhone 
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
@@ -713,6 +751,13 @@ exports.resendVerificationOTP = async (req, res) => {
       subject: 'Your New Verification Code - MathCom Mentors',
       html: emailHtml
     });
+
+    if (user.phone) {
+      await sendSMS({
+        phone: user.phone,
+        message: `MathCom Mentors: Your new verification code is ${otp}. Expires in 10 mins.`
+      });
+    }
 
     res.status(200).json({ message: 'A new verification code has been sent to your email.' });
   } catch (error) {

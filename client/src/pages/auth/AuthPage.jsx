@@ -55,9 +55,10 @@ const validateData = (email, phone, view) => {
 const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
   const navigate = useNavigate();
   const [view, setView] = useState(defaultView); 
-    const { loginUser } = useContext(AuthContext);
+  const { loginUser } = useContext(AuthContext);
   const { instance: msalInstance } = useMsal();
   const [isParentMode, setIsParentMode] = useState(defaultParentMode); 
+  const [maskedPhone, setMaskedPhone] = useState('');
 
   useEffect(() => {
     setView(defaultView);
@@ -131,10 +132,10 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
     try {
       if (view === 'otp') {
         await api.post('/auth/resend-verification-otp', { email: formData.email });
-        setStatusMsg({ type: 'success', text: 'A new verification code has been sent to your email.' });
+        setStatusMsg({ type: 'success', text: 'A new verification code has been sent to your email and phone.' });
       } else {
         await api.post('/auth/forgot-password', { email: formData.email });
-        setStatusMsg({ type: 'success', text: 'A fresh secure code has been sent to your email.' });
+        setStatusMsg({ type: 'success', text: 'A fresh secure code has been sent to your email and phone.' });
       }
       setResendTimer(90); 
     } catch (error) {
@@ -188,6 +189,7 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
         setStatusMsg({ type: 'success', text: 'Sending secure code...' });
         const res = await api.post('/auth/forgot-password', { email: formData.email });
         setStatusMsg({ type: 'success', text: res.data.message });
+        if (res.data.maskedPhone) setMaskedPhone(res.data.maskedPhone);
         changeView('reset');
       }
       else if (view === 'reset') {
@@ -354,9 +356,9 @@ const handleGoogleLogin = useGoogleLogin({
                : view === 'signup' && !isParentMode ? 'Join your class today. Experience adaptive learning tailored just for you.' 
                : view === 'signup' && isParentMode ? 'Track your child\'s progress, view report cards, and connect with mentors directly.' 
                : view === 'complete-profile' ? 'Almost done! Please provide your remaining student details to complete registration.'
-               : view === 'forgot' ? 'Almost there! Verify your email ID and we will send a secure reset link instantly.'
-               : view === 'reset' ? 'Check your inbox! Enter the 6-digit secure code we emailed you and pick a new password.'
-               : 'Security is our priority. Please check your email for the 6-digit verification code we just sent.'}
+               : view === 'forgot' ? 'Almost there! Enter your email ID and we will instantly send a secure code to your email and phone.'
+               : view === 'reset' ? 'Check your inbox or messages! Enter the 6-digit secure code we sent to your email and phone, then pick a new password.'
+               : 'Security is our priority. Please check your email and phone for the 6-digit verification code we just sent.'}
             </motion.p>
           </div>
         </div>
@@ -395,7 +397,7 @@ const handleGoogleLogin = useGoogleLogin({
                    : view === 'complete-profile' ? 'Complete Profile'
                    : view === 'forgot' ? 'Reset Password' 
                    : view === 'reset' ? 'Create New Password' 
-                   : 'Verify Email'}
+                   : 'Verify Account'}
                 </h2>
               </motion.div>
 
@@ -424,7 +426,7 @@ const handleGoogleLogin = useGoogleLogin({
               {(view === 'otp' || view === 'reset') && !statusMsg.text && (
                  <motion.div variants={itemVariants} className="flex items-start gap-3 bg-amber-50/80 text-amber-800 p-4 rounded-xl border border-amber-200/50">
                    <AlertCircle size={20} className="shrink-0 mt-0.5 text-amber-600" />
-                   <p className="text-sm font-medium leading-snug">Please check your spam or junk folder if you don't see the email within a minute.</p>
+                   <p className="text-sm font-medium leading-snug">Please check your SMS messages and email spam/junk folder if you don't receive the code within a minute.</p>
                  </motion.div>
               )}
               
@@ -496,10 +498,10 @@ const handleGoogleLogin = useGoogleLogin({
               )}
 
               {view === 'forgot' && (
-                <motion.div variants={itemVariants} className="bg-[#EFE0C9] border border-[#DCC7A4] rounded-2xl p-6 text-center my-2">
-                  <p className="text-orange-700 font-semibold mb-2 text-sm uppercase tracking-wider">Sending reset code to:</p>
-                  <div className="flex items-center justify-center gap-2 text-xl font-bold text-[#3E2C1B]">
-                    <Send size={20} className="text-orange-600" />
+                <motion.div variants={itemVariants} className="bg-[#EFE0C9] border border-[#DCC7A4] rounded-2xl p-6 text-center my-2 flex flex-col gap-2">
+                  <p className="text-orange-700 font-semibold text-sm uppercase tracking-wider">Sending reset code to:</p>
+                  <div className="flex items-center justify-center gap-2 text-lg font-bold text-[#3E2C1B]">
+                    <Mail size={18} className="text-orange-600" />
                     {formData.email}
                   </div>
                 </motion.div>
@@ -550,6 +552,20 @@ const handleGoogleLogin = useGoogleLogin({
 
               {view === 'reset' && (
                 <>
+                  <motion.div variants={itemVariants} className="bg-[#EFE0C9] border border-[#DCC7A4] rounded-2xl p-6 text-center my-2 flex flex-col gap-2">
+                    <p className="text-orange-700 font-semibold text-sm uppercase tracking-wider">Reset code sent to:</p>
+                    <div className="flex items-center justify-center gap-2 text-lg font-bold text-[#3E2C1B]">
+                      <Mail size={18} className="text-orange-600" />
+                      {formData.email}
+                    </div>
+                    {maskedPhone && (
+                      <div className="flex items-center justify-center gap-2 text-sm font-bold text-[#6E5942]">
+                        <Phone size={16} className="text-orange-600" />
+                        {maskedPhone}
+                      </div>
+                    )}
+                  </motion.div>
+
                   <motion.div variants={itemVariants} className="relative group">
                     <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#A08D74] group-focus-within:text-[#3B2A1B] transition-colors" size={20} />
                     <input type={showNewPassword ? "text" : "password"} name="newPassword" value={formData.newPassword} placeholder="Enter New Password" required onChange={handleChange}

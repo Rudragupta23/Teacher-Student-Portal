@@ -1,13 +1,14 @@
 const Message = require('../models/Message');
 const User = require('../models/User');
-const sendEmail = require('../utils/sendEmail'); // Add this import at the top
+const sendEmail = require('../utils/sendEmail');
+const sendSMS = require('../utils/sendSMS');
 
 // @desc    Get messages for a user
 // @route   GET /api/messages/:id?
 exports.getMessages = async (req, res) => {
   try {
     let query = {};
-    const targetId = req.params.id; // Can be 'all', a specific user ID, or undefined
+    const targetId = req.params.id; 
     
     // 1. IF ANYONE (Admin/Student/Parent) IS FETCHING THE GLOBAL CHAT
     if (targetId === 'all') {
@@ -22,19 +23,18 @@ exports.getMessages = async (req, res) => {
           { sender: targetId },
           { receiver: targetId }
         ],
-        isGlobal: { $ne: true } // Keep global messages OUT of private chats
+        isGlobal: { $ne: true } 
       };
     } 
     // 3. IF STUDENT OR PARENT IS FETCHING THEIR OWN PRIVATE MENTOR CHAT
     else {
       const myId = req.user._id;
-      // Fetch ONLY private messages involving them
       query = {
         $or: [
           { sender: myId },
           { receiver: myId }
         ],
-        isGlobal: { $ne: true } // <--- FIX: This stops global chat from showing in Mentor tab
+        isGlobal: { $ne: true } 
       };
     }
 
@@ -58,7 +58,7 @@ exports.sendMessage = async (req, res) => {
     if (receiverId === 'all') {
       const newMessage = await Message.create({
         sender: req.user._id,
-        isGlobal: true,    // Flags this as a global message
+        isGlobal: true,    
         content
       });
       return res.status(201).json(newMessage);
@@ -81,7 +81,7 @@ exports.sendMessage = async (req, res) => {
       content
     });
 
-    // --- NEW EMAIL NOTIFICATION LOGIC ---
+    // EMAIL NOTIFICATION LOGIC 
     const receiver = await User.findById(finalReceiverId);
     const sender = await User.findById(req.user._id);
 
@@ -109,10 +109,16 @@ exports.sendMessage = async (req, res) => {
       sendEmail({
         email: receiver.email,
         subject: 'New Message Notification',
-        html: emailContent // using 'html' as defined in your sendEmail.js
+        html: emailContent 
       });
+
+      if (receiver.phone) {
+        sendSMS({
+          phone: receiver.phone,
+          message: `MathCom Mentors: You have a new direct message from ${sender.registrationName || sender.name}. Log in to reply.`
+        });
+      }
     }
-    // ------------------------------------
 
     res.status(201).json(newMessage);
   } catch (error) {

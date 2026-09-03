@@ -189,6 +189,8 @@ const [testForm, setTestForm] = useState({
   const [graders, setGraders] = useState([]);
   const [newGraderEmail, setNewGraderEmail] = useState('');
   const [newGraderName, setNewGraderName] = useState('');
+  const [newGraderPhone, setNewGraderPhone] = useState('');
+  const [newGraderCountryCode, setNewGraderCountryCode] = useState('+44');
 
   const [pendingStudents, setPendingStudents] = useState([]);
 
@@ -5659,20 +5661,58 @@ const handleAssignSubmit = async (e) => {
               
               <div className="bg-white p-8 rounded-[2rem] shadow-[0_18px_40px_rgba(112,144,176,0.12)] mb-8">
                 <h3 className="text-lg font-bold text-[#1B2559] mb-4">Create New Grader</h3>
-                <div className="flex flex-col md:flex-row gap-4">
-                  <input type="text" placeholder="Grader Name" className="flex-1 p-4 bg-[#F4F7FE] border-none rounded-2xl font-bold text-[#1B2559] outline-none" value={newGraderName} onChange={(e) => setNewGraderName(e.target.value)} />
-                  <input type="email" placeholder="Grader Email" className="flex-1 p-4 bg-[#F4F7FE] border-none rounded-2xl font-bold text-[#1B2559] outline-none" value={newGraderEmail} onChange={(e) => setNewGraderEmail(e.target.value)} />
-                  <button onClick={async () => {
-                    if (!newGraderName || !newGraderEmail) return showToast("Name and Email required", "error");
-                    try {
-                      const { data } = await api.post('/admin/graders', { email: newGraderEmail, name: newGraderName });
-                      setGraders([...graders, data.grader]);
-                      setNewGraderEmail(''); setNewGraderName('');
-                      showToast('Grader created! Password sent to their email.');
-                    } catch (err) { showToast(err.response?.data?.message || 'Error creating grader', 'error'); }
-                  }} className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black transition-all shadow-md">
-                    ➕ Create Grader
-                  </button>
+                <div className="flex flex-col gap-4">
+                  
+                  {/* TOP ROW: 3 Input Fields */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <input type="text" placeholder="Grader Name" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl font-bold text-[#1B2559] outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all" value={newGraderName} onChange={(e) => setNewGraderName(e.target.value)} />
+                    
+                    <input type="email" placeholder="Grader Email" className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl font-bold text-[#1B2559] outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all" value={newGraderEmail} onChange={(e) => setNewGraderEmail(e.target.value)} />
+                    
+                    <div className="w-full flex bg-[#F4F7FE] rounded-2xl focus-within:ring-4 focus-within:ring-indigo-500/20 transition-all overflow-hidden">
+                      <select 
+                        className="w-[35%] sm:w-[25%] lg:w-[35%] xl:w-[30%] p-4 bg-transparent border-none font-bold text-[#1B2559] outline-none cursor-pointer appearance-none text-center border-r-2 border-white"
+                        value={newGraderCountryCode} 
+                        onChange={e => setNewGraderCountryCode(e.target.value)}
+                      >
+                        <option value="+44">🇬🇧 +44</option>
+                        <option value="+91">🇮🇳 +91</option>
+                      </select>
+                      <input 
+                        type="tel" 
+                        maxLength="10"
+                        placeholder="10-digit Mobile Number" 
+                        className="w-[65%] sm:w-[75%] lg:w-[65%] xl:w-[70%] p-4 bg-transparent border-none font-bold text-[#1B2559] outline-none" 
+                        value={newGraderPhone} 
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/\D/g, ''); 
+                          if (val.startsWith('0')) val = val.substring(1); 
+                          setNewGraderPhone(val);
+                        }} 
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* BOTTOM ROW: Button */}
+                  <div className="mt-2">
+                    <button onClick={async () => {
+                      if (!newGraderName || !newGraderEmail || !newGraderPhone || newGraderPhone.length < 10) {
+                        return showToast("Valid Name, Email, and 10-digit Phone required", "error");
+                      }
+                      try {
+                        const fullPhone = newGraderCountryCode + newGraderPhone;
+                        const { data } = await api.post('/admin/graders', { email: newGraderEmail, name: newGraderName, phone: fullPhone });
+                        setGraders([...graders, data.grader]);
+                        setNewGraderEmail(''); setNewGraderName(''); setNewGraderPhone('');
+                        showToast('Grader created! Credentials sent via Email & SMS.');
+                      } catch (err) { 
+                        showToast(err.response?.data?.message || 'Error creating grader', 'error'); 
+                      }
+                    }} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-4 rounded-2xl font-black transition-all shadow-md">
+                      ➕ Create Grader
+                    </button>
+                  </div>
+
                 </div>
               </div>
 

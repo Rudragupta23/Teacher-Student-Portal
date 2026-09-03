@@ -2,6 +2,7 @@ const Scheme = require('../models/Scheme');
 const User = require('../models/User');
 const ClassPlanner = require('../models/ClassPlanner');
 const sendEmail = require('../utils/sendEmail');
+const sendSMS = require('../utils/sendSMS');
 
 exports.createReport = async (req, res) => {
   try {
@@ -130,6 +131,16 @@ exports.createReport = async (req, res) => {
       }
 
       await sendEmail({ email: graderEmails.join(','), subject: emailSubject, html: emailHtml });
+
+      const graderPhones = graders.map(g => g.phone).filter(phone => phone);
+      if (graderPhones.length > 0) {
+        await Promise.all(graderPhones.map(phone => 
+          sendSMS({
+            phone,
+            message: classStatus === 'Class Taken' ? `MathCom Mentors: Class "${title}" was logged. Please set the homework.` : `MathCom Mentors: Class "${title}" was marked as ${classStatus}.`
+          })
+        ));
+      }
     }
 
     res.status(201).json({ success: true, report });

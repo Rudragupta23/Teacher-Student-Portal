@@ -1,6 +1,7 @@
 const DriveLink = require('../models/DriveLink');
 const User = require('../models/User'); 
 const sendEmail = require('../utils/sendEmail'); 
+const sendSMS = require('../utils/sendSMS');
 
 exports.createDriveLink = async (req, res) => {
     try {
@@ -77,6 +78,16 @@ exports.createDriveLink = async (req, res) => {
                 subject: `New Shared Drive Link: ${title}`,
                 html: emailContent
             });
+
+            const allPhones = [...new Set([...targetStudents.map(s => s.phone), ...parents.map(p => p.phone)])].filter(phone => phone);
+            if (allPhones.length > 0) {
+                await Promise.all(allPhones.map(phone => 
+                    sendSMS({
+                        phone,
+                        message: `MathCom Mentors: A new Shared Drive folder "${title}" is available on your dashboard.`
+                    })
+                ));
+            }
         }
 
         res.status(201).json(newLink);

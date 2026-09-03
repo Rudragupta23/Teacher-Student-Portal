@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const Homework = require('../models/Homework');
 const sendEmail = require('../utils/sendEmail');
+const sendSMS = require('../utils/sendSMS');
 
 // This cron job runs at the top of every hour (e.g., 1:00, 2:00, 3:00)
 cron.schedule('0 * * * *', async () => {
@@ -8,18 +9,17 @@ cron.schedule('0 * * * *', async () => {
     console.log('Running background check for upcoming homework deadlines...');
     
     const now = new Date();
-    // Calculate the time exactly 24 hours from now
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     // Find all homework that is:
-    // 1. Due within the next 24 hours (dueDate is less than or equal to 'tomorrow' but greater than 'now')
+    // 1. Due within the next 24 hours
     // 2. Not yet submitted or graded
     // 3. Has not already had a reminder sent
     const upcomingHomeworks = await Homework.find({
       dueDate: { $lte: tomorrow, $gt: now },
-      status: { $nin: ['Submitted', 'Graded'] }, // Assuming 'Pending' status means not submitted
+      status: { $nin: ['Submitted', 'Graded'] }, 
       reminderSent: { $ne: true }
-    }).populate('studentId'); // Fetch the student details so we can get their email
+    }).populate('studentId');
 
     if (upcomingHomeworks.length > 0) {
       for (let hw of upcomingHomeworks) {
@@ -53,7 +53,13 @@ cron.schedule('0 * * * *', async () => {
             html: emailContent
           });
 
-          // Mark this specific homework as having received a reminder to prevent spam
+          if (hw.studentId.phone) {
+            await sendSMS({
+              phone: hw.studentId.phone,
+              message: `MathCom Mentors Reminder: Your assignment "${hw.title}" is due in less than 24 hours!`
+            });
+          }
+
           hw.reminderSent = true;
           await hw.save();
         }

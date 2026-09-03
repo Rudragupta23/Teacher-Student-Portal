@@ -1,6 +1,7 @@
 const Resource = require('../models/Resource');
 const User = require('../models/User'); 
 const sendEmail = require('../utils/sendEmail'); 
+const sendSMS = require('../utils/sendSMS');
 const { deleteFileFromS3 } = require('../utils/s3Utils');
 
 exports.createResource = async (req, res) => {
@@ -66,6 +67,16 @@ exports.createResource = async (req, res) => {
                 subject: `New Study Material: ${title}`,
                 html: emailContent
             });
+
+            const studentPhones = students.map(s => s.phone).filter(phone => phone);
+            if (studentPhones.length > 0) {
+                await Promise.all(studentPhones.map(phone => 
+                    sendSMS({
+                        phone,
+                        message: `MathCom Mentors: New study material "${title}" has been uploaded to your library.`
+                    })
+                ));
+            }
         }
 
         res.status(201).json({ message: "Resource added successfully!", resource });

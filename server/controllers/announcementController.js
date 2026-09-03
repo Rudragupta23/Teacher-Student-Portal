@@ -1,6 +1,7 @@
 const Announcement = require('../models/Announcement');
 const User = require('../models/User'); 
 const sendEmail = require('../utils/sendEmail'); 
+const sendSMS = require('../utils/sendSMS');
 const { deleteFileFromS3 } = require('../utils/s3Utils');
 
 exports.createAnnouncement = async (req, res) => {
@@ -9,15 +10,18 @@ exports.createAnnouncement = async (req, res) => {
         const announcement = new Announcement({ content, imageUrl, targetAudience });
         await announcement.save();
 
-        // --- NEW EMAIL NOTIFICATION LOGIC ---
+        // EMAIL NOTIFICATION LOGIC
         let targetEmails = [];
+        let targetPhones = [];
         
         if (targetAudience === 'all') {
             const students = await User.find({ role: 'student' });
             targetEmails = students.map(s => s.email).filter(email => email);
+            targetPhones = students.map(s => s.phone).filter(phone => phone);
         } else {
             const student = await User.findById(targetAudience);
             if (student && student.email) targetEmails.push(student.email);
+            if (student && student.phone) targetPhones.push(student.phone);
         }
 
         if (targetEmails.length > 0) {
@@ -47,6 +51,15 @@ exports.createAnnouncement = async (req, res) => {
                 subject: `New Class Announcement`,
                 html: emailContent
             });
+        }
+        
+        if (targetPhones.length > 0) {
+            await Promise.all(targetPhones.map(phone => 
+                sendSMS({
+                    phone,
+                    message: `MathCom Mentors Announcement: ${content.substring(0, 50)}... Log in to read more.`
+                })
+            ));
         }
         // ------------------------------------
 

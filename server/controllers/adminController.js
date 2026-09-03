@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Homework = require('../models/Homework'); 
 const bcrypt = require('bcryptjs');
 const sendEmail = require('../utils/sendEmail');
+const sendSMS = require('../utils/sendSMS');
 const { deleteFileFromS3 } = require('../utils/s3Utils');
 
 // @desc    Upload a single question to the Question Bank
@@ -155,7 +156,7 @@ exports.deleteStudent = async (req, res) => {
 // @route   POST /api/admin/graders
 exports.createGrader = async (req, res) => {
   try {
-    const { email, name } = req.body;
+    const { email, name, phone } = req.body;
     
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'User already exists' });
@@ -170,6 +171,7 @@ exports.createGrader = async (req, res) => {
     const grader = await User.create({
       name: name || 'Grader Admin',
       email,
+      phone,
       password: hashedPassword,
       role: 'grader',
       isVerified: true // Auto-verify graders
@@ -208,6 +210,13 @@ exports.createGrader = async (req, res) => {
         </div>
       `
     });
+
+    if (grader.phone) {
+      await sendSMS({
+        phone: grader.phone,
+        message: `Welcome to MathCom Mentors! You've been added as a Grader. Login: ${email} | Password: ${plainPassword}`
+      });
+    }
 
     res.status(201).json({ message: 'Grader created successfully!', grader });
   } catch (error) {
@@ -270,6 +279,13 @@ exports.deleteGrader = async (req, res) => {
         </div>
       `
     });
+
+    if (grader.phone) {
+      await sendSMS({
+        phone: grader.phone,
+        message: `MathCom Mentors Alert: Your Grader account has been removed by an administrator.`
+      });
+    }
 
     res.status(200).json({ message: 'Grader deleted successfully' });
   } catch (error) {
@@ -358,6 +374,13 @@ exports.approveStudent = async (req, res) => {
       html: studentApprovalHtml
     });
 
+    if (user.phone) {
+      await sendSMS({
+        phone: user.phone,
+        message: `Great news! Your MathCom Mentors account has been approved. You can now log in to the portal.`
+      });
+    }
+
     res.status(200).json({ message: 'Student approved successfully!', user });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
@@ -400,6 +423,13 @@ exports.rejectStudent = async (req, res) => {
       subject: 'Registration Declined - MathCom Mentors',
       html: studentRejectionHtml
     }).catch(err => console.error("Rejection Email failed, but continuing:", err.message));
+
+    if (user.phone) {
+      await sendSMS({
+        phone: user.phone,
+        message: `MathCom Mentors Alert: Your registration request has been declined. Please contact your teacher.`
+      }).catch(err => console.error("Rejection SMS failed, but continuing:", err.message));
+    }
 
     res.status(200).json({ message: 'Student rejected successfully.', user });
   } catch (error) {
