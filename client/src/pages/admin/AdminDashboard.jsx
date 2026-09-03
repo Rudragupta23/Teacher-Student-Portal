@@ -109,7 +109,7 @@ const [testForm, setTestForm] = useState({
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' }); 
   const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   const togglePassword = (field) => setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
-  const [editStudentForm, setEditStudentForm] = useState({ id: '', name: '', phone: '', schoolName: '', city: '' });
+  const [editStudentForm, setEditStudentForm] = useState({ id: '', name: '', phone: '', countryCode: '+44', schoolName: '', city: '' });
   const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [profilePicFile, setProfilePicFile] = useState(null);
   const [userId, setUserId] = useState(null); 
@@ -1384,10 +1384,15 @@ const handleAssignSubmit = async (e) => {
   const handleUpdateStudentDetails = async () => {
     if (!editStudentForm.id) return showToast("Please select a student first!", "error");
     try {
-      await api.put(`/admin/students/${editStudentForm.id}`, editStudentForm);
+      const payload = {
+        ...editStudentForm,
+        phone: editStudentForm.countryCode + editStudentForm.phone
+      };
+
+      await api.put(`/admin/students/${editStudentForm.id}`, payload);
       showToast("Student details updated successfully!");
       
-      setEditStudentForm({ id: '', name: '', phone: '', schoolName: '', city: '' });
+      setEditStudentForm({ id: '', name: '', phone: '', countryCode: '+44', schoolName: '', city: '' });
       fetchData(); 
     } catch (error) {
       showToast("Failed to update student", "error");
@@ -3911,15 +3916,28 @@ const handleAssignSubmit = async (e) => {
                       onChange={e => {
                         const student = students.find(s => s._id === e.target.value);
                         if (student) {
+                          const rawPhone = student.adminOverrides?.phone || student.phone || '';
+                          let cCode = '+44';
+                          let pNum = rawPhone;
+
+                          if (rawPhone.startsWith('+91')) {
+                            cCode = '+91';
+                            pNum = rawPhone.substring(3);
+                          } else if (rawPhone.startsWith('+44')) {
+                            cCode = '+44';
+                            pNum = rawPhone.substring(3);
+                          }
+
                           setEditStudentForm({
                             id: student._id,
                             name: student.adminOverrides?.name || student.originalName || student.name || '',
-                            phone: student.adminOverrides?.phone || student.phone || '',
+                            phone: pNum,
+                            countryCode: cCode,
                             schoolName: student.adminOverrides?.schoolName || student.schoolName || '',
                             city: student.adminOverrides?.city || student.city || ''
                           });
                         } else {
-                          setEditStudentForm({ id: '', name: '', phone: '', schoolName: '', city: '' });
+                          setEditStudentForm({ id: '', name: '', phone: '', countryCode: '+44', schoolName: '', city: '' });
                         }
                       }}
                     >
@@ -3940,7 +3958,28 @@ const handleAssignSubmit = async (e) => {
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-black text-[#A3AED0] uppercase">Phone</label>
-                        <input type="text" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-[#1B2559]" value={editStudentForm.phone} onChange={e => setEditStudentForm({...editStudentForm, phone: e.target.value})} />
+                        <div className="flex gap-2">
+                          <select 
+                            className="w-[35%] p-3 bg-white border border-slate-200 rounded-xl font-bold text-[#1B2559] outline-none appearance-none cursor-pointer"
+                            value={editStudentForm.countryCode} 
+                            onChange={e => setEditStudentForm({...editStudentForm, countryCode: e.target.value})}
+                          >
+                            <option value="+44">🇬🇧 +44</option>
+                            <option value="+91">🇮🇳 +91</option>
+                          </select>
+                          <input 
+                            type="tel" 
+                            maxLength="10"
+                            placeholder="10-digit number"
+                            className="w-[65%] p-3 bg-white border border-slate-200 rounded-xl font-bold text-[#1B2559] outline-none" 
+                            value={editStudentForm.phone} 
+                            onChange={(e) => {
+                              let val = e.target.value.replace(/\D/g, ''); 
+                              if (val.startsWith('0')) val = val.substring(1); 
+                              setEditStudentForm({...editStudentForm, phone: val});
+                            }} 
+                          />
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-black text-[#A3AED0] uppercase">School Name</label>
