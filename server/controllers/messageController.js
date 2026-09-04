@@ -1,7 +1,7 @@
 const Message = require('../models/Message');
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
-const sendSMS = require('../utils/sendSMS');
+// const sendSMS = require('../utils/sendSMS');
 
 // @desc    Get messages for a user
 // @route   GET /api/messages/:id?
@@ -112,12 +112,12 @@ exports.sendMessage = async (req, res) => {
         html: emailContent 
       });
 
-      if (receiver.phone) {
-        sendSMS({
-          phone: receiver.phone,
-          message: `MathCom Mentors: You have a new direct message from ${sender.registrationName || sender.name}. Log in to reply.`
-        });
-      }
+      // if (receiver.phone) {
+      //   sendSMS({
+      //     phone: receiver.phone,
+      //     message: `MathCom Mentors: You have a new direct message from ${sender.registrationName || sender.name}. Log in to reply.`
+      //   });
+      // }
     }
 
     res.status(201).json(newMessage);
