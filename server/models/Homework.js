@@ -9,6 +9,7 @@ const homeworkSchema = new mongoose.Schema({
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   reminderSent: { type: Boolean, default: false },
+  parentReminderSent: { type: Boolean, default: false },
   
   difficulty: { type: String, enum: ['Easy', 'Medium', 'Hard'], default: 'Medium' },
   

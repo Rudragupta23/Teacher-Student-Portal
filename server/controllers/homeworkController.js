@@ -228,12 +228,12 @@ exports.submitHomework = async (req, res) => {
         if(admin.email) {
           sendEmail({ email: admin.email, subject: `Homework Submitted by ${studentName}`, html: emailContent });
         }
-        if (admin.phone) {
-          sendSMS({
-            phone: admin.phone,
-            message: `MathCom Mentors: ${studentName} just submitted ${homework.title}.`
-          });
-        }
+        // if (admin.phone) {
+        //   sendSMS({
+        //     phone: admin.phone,
+        //     message: `MathCom Mentors: ${studentName} just submitted ${homework.title}.`
+        //   });
+        // }
       });
     };
 
