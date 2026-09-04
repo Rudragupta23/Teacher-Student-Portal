@@ -464,6 +464,10 @@ exports.updateStudentDetails = async (req, res) => {
 
     student.adminOverrides = { name, phone, schoolName, city };
 
+  if (phone) {
+  student.phone = phone;
+  }
+
     await student.save();
     res.status(200).json({ message: 'Student details updated successfully.', student });
   } catch (error) {

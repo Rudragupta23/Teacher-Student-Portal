@@ -24,6 +24,9 @@ const toE164 = (raw) => {
   if (/^07\d{9}$/.test(p)) p = `+44${p.slice(1)}`;
   if (/^[6-9]\d{9}$/.test(p)) p = `+91${p}`;
   p = p.replace(/^\+440/, "+44").replace(/^\+910/, "+91");
+  if (p.startsWith("+44") && !/^\+447\d{9}$/.test(p)) return null;
+  if (p.startsWith("+91") && !/^\+91[6-9]\d{9}$/.test(p)) return null;
+
   return /^\+[1-9]\d{7,14}$/.test(p) ? p : null;
 };
 

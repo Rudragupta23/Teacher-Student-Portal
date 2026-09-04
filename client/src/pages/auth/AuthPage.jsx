@@ -91,7 +91,7 @@ const AuthPage = ({ defaultView = 'login', defaultParentMode = false }) => {
   }, [resendTimer]);
 
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', phone: '', countryCode: '+44', otp: '', newPassword: '', yearGroup: '', linkedStudentId: '', schoolName: '', city: '', country: 'United Kingdom'
+        name: '', email: '', password: '', phone: '', countryCode: '', otp: '', newPassword: '', yearGroup: '', linkedStudentId: '', schoolName: '', city: '', country: 'United Kingdom'
   });
 
   const handleChange = (e) => {
@@ -370,7 +370,7 @@ const handleGoogleLogin = useGoogleLogin({
               type="button" 
               onClick={() => {
                 // Clear out the Google data and return to the login view
-                setFormData({ name: '', email: '', password: '', phone: '', otp: '', newPassword: '', yearGroup: '', linkedStudentId: '', schoolName: '', city: '', country: 'United Kingdom' });
+                setFormData({ name: '', email: '', password: '', phone: '', countryCode: '', otp: '', newPassword: '', yearGroup: '', linkedStudentId: '', schoolName: '', city: '', country: 'United Kingdom' });
                 changeView('login');
                 navigate('/login');
               }} 
@@ -610,6 +610,7 @@ const handleGoogleLogin = useGoogleLogin({
                     <div className="w-[35%] relative">
                       <select name="countryCode" required onChange={handleCountryCodeChange} value={formData.countryCode}
                         className="w-full px-4 py-4 bg-[#F5EAD8] text-[#3E2C1B] rounded-xl border border-[#DCC7A4] outline-none focus:bg-[#FBF4E7] focus:ring-2 focus:ring-[#3B2A1B] focus:border-[#3B2A1B] transition-all appearance-none cursor-pointer">
+                        <option value="" disabled>Country</option>
                         <option value="+44">🇬🇧 +44</option>
                         <option value="+91">🇮🇳 +91</option>
                       </select>
