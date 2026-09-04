@@ -214,7 +214,7 @@ exports.createGrader = async (req, res) => {
     if (grader.phone) {
       await sendSMS({
         phone: grader.phone,
-        message: `Welcome to MathCom Mentors! You've been added as a Grader. Login: ${email} | Password: ${plainPassword}`
+        message: `MathCom Mentors: Your Grader account is ready. Check your email (${email}) for login details.`
       });
     }
 

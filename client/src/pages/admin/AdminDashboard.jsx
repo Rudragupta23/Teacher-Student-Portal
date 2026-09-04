@@ -190,7 +190,7 @@ const [testForm, setTestForm] = useState({
   const [newGraderEmail, setNewGraderEmail] = useState('');
   const [newGraderName, setNewGraderName] = useState('');
   const [newGraderPhone, setNewGraderPhone] = useState('');
-  const [newGraderCountryCode, setNewGraderCountryCode] = useState('+44');
+    const [newGraderCountryCode, setNewGraderCountryCode] = useState('');
 
   const [pendingStudents, setPendingStudents] = useState([]);
 
@@ -5675,6 +5675,7 @@ const handleAssignSubmit = async (e) => {
                         value={newGraderCountryCode} 
                         onChange={e => setNewGraderCountryCode(e.target.value)}
                       >
+                        <option value="" disabled>Country</option>
                         <option value="+44">🇬🇧 +44</option>
                         <option value="+91">🇮🇳 +91</option>
                       </select>
@@ -5696,7 +5697,7 @@ const handleAssignSubmit = async (e) => {
                   {/* BOTTOM ROW: Button */}
                   <div className="mt-2">
                     <button onClick={async () => {
-                      if (!newGraderName || !newGraderEmail || !newGraderPhone || newGraderPhone.length < 10) {
+                        if (!newGraderName || !newGraderEmail || !newGraderCountryCode || !newGraderPhone || newGraderPhone.length < 10) {
                         return showToast("Valid Name, Email, and 10-digit Phone required", "error");
                       }
                       try {

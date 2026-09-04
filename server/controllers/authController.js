@@ -22,14 +22,31 @@ exports.register = async (req, res) => {
     if (!phone) {
       return res.status(400).json({ message: 'Phone number is required.' });
     }
-    const cleanPhone = phone.replace(/[\s-]/g, '');
-    const phoneRegex = /^\+?[0-9]{7,15}$/;
-    if (!phoneRegex.test(cleanPhone)) {
-      return res.status(400).json({ message: 'Please enter a valid phone number.' });
+        const cleanPhone = phone.replace(/[\s-]/g, '');
+    const validUK = /^\+447\d{9}$/.test(cleanPhone);
+    const validIN = /^\+91[6-9]\d{9}$/.test(cleanPhone);
+    if (!validUK && !validIN) {
+      return res.status(400).json({
+        message: 'Please enter a valid UK (+44) or Indian (+91) mobile number.'
+      });
     }
 
-    const userExists = await User.findOne({ email });
-    if (userExists) return res.status(400).json({ message: 'User already exists' });
+        const userExists = await User.findOne({ email });
+    if (userExists) {
+      // Started with Google but never finished the profile step
+      if (userExists.authProvider === 'google' && !userExists.isProfileComplete) {
+        return res.status(400).json({
+          message: 'You already started signing up with Google. Please click "Sign in with Google" to finish setting up your account.'
+        });
+      }
+      // Finished Google account trying to use email signup
+      if (userExists.authProvider === 'google') {
+        return res.status(400).json({
+          message: 'This email is registered with Google. Please use "Sign in with Google" to log in.'
+        });
+      }
+      return res.status(400).json({ message: 'User already exists. Please log in instead.' });
+    }
 
     let role = email === process.env.ADMIN_EMAIL ? 'admin' : (isParent ? 'parent' : 'student');
     
@@ -422,10 +439,13 @@ exports.completeGoogleProfile = async (req, res) => {
     if (!phone) {
       return res.status(400).json({ message: 'Phone number is required.' });
     }
-    const cleanPhone = phone.replace(/[\s-]/g, '');
-    const phoneRegex = /^\+?[0-9]{7,15}$/;
-    if (!phoneRegex.test(cleanPhone)) {
-      return res.status(400).json({ message: 'Please enter a valid phone number.' });
+        const cleanPhone = phone.replace(/[\s-]/g, '');
+    const validUK = /^\+447\d{9}$/.test(cleanPhone);
+    const validIN = /^\+91[6-9]\d{9}$/.test(cleanPhone);
+    if (!validUK && !validIN) {
+      return res.status(400).json({
+        message: 'Please enter a valid UK (+44) or Indian (+91) mobile number.'
+      });
     }
 
     let role = email === process.env.ADMIN_EMAIL ? 'admin' : (isParent ? 'parent' : 'student');
