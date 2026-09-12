@@ -464,12 +464,34 @@ exports.updateStudentDetails = async (req, res) => {
     if (!student) return res.status(404).json({ message: 'Student not found' });
 
     if (yearGroup && yearGroup !== student.yearGroup && student.role === 'student') {
-      const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
-      const sequenceNumber = String(studentCount + 1).padStart(2, '0');
       const cleanYearGroup = (yearGroup || '').replace(/\s+/g, '');
+      const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
       
-      student.studentId = `MCM-${cleanYearGroup}-${sequenceNumber}`;
+      let sequenceNumber = studentCount + 1;
+      let isUnique = false;
+      let newStudentId = '';
+      
+      // Loop to prevent Duplicate Key Errors if previous students were deleted
+      while (!isUnique) {
+        newStudentId = `MCM-${cleanYearGroup}-${String(sequenceNumber).padStart(2, '0')}`;
+        const exists = await User.findOne({ studentId: newStudentId });
+        if (!exists) {
+          isUnique = true;
+        } else {
+          sequenceNumber++; 
+        }
+      }
+
+      const oldStudentId = student.studentId;
+      student.studentId = newStudentId;
       student.yearGroup = yearGroup;
+
+      if (oldStudentId) {
+        await User.updateMany(
+          { role: 'parent', linkedStudentId: oldStudentId },
+          { $set: { linkedStudentId: newStudentId } }
+        );
+      }
     }
 
     student.adminOverrides = { name, phone, schoolName, city };

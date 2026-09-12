@@ -1397,9 +1397,10 @@ const handleAssignSubmit = async (e) => {
       setEditStudentForm({ id: '', name: '', phone: '', countryCode: '+44', schoolName: '', city: '', yearGroup: '' });
       fetchData(); 
     } catch (error) {
-      showToast("Failed to update student", "error");
+      showToast(error.response?.data?.message || "Failed to update student", "error");
     }
   };
+  
   const handleExportTopicsCSV = () => {
     if (processedTopics.length === 0) return showToast("No topics to export", "error");
 
