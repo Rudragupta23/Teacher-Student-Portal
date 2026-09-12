@@ -452,21 +452,31 @@ exports.updateStudentBoard = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
+
 // @desc    Update student details (Admin overrides)
 // @route   PUT /api/admin/students/:id
 exports.updateStudentDetails = async (req, res) => {
   try {
     const studentIdToEdit = req.params.id;
-    const { name, phone, schoolName, city } = req.body;
+    const { name, phone, schoolName, city, yearGroup } = req.body; 
 
     const student = await User.findById(studentIdToEdit);
     if (!student) return res.status(404).json({ message: 'Student not found' });
 
+    if (yearGroup && yearGroup !== student.yearGroup && student.role === 'student') {
+      const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
+      const sequenceNumber = String(studentCount + 1).padStart(2, '0');
+      const cleanYearGroup = (yearGroup || '').replace(/\s+/g, '');
+      
+      student.studentId = `MCM-${cleanYearGroup}-${sequenceNumber}`;
+      student.yearGroup = yearGroup;
+    }
+
     student.adminOverrides = { name, phone, schoolName, city };
 
-  if (phone) {
-  student.phone = phone;
-  }
+    if (phone) {
+      student.phone = phone;
+    }
 
     await student.save();
     res.status(200).json({ message: 'Student details updated successfully.', student });

@@ -109,7 +109,7 @@ const [testForm, setTestForm] = useState({
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' }); 
   const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   const togglePassword = (field) => setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
-  const [editStudentForm, setEditStudentForm] = useState({ id: '', name: '', phone: '', countryCode: '+44', schoolName: '', city: '' });
+  const [editStudentForm, setEditStudentForm] = useState({ id: '', name: '', phone: '', countryCode: '+44', schoolName: '', city: '', yearGroup: '' });
   const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [profilePicFile, setProfilePicFile] = useState(null);
   const [userId, setUserId] = useState(null); 
@@ -1394,7 +1394,7 @@ const handleAssignSubmit = async (e) => {
       await api.put(`/admin/students/${editStudentForm.id}`, payload);
       showToast("Student details updated successfully!");
       
-      setEditStudentForm({ id: '', name: '', phone: '', countryCode: '+44', schoolName: '', city: '' });
+      setEditStudentForm({ id: '', name: '', phone: '', countryCode: '+44', schoolName: '', city: '', yearGroup: '' });
       fetchData(); 
     } catch (error) {
       showToast("Failed to update student", "error");
@@ -3936,10 +3936,11 @@ const handleAssignSubmit = async (e) => {
                             phone: pNum,
                             countryCode: cCode,
                             schoolName: student.adminOverrides?.schoolName || student.schoolName || '',
-                            city: student.adminOverrides?.city || student.city || ''
+                            city: student.adminOverrides?.city || student.city || '',
+                            yearGroup: student.yearGroup || ''
                           });
                         } else {
-                          setEditStudentForm({ id: '', name: '', phone: '', countryCode: '+44', schoolName: '', city: '' });
+                          setEditStudentForm({ id: '', name: '', phone: '', countryCode: '+44', schoolName: '', city: '', yearGroup: '' });
                         }
                       }}
                     >
@@ -3954,6 +3955,19 @@ const handleAssignSubmit = async (e) => {
 
                   {editStudentForm.id && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 bg-slate-50 p-6 rounded-2xl border border-slate-100 animate-fade-in">
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-xs font-black text-[#A3AED0] uppercase">Year Group</label>
+                        <select 
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-[#1B2559] outline-none" 
+                          value={editStudentForm.yearGroup} 
+                          onChange={e => setEditStudentForm({...editStudentForm, yearGroup: e.target.value})}
+                        >
+                          <option value="" disabled>Select Year</option>
+                          {['Y6', 'Y7', 'Y8', 'Y9', 'Y10', 'Y11', 'AS Level', 'A level'].map(yg => (
+                            <option key={yg} value={yg}>{yg}</option>
+                          ))}
+                        </select>
+                      </div>
                       <div className="space-y-2">
                         <label className="text-xs font-black text-[#A3AED0] uppercase">Name</label>
                         <input type="text" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-[#1B2559]" value={editStudentForm.name} onChange={e => setEditStudentForm({...editStudentForm, name: e.target.value})} />
