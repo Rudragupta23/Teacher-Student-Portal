@@ -463,6 +463,7 @@ exports.updateStudentDetails = async (req, res) => {
     const student = await User.findById(studentIdToEdit);
     if (!student) return res.status(404).json({ message: 'Student not found' });
 
+    // Handle Year Group Change & ID Generation
     if (yearGroup && yearGroup !== student.yearGroup && student.role === 'student') {
       const cleanYearGroup = (yearGroup || '').replace(/\s+/g, '');
       const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
@@ -471,7 +472,6 @@ exports.updateStudentDetails = async (req, res) => {
       let isUnique = false;
       let newStudentId = '';
       
-      // Loop to prevent Duplicate Key Errors if previous students were deleted
       while (!isUnique) {
         newStudentId = `MCM-${cleanYearGroup}-${String(sequenceNumber).padStart(2, '0')}`;
         const exists = await User.findOne({ studentId: newStudentId });
@@ -494,11 +494,17 @@ exports.updateStudentDetails = async (req, res) => {
       }
     }
 
-    student.adminOverrides = { name, phone, schoolName, city };
-
-    if (phone) {
-      student.phone = phone;
+    // Update the MAIN profile fields so changes reflect globally
+    if (name) {
+      student.name = name;
+      student.registrationName = name;
     }
+    if (schoolName) student.schoolName = schoolName;
+    if (city) student.city = city;
+    if (phone) student.phone = phone;
+
+    // Keep overrides for historical record if needed
+    student.adminOverrides = { name, phone, schoolName, city };
 
     await student.save();
     res.status(200).json({ message: 'Student details updated successfully.', student });
