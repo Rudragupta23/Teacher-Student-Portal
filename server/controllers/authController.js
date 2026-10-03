@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
 const sendSMS = require('../utils/sendSMS');
 const { deleteFileFromS3 } = require('../utils/s3Utils');
+const { generateStudentId } = require('../utils/generateStudentId');
 
 // generate a 6-digit OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -54,12 +55,16 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'School name and city are required.' });
     }
 
+    // let newStudentId = undefined;
+    // if (role === 'student') {
+    //   const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
+    //   const sequenceNumber = String(studentCount + 1).padStart(2, '0');
+    //   const cleanYearGroup = (yearGroup || '').replace(/\s+/g, '');
+    //   newStudentId = `MCM-${cleanYearGroup}-${sequenceNumber}`;
+    // }
     let newStudentId = undefined;
     if (role === 'student') {
-      const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
-      const sequenceNumber = String(studentCount + 1).padStart(2, '0');
-      const cleanYearGroup = (yearGroup || '').replace(/\s+/g, '');
-      newStudentId = `MCM-${cleanYearGroup}-${sequenceNumber}`;
+      newStudentId = await generateStudentId(yearGroup);
     }
 
     if (role === 'parent') {
@@ -179,8 +184,13 @@ exports.register = async (req, res) => {
       }
     }
 
-    res.status(201).json({ message: 'Account created! Please check your email for the OTP.' });
+  //   res.status(201).json({ message: 'Account created! Please check your email for the OTP.' });
+  // } catch (error) {
+  //   res.status(500).json({ message: 'Server Error', error: error.message });
+  // }
+  res.status(201).json({ message: 'Account created! Please check your email for the OTP.' });
   } catch (error) {
+    console.error('[REGISTER] Failed:', error);
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
@@ -454,12 +464,16 @@ exports.completeGoogleProfile = async (req, res) => {
       return res.status(400).json({ message: 'School name and city are required.' });
     }
 
+    // let newStudentId = user.studentId;
+    // if (role === 'student' && !newStudentId) {
+    //   const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
+    //   const sequenceNumber = String(studentCount + 1).padStart(2, '0');
+    //   const cleanYearGroup = (yearGroup || '').replace(/\s+/g, '');
+    //   newStudentId = `MCM-${cleanYearGroup}-${sequenceNumber}`;
+    // }
     let newStudentId = user.studentId;
     if (role === 'student' && !newStudentId) {
-      const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
-      const sequenceNumber = String(studentCount + 1).padStart(2, '0');
-      const cleanYearGroup = (yearGroup || '').replace(/\s+/g, '');
-      newStudentId = `MCM-${cleanYearGroup}-${sequenceNumber}`;
+      newStudentId = await generateStudentId(yearGroup);
     }
 
     if (role === 'parent') {

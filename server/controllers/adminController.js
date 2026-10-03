@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const sendEmail = require('../utils/sendEmail');
 const sendSMS = require('../utils/sendSMS');
 const { deleteFileFromS3 } = require('../utils/s3Utils');
+const { generateStudentId } = require('../utils/generateStudentId');
 
 // @desc    Upload a single question to the Question Bank
 // @route   POST /api/admin/questions
@@ -460,38 +461,50 @@ exports.updateStudentDetails = async (req, res) => {
     const studentIdToEdit = req.params.id;
     const { name, phone, schoolName, city, yearGroup } = req.body; 
 
-    const student = await User.findById(studentIdToEdit);
+    // const student = await User.findById(studentIdToEdit);
+    // if (!student) return res.status(404).json({ message: 'Student not found' });
+        const student = await User.findById(studentIdToEdit);
     if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    let oldStudentIdForParent = null;
 
     // Handle Year Group Change & ID Generation
     if (yearGroup && yearGroup !== student.yearGroup && student.role === 'student') {
-      const cleanYearGroup = (yearGroup || '').replace(/\s+/g, '');
-      const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
+      // const cleanYearGroup = (yearGroup || '').replace(/\s+/g, '');
+      // const studentCount = await User.countDocuments({ role: 'student', yearGroup: yearGroup });
       
-      let sequenceNumber = studentCount + 1;
-      let isUnique = false;
-      let newStudentId = '';
+      // let sequenceNumber = studentCount + 1;
+      // let isUnique = false;
+      // let newStudentId = '';
       
-      while (!isUnique) {
-        newStudentId = `MCM-${cleanYearGroup}-${String(sequenceNumber).padStart(2, '0')}`;
-        const exists = await User.findOne({ studentId: newStudentId });
-        if (!exists) {
-          isUnique = true;
-        } else {
-          sequenceNumber++; 
-        }
-      }
+      // while (!isUnique) {
+      //   newStudentId = `MCM-${cleanYearGroup}-${String(sequenceNumber).padStart(2, '0')}`;
+      //   const exists = await User.findOne({ studentId: newStudentId });
+      //   if (!exists) {
+      //     isUnique = true;
+      //   } else {
+      //     sequenceNumber++; 
+      //   }
+      // }
+    //   const newStudentId = await generateStudentId(yearGroup);
 
-      const oldStudentId = student.studentId;
+    //   const oldStudentId = student.studentId;
+    //   student.studentId = newStudentId;
+    //   student.yearGroup = yearGroup;
+
+    //   if (oldStudentId) {
+    //     await User.updateMany(
+    //       { role: 'parent', linkedStudentId: oldStudentId },
+    //       { $set: { linkedStudentId: newStudentId } }
+    //     );
+    //   }
+    // }
+
+          const newStudentId = await generateStudentId(yearGroup);
+
+      oldStudentIdForParent = student.studentId;
       student.studentId = newStudentId;
       student.yearGroup = yearGroup;
-
-      if (oldStudentId) {
-        await User.updateMany(
-          { role: 'parent', linkedStudentId: oldStudentId },
-          { $set: { linkedStudentId: newStudentId } }
-        );
-      }
     }
 
     // Update the MAIN profile fields so changes reflect globally
@@ -506,7 +519,18 @@ exports.updateStudentDetails = async (req, res) => {
     // Keep overrides for historical record if needed
     student.adminOverrides = { name, phone, schoolName, city };
 
-    await student.save();
+    // await student.save();
+    // res.status(200).json({ message: 'Student details updated successfully.', student });
+        await student.save();
+
+    // Move the parent link only after the student is safely saved
+    if (oldStudentIdForParent && oldStudentIdForParent !== student.studentId) {
+      await User.updateMany(
+        { role: 'parent', linkedStudentId: oldStudentIdForParent },
+        { $set: { linkedStudentId: student.studentId } }
+      );
+    }
+
     res.status(200).json({ message: 'Student details updated successfully.', student });
   } catch (error) {
     res.status(500).json({ message: error.message });
