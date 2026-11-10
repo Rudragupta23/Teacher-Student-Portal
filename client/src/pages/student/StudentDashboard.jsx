@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { FilePreview } from '../../utils/fileHelpers';
 
 export default function StudentDashboard() {
   // Tab Navigation
@@ -307,6 +308,21 @@ export default function StudentDashboard() {
     e.target.value = null;
   };
 
+  // Opens a task. If the teacher re-opened a submission, the student's
+  // previous answer & files are filled in so they only add what is missing.
+  const openTask = (hw) => {
+    if (hw.status === 'Pending' && hw.submission && (hw.submission.attachments?.length > 0 || hw.submission.answerText || hw.submission.answerFileUrl)) {
+      setSubmitForm({
+        answerFileUrl: hw.submission.answerFileUrl || '',
+        attachments: hw.submission.attachments || [],
+        answerText: hw.submission.answerText || ''
+      });
+    } else {
+      setSubmitForm({ answerFileUrl: '', attachments: [], answerText: '' });
+    }
+    setModalTask(hw);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -521,15 +537,9 @@ export default function StudentDashboard() {
                         {modalTask.attachments.map((attachment, idx) => (
                           <div key={idx} className="flex flex-col gap-3">
                             <p className="font-bold text-slate-700 text-sm">📎 {attachment.name}</p>
-                            <div className="w-full max-h-[400px] overflow-auto border-2 border-slate-200 rounded-2xl bg-white p-2 shadow-inner">
-                              {attachment.url.includes('image') || attachment.url.startsWith('data:image') ? (
-                                <img src={attachment.url} alt={attachment.name} className="w-full h-auto rounded-xl object-contain" />
-                              ) : attachment.url.includes('pdf') || attachment.url.startsWith('data:application/pdf') ? (
-                                <iframe src={attachment.url} className="w-full h-[500px] border-0 rounded-xl" title="PDF Preview"></iframe>
-                              ) : (
-                                <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
-                              )}
-                            </div>
+                            <div className="w-full max-h-[520px] overflow-auto border-2 border-slate-200 rounded-2xl bg-white p-2 shadow-inner">
+  <FilePreview url={attachment.url} name={attachment.name} className="w-full h-[500px] border-0 rounded-xl" imgClassName="w-full h-auto rounded-xl object-contain" />
+</div>
                             <div className="flex justify-end">
                               <button type="button" onClick={async () => {
                                 const initials = (studentProfile.name || 'Unknown').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
@@ -640,8 +650,20 @@ export default function StudentDashboard() {
               modalTask.type !== 'MCQ' && (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   
-                  {/* NEW LATE WARNING FOR THE STUDENT */}
-                  {new Date() > new Date(modalTask.dueDate) && (
+                  {/* RE-OPENED BY TEACHER */}
+                  {modalTask.reopenedAt && (
+                    <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl mb-4">
+                      <p className="text-amber-700 font-black text-sm mb-1">🔁 Your teacher has re-opened this homework. Please submit it again.</p>
+                      {modalTask.reopenNote && (
+                        <p className="text-amber-800 text-sm font-medium whitespace-pre-wrap"><span className="font-black">Teacher's message:</span> {modalTask.reopenNote}</p>
+                      )}
+                      {submitForm.attachments?.length > 0 && (
+                        <p className="text-amber-600 text-xs font-bold mt-2">Your earlier files are already attached below. Add the missing file(s), remove any wrong ones, then press Submit.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* NEW LATE WARNING FOR THE STUDENT */}                  {new Date() > new Date(modalTask.dueDate) && (
                     <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl mb-4 text-center">
                       <p className="text-rose-600 font-black text-sm">⚠️ This homework is past due. Your submission will be marked as LATE.</p>
                     </div>
@@ -1091,7 +1113,7 @@ export default function StudentDashboard() {
                         <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider
                           ${hw.status === 'Pending' ? 'bg-white text-slate-500 shadow-sm' : 
                             hw.status === 'Submitted' ? 'bg-amber-100 text-amber-700 shadow-sm' : 'bg-emerald-100 text-emerald-700 shadow-sm'}`}>
-                          {hw.status}
+                          {hw.status === 'Pending' && hw.reopenedAt ? '🔁 Resubmit' : hw.status}
                         </span>
                         <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-wider bg-white shadow-sm
                           ${hw.difficulty === 'Easy' ? 'text-emerald-500' : hw.difficulty === 'Medium' ? 'text-amber-500' : 'text-rose-500'}`}>
@@ -1112,7 +1134,7 @@ export default function StudentDashboard() {
                       </div>
                     </div>
 
-                    <button onClick={() => setModalTask(hw)} 
+                    <button onClick={() => openTask(hw)}
                       className={`w-full py-4 rounded-2xl font-black transition-all shadow-md transform hover:-translate-y-1
                         ${hw.status === 'Graded' ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30' : 
                           hw.status === 'Submitted' ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/30' : 
@@ -1170,7 +1192,7 @@ export default function StudentDashboard() {
                       </div>
 
                       {isOpen ? (
-                        <button onClick={() => setModalTask(hw)} 
+                        <button onClick={() => openTask(hw)}
                           className={`w-full mt-6 py-4 rounded-2xl font-black transition-all shadow-md
                             ${hw.status === 'Graded' ? 'bg-emerald-500 text-white' : 
                               hw.status === 'Submitted' ? 'bg-amber-500 text-white' : 
@@ -1541,7 +1563,7 @@ export default function StudentDashboard() {
                           {/* 2. Map Assignments Below */}
                           {dayAssignments.map(hw => (
                             <div key={hw._id} 
-                              onClick={() => setModalTask(hw)}
+                              onClick={() => openTask(hw)}
                               className={`text-[9px] md:text-[10px] font-bold p-1.5 md:p-2 rounded-lg truncate cursor-pointer transition-transform hover:scale-105 shadow-sm
                               ${hw.status === 'Graded' ? 'bg-emerald-100 text-emerald-700' : 
                                 hw.status === 'Submitted' ? 'bg-amber-100 text-amber-700' : 

@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { FilePreview } from '../../utils/fileHelpers';
 
 export default function ParentDashboard() {
   const [childData, setChildData] = useState(null);
@@ -1233,16 +1234,7 @@ export default function ParentDashboard() {
                             </button>
                           </div>
                           <div className="w-full h-[400px] overflow-auto border-2 border-violet-50 rounded-xl bg-slate-50 flex items-center justify-center">
-                            {attachment.url.includes('image') || attachment.url.startsWith('data:image') ? (
-                              <img src={attachment.url} alt={attachment.name} className="max-h-[400px] max-w-full object-contain rounded-lg shadow-sm" />
-                            ) : attachment.url.includes('pdf') || attachment.url.startsWith('data:application/pdf') ? (
-                              <iframe src={attachment.url} className="w-full h-full border-0 rounded-lg" title="PDF Preview"></iframe>
-                            ) : (
-                              <div className="text-center p-8">
-                                <p className="font-black text-slate-700 mb-2">Unsupported File Format</p>
-                                <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-xs bg-indigo-500 text-white px-4 py-2 rounded-xl font-black shadow-md inline-block">Open File in New Tab</a>
-                              </div>
-                            )}
+                            <FilePreview url={attachment.url} name={attachment.name} className="w-full h-full border-0 rounded-lg" imgClassName="max-h-[400px] max-w-full object-contain rounded-lg shadow-sm" />
                           </div>
                         </div>
                       ))}

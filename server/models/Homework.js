@@ -57,6 +57,11 @@ const homeworkSchema = new mongoose.Schema({
     gradedAt: { type: Date },
     gradedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   },
+
+  // Set when an admin/grader re-opens a submitted homework for resubmission
+  reopenNote: { type: String, default: '' },
+  reopenedAt: { type: Date },
+  reopenedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   
   createdAt: { type: Date, default: Date.now, index: true }
 });

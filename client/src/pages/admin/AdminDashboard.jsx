@@ -8,6 +8,7 @@ import html2canvas from 'html2canvas';
 import { useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FilePreview, downloadFile, HOMEWORK_FILE_ACCEPT } from '../../utils/fileHelpers';
 
 const getOverdueTime = (dueDate, submittedAt = null) => {
   const targetDate = submittedAt ? new Date(submittedAt) : new Date();
@@ -970,6 +971,17 @@ const handleAssignSubmit = async (e) => {
         setAdminSubmitForm({ answerText: '', answerFileUrl: '', attachments: [] });
         setAdminSubmitFile({ fileName: '', isUploading: false });
       }
+      else if (modal.type === 'reopen') {
+        const newDue = modal.data?.newDueDate;
+        if (newDue && new Date(newDue) <= new Date()) {
+          return showToast("New deadline must be in the future!", "error");
+        }
+        await api.put(`/homework/${modal.hwId}/reopen`, {
+          note: (modal.data?.note || '').trim(),
+          newDueDate: newDue ? new Date(newDue).toISOString() : undefined
+        });
+        showToast("Submission re-opened. The student can now submit again.");
+      }
       
       setModal({ type: null, hwId: null, studentId: null, data: '' });
       setAnswerSheet({ fileUrl: '', fileName: '', attachments: [], isUploading: false });
@@ -1861,10 +1873,13 @@ const handleAssignSubmit = async (e) => {
                                 </p>
                                 <div className="flex gap-2 shrink-0">
                                   <button type="button" onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)} className="text-cyan-600 hover:text-cyan-700 font-bold text-xs bg-cyan-50 px-3 py-1.5 rounded-lg">
-                                    {previewAttachmentUrl === file.url ? 'Close' : 'Preview'}
-                                  </button>
-                                  <button type="button" onClick={() => {
-                                    const newAttachments = answerSheet.attachments.filter((_, i) => i !== idx);
+  {previewAttachmentUrl === file.url ? 'Close' : 'Preview'}
+</button>
+<button type="button" onClick={() => downloadFile(file.url, file.name)} className="text-emerald-600 hover:text-emerald-700 font-bold text-xs bg-emerald-50 px-3 py-1.5 rounded-lg">
+  ⬇️ Download
+</button>
+<button type="button" onClick={() => {
+  const newAttachments = answerSheet.attachments.filter((_, i) => i !== idx);
                                     setAnswerSheet({...answerSheet, attachments: newAttachments});
                                     if (previewAttachmentUrl === file.url) setPreviewAttachmentUrl(null);
                                   }} className="text-rose-500 hover:text-rose-700 font-bold text-xs bg-rose-50 px-3 py-1.5 rounded-lg">Remove</button>
@@ -1903,9 +1918,13 @@ const handleAssignSubmit = async (e) => {
                       {modal.data?.adminAnswerSheetUrl && !answerSheet.attachments?.length && (!answerSheet.fileName || answerSheet.fileName === 'Existing Marked/Checked work Attached') && (
                         <div className="flex items-center gap-4 mt-3 bg-white p-2 rounded-xl border border-slate-100 justify-center shadow-sm">
                           <button type="button" onClick={() => window.open(modal.data.adminAnswerSheetUrl, "_blank")} className="text-xs font-black text-cyan-600 hover:text-cyan-700 flex items-center gap-1">
-                            👁️ View Full File
-                          </button>
-                          <span className="text-slate-200">|</span>
+                              👁️ View Full File
+</button>
+<span className="text-slate-200">|</span>
+<button type="button" onClick={() => downloadFile(modal.data.adminAnswerSheetUrl, 'Marked_Work')} className="text-xs font-black text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+  ⬇️ Download
+</button>
+<span className="text-slate-200">|</span>
                           <button type="button" onClick={() => setModal({ type: 'deleteAnsSheet', hwId: modal.hwId, data: { score: modal.data.score, totalScore: modal.data.totalScore } })} className="text-xs font-black text-rose-500 hover:text-rose-600 flex items-center gap-1">
                             🗑️ Delete File
                           </button>
@@ -2136,9 +2155,14 @@ const handleAssignSubmit = async (e) => {
                           <div key={idx} className="bg-[#F4F7FE] p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                             <div className="flex justify-between items-center">
                               <span className="font-black text-[#1B2559] text-sm truncate pr-4">File {idx + 1}: {attachment.name}</span>
-                              <button type="button" onClick={() => window.open(attachment.url, "_blank")} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5 shrink-0">
-                                View File
-                              </button>
+<div className="flex gap-2 shrink-0">
+  <button type="button" onClick={() => window.open(attachment.url, "_blank")} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5">
+    View File
+  </button>
+  <button type="button" onClick={() => downloadFile(attachment.url, attachment.name)} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5">
+    ⬇️ Download
+  </button>
+</div>
                             </div>
                           </div>
                         ))}
@@ -2147,9 +2171,14 @@ const handleAssignSubmit = async (e) => {
                        <div className="bg-[#F4F7FE] p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                          <div className="flex justify-between items-center">
                            <span className="font-black text-[#1B2559] text-sm">Attached File</span>
-                           <button type="button" onClick={() => window.open(modal.data.fileUrl, "_blank")} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5 shrink-0">
-                            View File
-                           </button>
+<div className="flex gap-2 shrink-0">
+  <button type="button" onClick={() => window.open(modal.data.fileUrl, "_blank")} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5">
+   View File
+  </button>
+  <button type="button" onClick={() => downloadFile(modal.data.fileUrl, (modal.data.title || 'Assigned_Work').replace(/\s+/g, '_'))} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5">
+   ⬇️ Download
+  </button>
+</div>
                          </div>
                        </div>
                     ) : (
@@ -2281,7 +2310,34 @@ const handleAssignSubmit = async (e) => {
                 </div>
               </>
             )}
-            {modal.type === 'graderInstruction' && modal.data !== 'skip' && (
+            {modal.type === 'reopen' && (
+  <>
+    <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4 text-3xl mx-auto">🔁</div>
+    <h3 className="text-2xl font-black text-slate-800 mb-2 text-center">Reopen Submission?</h3>
+    <p className="text-slate-500 text-sm mb-6 text-center">
+      <strong>{modal.student?.registrationName || modal.student?.name || 'The student'}</strong> will be able to submit <strong>"{modal.title}"</strong> again. Their previous files stay attached, so they only need to add what is missing.
+    </p>
+
+    <div className="space-y-4 mb-6 text-left">
+      <div>
+        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Message to Student (Optional)</label>
+        <textarea className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/20 font-medium text-[#1B2559] min-h-[100px]"
+          placeholder="e.g. You forgot to attach page 2. Please add it and submit again."
+          value={modal.data?.note || ''}
+          onChange={e => setModal({ ...modal, data: { ...modal.data, note: e.target.value } })} />
+      </div>
+      <div>
+        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">New Deadline (Optional)</label>
+        <input type="datetime-local" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/20 font-bold text-[#1B2559]"
+          value={modal.data?.newDueDate || ''}
+          onChange={e => setModal({ ...modal, data: { ...modal.data, newDueDate: e.target.value } })} />
+        <p className="text-[11px] font-bold text-slate-400 mt-1 ml-1">Leave empty to keep the current deadline. If that deadline has already passed, the new submission will be marked LATE.</p>
+      </div>
+    </div>
+  </>
+)}
+
+{modal.type === 'graderInstruction' && modal.data !== 'skip' && (
               <>
                 <h3 className="text-2xl font-black text-slate-800 mb-2">Instruction for Grader</h3>
                 <p className="text-slate-500 text-sm mb-4">Optional: Do you want to send any specific instructions to the grader for today's homework?</p>
@@ -2351,10 +2407,17 @@ const handleAssignSubmit = async (e) => {
             )}
             <div className="flex gap-4">
               {modal.type === 'viewWork' || modal.type === 'viewOriginalWork' ? (
-                <button onClick={() => setModal({ type: null, hwId: null, studentId: null, data: '' })} className="w-full py-4 bg-slate-100 text-slate-700 hover:bg-slate-200 font-black rounded-2xl transition-colors">
-                  Close Preview
-                </button>
-              ) : (
+  <>
+    <button onClick={() => setModal({ type: null, hwId: null, studentId: null, data: '' })} className="flex-1 py-4 bg-slate-100 text-slate-700 hover:bg-slate-200 font-black rounded-2xl transition-colors">
+      Close Preview
+    </button>
+    {modal.type === 'viewWork' && modal.hwId && (
+      <button onClick={() => setModal({ type: 'reopen', hwId: modal.hwId, title: modal.title, student: modal.student, data: { note: '', newDueDate: '' } })} className="flex-1 py-4 bg-amber-500 text-white hover:bg-amber-600 font-black rounded-2xl transition-colors shadow-lg shadow-amber-500/30">
+        🔁 Reopen for Resubmission
+      </button>
+    )}
+  </>
+) : (
                 <>
                   <button onClick={() => { 
   setModal({ type: null, hwId: null, studentId: null, data: '' }); 
@@ -2369,8 +2432,9 @@ const handleAssignSubmit = async (e) => {
                   <button onClick={executeModalAction} className={`flex-1 py-4 font-bold rounded-2xl text-white transition-transform hover:-translate-y-1 shadow-lg
   ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes' || modal.type === 'deleteAllTopics') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' :
     modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
+    modal.type === 'reopen' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' : 
     'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}>
-  {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader') ? 'Yes, Delete' : 'Confirm'}
+  {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader') ? 'Yes, Delete' : modal.type === 'reopen' ? 'Yes, Reopen' : 'Confirm'}
 </button>
                 </>
               )}
@@ -2727,7 +2791,7 @@ const handleAssignSubmit = async (e) => {
                         <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">Format Type</label>
                         <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl font-bold text-[#1B2559] outline-none mb-4 cursor-pointer" 
                           value={assignForm.type} onChange={e => setAssignForm({...assignForm, type: e.target.value})}>
-                          <option value="File">Upload File (PDF/Image)</option>
+                          <option value="File">Upload File (PDF/Image/Word/HTML)</option>
                           <option value="Text">Write Question</option>
                           <option value="MCQ">Build Quiz (MCQ)</option>
                         </select>
@@ -2736,10 +2800,10 @@ const handleAssignSubmit = async (e) => {
                           {assignForm.type === 'File' && (
                             <>
                               <div className="relative border-2 border-dashed border-indigo-300 bg-[#F4F7FE] rounded-3xl p-10 text-center hover:bg-indigo-50 transition-colors cursor-pointer group">
-                                <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />
+                                <input type="file" accept={HOMEWORK_FILE_ACCEPT} multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
                                 <p className="font-black text-[#1B2559]">Drag & Drop or Click to Attach Files</p>
-                                <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG (Combined Max 50MB)</p>
+                                <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG, Word (DOC/DOCX), HTML (Combined Max 50MB)</p>
                                 {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file(s)...</p>}
                               </div>
                           
@@ -2767,15 +2831,9 @@ const handleAssignSubmit = async (e) => {
                                         </div>
                                       </div>
                                       {previewAttachmentUrl === file.url && (
-                                        <div className="w-full h-48 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
-                                          {file.url.includes('image') || file.url.startsWith('data:image') ? (
-                                            <img src={file.url} alt="Preview" className="w-full h-full object-contain" />
-                                          ) : file.url.includes('pdf') || file.url.startsWith('data:application/pdf') ? (
-                                            <iframe src={file.url} className="w-full h-full border-0" title="PDF Preview"></iframe>
-                                          ) : (
-                                            <p className="text-xs text-slate-400 font-bold">Preview not available.</p>
-                                          )}
-                                        </div>
+                                        <div className="w-full h-64 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
+  <FilePreview url={file.url} name={file.name} className="w-full h-full border-0" imgClassName="w-full h-full object-contain" />
+</div>
                                       )}
                                     </div>
                                   ))}
@@ -3033,6 +3091,11 @@ const handleAssignSubmit = async (e) => {
                                     hw.status === 'Submitted' ? 'bg-amber-100 text-amber-700 animate-pulse' : 'bg-emerald-100 text-emerald-700'}`}>
                                   {hw.status}
                                 </span>
+                                {hw.status === 'Pending' && hw.reopenedAt && (
+                                  <span className="bg-amber-500 text-white px-2 py-1 rounded-md text-[10px] font-black shadow-sm" title={hw.reopenNote || 'Re-opened for resubmission'}>
+                                    🔁 REOPENED
+                                  </span>
+                                )}
                                 {isLate && hw.status === 'Pending' && (
                                   <span className="bg-rose-100 text-rose-600 px-2 py-1 rounded-md text-[10px] font-black">
                                     Overdue by {getOverdueTime(hw.dueDate)}
@@ -3072,7 +3135,16 @@ const handleAssignSubmit = async (e) => {
     <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: getDefaultDueDate() })} className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-600 font-black rounded-lg hover:bg-indigo-50 transition-all shadow-sm text-xs">
       Extend
     </button>
-    <button onClick={() => setModal({ type: 'adminSubmit', hwId: hw._id, data: hw })} className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-600 font-black rounded-lg hover:bg-indigo-100 transition-all shadow-sm text-xs">
+    <button onClick={() => {
+      // If the student's work was re-opened, keep their earlier files in the form
+      // (otherwise submitting only the new file would delete their old files)
+      setAdminSubmitForm({
+        answerText: hw.submission?.answerText || '',
+        answerFileUrl: hw.submission?.answerFileUrl || '',
+        attachments: hw.submission?.attachments || []
+      });
+      setModal({ type: 'adminSubmit', hwId: hw._id, data: hw });
+    }} className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-600 font-black rounded-lg hover:bg-indigo-100 transition-all shadow-sm text-xs">
       Submit Work
     </button>
   </>
@@ -3089,8 +3161,11 @@ const handleAssignSubmit = async (e) => {
                                         </button>
                                       )}
                                       <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
-                                        Grade
-                                      </button>
+  Grade
+</button>
+<button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: '' } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
+  🔁 Reopen
+</button>
                                     </>
                                   )}
                                   
@@ -3277,7 +3352,7 @@ const handleAssignSubmit = async (e) => {
                         <select className="w-full p-4 bg-[#F4F7FE] border-none rounded-2xl font-bold text-[#1B2559] outline-none mb-4 cursor-pointer" 
                           value={testForm.type} onChange={e => setTestForm({...testForm, type: e.target.value})}>
                           <option value="MCQ">Build Quiz (MCQ)</option>
-                          <option value="File">Upload File (PDF/Image)</option>
+                          <option value="File">Upload File (PDF/Image/Word/HTML)</option>
                           <option value="Text">Write Question</option>
                         </select>
 
@@ -3285,10 +3360,10 @@ const handleAssignSubmit = async (e) => {
                           {testForm.type === 'File' && (
                             <>
                               <div className="relative border-2 border-dashed border-rose-300 bg-[#F4F7FE] rounded-3xl p-10 text-center hover:bg-rose-50 transition-colors cursor-pointer group">
-                                <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleTestFileUpload} />
+                                <input type="file" accept={HOMEWORK_FILE_ACCEPT} multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleTestFileUpload} />
                                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform text-3xl">📁</div>
                                 <p className="font-black text-[#1B2559]">Drag & Drop or Click to Attach Files</p>
-                                <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG (Combined Max 50MB)</p>
+                                <p className="text-xs font-bold text-[#A3AED0] mt-1">PDF, JPG, PNG, Word (DOC/DOCX), HTML (Combined Max 50MB)</p>
                                 {isUploading && <p className="mt-3 text-sm font-bold text-amber-500">Processing file(s)...</p>}
                               </div>
 
@@ -3315,15 +3390,9 @@ const handleAssignSubmit = async (e) => {
                                         </div>
                                       </div>
                                       {previewAttachmentUrl === file.url && (
-                                        <div className="w-full h-48 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
-                                          {file.url.includes('image') || file.url.startsWith('data:image') ? (
-                                            <img src={file.url} alt="Preview" className="w-full h-full object-contain" />
-                                          ) : file.url.includes('pdf') || file.url.startsWith('data:application/pdf') ? (
-                                            <iframe src={file.url} className="w-full h-full border-0" title="PDF Preview"></iframe>
-                                          ) : (
-                                            <p className="text-xs text-slate-400 font-bold">Preview not available.</p>
-                                          )}
-                                        </div>
+                                        <div className="w-full h-64 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
+  <FilePreview url={file.url} name={file.name} className="w-full h-full border-0" imgClassName="w-full h-full object-contain" />
+</div>
                                       )}
                                     </div>
                                   ))}
@@ -3509,6 +3578,11 @@ const handleAssignSubmit = async (e) => {
                                     hw.status === 'Submitted' ? 'bg-amber-100 text-amber-700 animate-pulse' : 'bg-emerald-100 text-emerald-700'}`}>
                                   {hw.status}
                                 </span>
+                                {hw.status === 'Pending' && hw.reopenedAt && (
+                                  <span className="bg-amber-500 text-white px-2 py-1 rounded-md text-[10px] font-black shadow-sm" title={hw.reopenNote || 'Re-opened for resubmission'}>
+                                    🔁 REOPENED
+                                  </span>
+                                )}
                                 {isLate && hw.status === 'Pending' && (
                                   <span className="bg-rose-100 text-rose-600 px-2 py-1 rounded-md text-[10px] font-black">
                                     Overdue by {getOverdueTime(hw.dueDate)}
@@ -3523,7 +3597,16 @@ const handleAssignSubmit = async (e) => {
     <button onClick={() => setModal({ type: 'extend', hwId: hw._id, data: getDefaultDueDate() })} className="px-3 py-1.5 bg-white border border-rose-200 text-rose-600 font-black rounded-lg hover:bg-rose-50 transition-all shadow-sm text-xs">
       Extend
     </button>
-    <button onClick={() => setModal({ type: 'adminSubmit', hwId: hw._id, data: hw })} className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 font-black rounded-lg hover:bg-rose-100 transition-all shadow-sm text-xs">
+    <button onClick={() => {
+      // If the student's work was re-opened, keep their earlier files in the form
+      // (otherwise submitting only the new file would delete their old files)
+      setAdminSubmitForm({
+        answerText: hw.submission?.answerText || '',
+        answerFileUrl: hw.submission?.answerFileUrl || '',
+        attachments: hw.submission?.attachments || []
+      });
+      setModal({ type: 'adminSubmit', hwId: hw._id, data: hw });
+    }} className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 font-black rounded-lg hover:bg-rose-100 transition-all shadow-sm text-xs">
       Submit Work
     </button>
   </>
@@ -3540,8 +3623,11 @@ const handleAssignSubmit = async (e) => {
                                         </button>
                                       )}
                                       <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
-                                        Grade
-                                      </button>
+  Grade
+</button>
+<button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: '' } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
+  🔁 Reopen
+</button>
                                     </>
                                   )}
                                   
@@ -5887,6 +5973,11 @@ const handleAssignSubmit = async (e) => {
                                   hw.status === 'Submitted' ? 'bg-amber-100 text-amber-700 animate-pulse' : 'bg-emerald-100 text-emerald-700'}`}>
                                 {hw.status}
                               </span>
+                              {hw.status === 'Pending' && hw.reopenedAt && (
+                                <span className="bg-amber-500 text-white px-2 py-1 rounded-md text-[10px] font-black shadow-sm" title={hw.reopenNote || 'Re-opened for resubmission'}>
+                                  🔁 REOPENED
+                                </span>
+                              )}
                               {hw.submission?.submittedAt && new Date(hw.submission.submittedAt) > new Date(hw.dueDate) && (
                                 <span className="bg-rose-500 text-white px-2 py-1 rounded-md text-[10px] font-black shadow-sm">
                                   LATE SUBMISSION
@@ -5907,8 +5998,11 @@ const handleAssignSubmit = async (e) => {
                                       </button>
                                     )}
                                     <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
-                                      Grade
-                                    </button>
+  Grade
+</button>
+<button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: '' } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
+  🔁 Reopen
+</button>
                                   </>
                                 )}
                                 

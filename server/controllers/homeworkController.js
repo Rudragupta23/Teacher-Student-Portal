@@ -367,8 +367,16 @@ exports.submitHomework = async (req, res) => {
       return res.status(200).json({ message: 'MCQ - graded successfully!', homework });
     }
 
+    // If this is a resubmission after a re-open, delete old files the student removed
+    const newUrls = (attachments || []).map(a => a.url);
+    const oldAttachments = homework.submission?.attachments || [];
+    for (const old of oldAttachments) {
+      if (old.url && !newUrls.includes(old.url)) await deleteFileFromS3(old.url);
+    }
+
     homework.status = 'Submitted';
     homework.submission = { answerText, answerFileUrl, attachments: attachments || [], submittedAt: new Date() };
+    homework.reopenNote = '';
     await homework.save();
 
     notifyAdmins(student.registrationName || student.name);
@@ -398,10 +406,16 @@ exports.gradeHomework = async (req, res) => {
     
     const skipEmail = (isRemovingMarkedWork || isRemovingDriveLink) && !isAddingNewWork;
 
+    // Grades are optional. NOTE: Number(null) is 0, so null must be checked too,
+    // otherwise "no grade" would be saved as 0/0.
+    const isBlank = (v) => v === undefined || v === null || v === '';
+    const hasScore = !isBlank(score) && !isBlank(totalScore);
+    const scoreText = hasScore ? `${score} / ${totalScore}` : 'Marked (no grade given)';
+
     homework.status = 'Graded';
     homework.grading = {
-      score: score !== undefined && score !== '' ? Number(score) : null,
-      totalScore: totalScore !== undefined && totalScore !== '' ? Number(totalScore) : null,
+      score: hasScore ? Number(score) : null,
+      totalScore: hasScore ? Number(totalScore) : null,
       feedback: feedback || '',
       adminAnswerSheetUrl: adminAnswerSheetUrl || '',
       adminAttachments: adminAttachments || [],
@@ -451,7 +465,9 @@ exports.gradeHomework = async (req, res) => {
                         
                         <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 25px; margin: 25px 0; border-radius: 8px; text-align: center;">
                             <p style="margin: 0; font-size: 14px; color: #059669; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Your Score</p>
-                            <p style="margin: 10px 0 0 0; font-size: 36px; font-weight: 800; color: #065f46;">${score} <span style="font-size: 20px; color: #10b981;">/ ${totalScore}</span></p>
+                            ${hasScore
+                              ? `<p style="margin: 10px 0 0 0; font-size: 36px; font-weight: 800; color: #065f46;">${score} <span style="font-size: 20px; color: #10b981;">/ ${totalScore}</span></p>`
+                              : `<p style="margin: 10px 0 0 0; font-size: 22px; font-weight: 800; color: #065f46;">Marked ✓ (no grade given)</p>`}
                         </div>
 
                         <div style="margin-bottom: 25px;">
@@ -476,7 +492,9 @@ exports.gradeHomework = async (req, res) => {
           if (student.phone) {
             sendSMS({
               phone: student.phone,
-              message: `MathCom Mentors: Your submission for "${homework.title}" has been graded: ${score}/${totalScore}.`
+              message: hasScore
+                ? `MathCom Mentors: Your submission for "${homework.title}" has been graded: ${score}/${totalScore}.`
+                : `MathCom Mentors: Your submission for "${homework.title}" has been marked. Check your dashboard for feedback.`
             }).catch(err => console.error("SMS to student failed:", err.message));
           }
         }
@@ -498,10 +516,10 @@ exports.gradeHomework = async (req, res) => {
                     </div>
                     <div style="padding: 30px;">
                         <p style="font-size: 16px; margin-bottom: 20px;">Hello Parent,</p>
-                        <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">A new grade has been posted for your child, <strong>${student.registrationName || student.name}</strong>, for the assignment <strong>${homework.title}</strong>.</p>
+                        <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">Your child <strong>${student.registrationName || student.name}</strong>'s work for the assignment <strong>${homework.title}</strong> has been marked.</p>
                         
                         <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; margin: 25px 0; border-radius: 8px;">
-                            <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>Score Achieved:</strong> <span style="color: #059669; font-weight: bold; font-size: 18px;">${score} / ${totalScore}</span></p>
+                            <p style="margin: 0 0 10px 0; font-size: 16px;"><strong>Score Achieved:</strong> <span style="color: #059669; font-weight: bold; font-size: 18px;">${scoreText}</span></p>
                         </div>
 
                         <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Please log in to your Parent Dashboard for a complete overview of your child's progress.</p>
@@ -525,8 +543,9 @@ exports.gradeHomework = async (req, res) => {
             await Promise.all(parentPhones.map(phone => 
               sendSMS({
                 phone,
-                message: `MathCom Mentors Update: ${student.registrationName || student.name} received a grade of ${score}/${totalScore} for "${homework.title}".`
-              })
+                message: hasScore
+                  ? `MathCom Mentors Update: ${student.registrationName || student.name} received a grade of ${score}/${totalScore} for "${homework.title}".`
+                  : `MathCom Mentors Update: ${student.registrationName || student.name}'s work for "${homework.title}" has been marked.`              })
             )).catch(err => console.error("SMS to parents failed:", err.message));
           }
         }
@@ -534,6 +553,97 @@ exports.gradeHomework = async (req, res) => {
     }
 
     res.status(200).json({ message: 'Graded successfully! Document updated.', homework });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Re-open a submitted homework so the student can submit again
+// @route   PUT /api/homework/:id/reopen
+exports.reopenSubmission = async (req, res) => {
+  const { id } = req.params;
+  const { note, newDueDate } = req.body;
+
+  try {
+    const homework = await Homework.findById(id);
+    if (!homework) return res.status(404).json({ message: 'Homework not found' });
+
+    // Only work that is submitted but NOT yet graded can be re-opened
+    if (homework.status !== 'Submitted') {
+      return res.status(400).json({ message: 'Only submitted (not yet graded) work can be re-opened.' });
+    }
+
+    // A grader can only re-open work of their own allocated students
+    if (req.user.role === 'grader') {
+      const grader = await User.findById(req.user._id);
+      const isAllocated = (grader.allocatedStudents || []).some(s => s.toString() === homework.studentId.toString());
+      if (!isAllocated) {
+        return res.status(403).json({ message: 'You are not authorized to re-open work for this student.' });
+      }
+    }
+
+    if (newDueDate) {
+      if (new Date(newDueDate) <= new Date()) {
+        return res.status(400).json({ message: 'New due date must be in the future!' });
+      }
+      homework.dueDate = new Date(newDueDate);
+      homework.reminderSent = false;
+      homework.parentReminderSent = false;
+    }
+
+    // Keep the student's previous files/answer so they only need to add what is missing.
+    // Clear submittedAt so the old submission time no longer shows as LATE.
+    if (homework.submission) {
+      homework.submission.submittedAt = undefined;
+      homework.markModified('submission');
+    }
+
+    homework.status = 'Pending';
+    homework.reopenNote = note || '';
+    homework.reopenedAt = new Date();
+    homework.reopenedBy = req.user._id;
+    await homework.save();
+
+    // Notify the student
+    const student = await User.findById(homework.studentId);
+    if (student && student.email) {
+      const dueText = new Date(homework.dueDate).toLocaleString();
+      const emailContent = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f3f4f6; padding: 40px 20px; color: #374151;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                <div style="background-color: #f59e0b; padding: 25px; text-align: center;">
+                    <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">🔁 Please Resubmit Your Work</h2>
+                </div>
+                <div style="padding: 30px;">
+                    <p style="font-size: 16px; margin-bottom: 20px;">Hello ${student.registrationName || student.name},</p>
+                    <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">Your teacher has re-opened your submission for <strong>${homework.title}</strong> so you can submit it again.</p>
+                    ${note ? `
+                    <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+                        <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #92400e;">Message from your teacher:</p>
+                        <p style="margin: 0; font-size: 15px; color: #78350f;">${note}</p>
+                    </div>` : ''}
+                    <p style="font-size: 16px; color: #1f2937;"><strong>Deadline:</strong> <span style="color: #ef4444; font-weight: bold;">${dueText}</span></p>
+                    <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 30px;">Log in to your student dashboard, open the homework, add the missing work and submit again.</p>
+                </div>
+            </div>
+        </div>
+      `;
+
+      sendEmail({
+        email: student.email,
+        subject: `Resubmission Needed: ${homework.title}`,
+        html: emailContent
+      }).catch(err => console.error("Reopen email failed, but continuing:", err.message));
+
+      if (student.phone) {
+        sendSMS({
+          phone: student.phone,
+          message: `MathCom Mentors: Your teacher re-opened "${homework.title}". Please check your dashboard and submit again.`
+        }).catch(err => console.error("Reopen SMS failed:", err.message));
+      }
+    }
+
+    res.status(200).json({ message: 'Submission re-opened. The student can now submit again.', homework });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

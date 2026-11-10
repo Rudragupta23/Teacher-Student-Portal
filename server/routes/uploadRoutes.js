@@ -13,11 +13,36 @@ const s3 = new S3Client({
   }
 });
 
+// Word & HTML files can't be detected reliably by AUTO_CONTENT_TYPE
+// (.docx is stored as "application/zip" and .html as "application/octet-stream"),
+// so set their Content-Type from the file extension instead.
+const WORD_TYPES = {
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.doc': 'application/msword'
+};
+
+const setContentType = (req, file, cb) => {
+  const name = (file.originalname || '').toLowerCase();
+  const ext = name.includes('.') ? name.substring(name.lastIndexOf('.')) : '';
+
+  if (WORD_TYPES[ext]) return cb(null, WORD_TYPES[ext]);
+
+  if (ext === '.html' || ext === '.htm') {
+    // Only admins/graders can publish HTML that opens as a web page.
+    // From anyone else it is stored as a plain download.
+    const canPublishHtml = req.user && (req.user.role === 'admin' || req.user.role === 'grader');
+    return cb(null, canPublishHtml ? 'text/html; charset=utf-8' : 'application/octet-stream');
+  }
+
+  // Everything else (PDF, PNG, JPG...) keeps the existing auto-detection
+  return multerS3.AUTO_CONTENT_TYPE(req, file, cb);
+};
+
 const upload = multer({
   storage: multerS3({
     s3: s3,
     bucket: process.env.AWS_BUCKET_NAME,
-    contentType: multerS3.AUTO_CONTENT_TYPE,
+    contentType: setContentType,
     metadata: function (req, file, cb) {
       cb(null, { fieldName: file.fieldname });
     },

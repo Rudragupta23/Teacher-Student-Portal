@@ -8,7 +8,8 @@ const {
   gradeHomework,
   extendDeadline,
   deleteHomework,
-  updateHomework
+  updateHomework,
+  reopenSubmission
 } = require('../controllers/homeworkController');
 
 const { protect, admin, graderOrAdmin } = require('../middlewares/authMiddleware');
@@ -18,6 +19,7 @@ router.post('/assign', protect, graderOrAdmin, assignHomework);
 router.get('/admin', protect, graderOrAdmin, getAdminHomework);
 router.put('/:id/grade', protect, graderOrAdmin, gradeHomework);
 router.put('/:id/extend', protect, extendDeadline);
+router.put('/:id/reopen', protect, graderOrAdmin, reopenSubmission);
 router.put('/:id', protect, graderOrAdmin, updateHomework); 
 router.delete('/:id', protect, admin, deleteHomework);
 
