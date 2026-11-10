@@ -214,15 +214,7 @@ const [testForm, setTestForm] = useState({
 
   // Class Planner States
   const [plannerSessions, setPlannerSessions] = useState([]);
-  // Planner follows the global Year + Student filter ("All" shows every class)
-  const visiblePlannerSessions = plannerSessions.filter(s => {
-    if (globalStudent !== 'all') return String(s.studentId) === String(globalStudent);
-    if (globalYear !== 'all') {
-      const st = students.find(x => String(x._id) === String(s.studentId));
-      return st ? st.yearGroup === globalYear : (s.yearGroupFilter === globalYear);
-    }
-    return true;
-  });
+  const visiblePlannerSessions = plannerSessions;
   const [plannerFilter, setPlannerFilter] = useState('calendar'); 
   const [plannerCurrentDate, setPlannerCurrentDate] = useState(new Date());
   const [plannerModal, setPlannerModal] = useState({ show: false, selectedDate: null, data: null });
@@ -1727,38 +1719,94 @@ const handleAssignSubmit = async (e) => {
     }
   };
 
+  // ===== CLASS PROGRESS COLOURS (used by the Class Planner AND its PDF export) =====
+  // A class is linked to its Lesson Schedule report and its homework by STUDENT + DATE.
+  // e.g. class for Rudra on 11 Nov at 20:30 -> report for Rudra dated 11 Nov, homework given to Rudra on 11 Nov.
+  // Blue       = class has not happened yet
+  // Red        = class is over but the Lesson Schedule (daily report) is not done
+  // Orange     = Lesson Schedule done, but no homework given to that student on the class date
+  // Yellow     = homework given, but the student has not submitted it
+  // Light green= homework submitted, but not graded yet
+  // Dark green = homework graded
+  // Grey       = class cancelled / student didn't attend, so no homework needed
+  // (pdfFill / pdfText = the same colours as RGB numbers, for the PDF)
+  const SESSION_STATUS = {
+    upcoming:     { label: 'Upcoming class',            chip: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200', time: 'text-indigo-900', dot: 'bg-indigo-300', pdfFill: [224, 231, 255], pdfText: [55, 48, 163] },
+    noReport:     { label: 'Lesson Schedule not done',  chip: 'bg-red-500 text-white hover:bg-red-600',            time: 'text-red-700',    dot: 'bg-red-500',    pdfFill: [239, 68, 68],   pdfText: [255, 255, 255] },
+    noHomework:   { label: 'HW not given',              chip: 'bg-orange-400 text-white hover:bg-orange-500',      time: 'text-orange-700', dot: 'bg-orange-400', pdfFill: [251, 146, 60],  pdfText: [255, 255, 255] },
+    notSubmitted: { label: 'HW given, not submitted',   chip: 'bg-yellow-300 text-yellow-900 hover:bg-yellow-400', time: 'text-yellow-800', dot: 'bg-yellow-300', pdfFill: [253, 224, 71],  pdfText: [113, 63, 18] },
+    notGraded:    { label: 'HW submitted, not graded',  chip: 'bg-green-200 text-green-900 hover:bg-green-300',    time: 'text-green-800',  dot: 'bg-green-300',  pdfFill: [187, 247, 208], pdfText: [20, 83, 45] },
+    graded:       { label: 'HW graded',                 chip: 'bg-green-700 text-white hover:bg-green-800',        time: 'text-green-800',  dot: 'bg-green-700',  pdfFill: [21, 128, 61],   pdfText: [255, 255, 255] },
+    cancelled:    { label: "Cancelled / didn't attend", chip: 'bg-slate-200 text-slate-600 hover:bg-slate-300',    time: 'text-slate-600',  dot: 'bg-slate-300',  pdfFill: [226, 232, 240], pdfText: [71, 85, 105] },
+  };
+  const SESSION_STATUS_ORDER = ['noReport', 'noHomework', 'notSubmitted', 'notGraded', 'graded', 'upcoming', 'cancelled'];
+
+  const getSessionStatus = (session) => {
+    const sid = String(session.studentId || 'all');
+    const sessionDay = new Date(session.startDate).toDateString();
+
+    // 1) Lesson Schedule report for this student on this day
+    const dayReports = schemes.filter(r => new Date(r.date).toDateString() === sessionDay && String(r.studentId) === sid);
+    const classTaken = dayReports.some(r => !r.classStatus || r.classStatus === 'Class Taken');
+    const classCancelled = !classTaken && dayReports.some(r => r.classStatus && r.classStatus !== 'Class Taken' && r.classStatus !== 'Class Rescheduled');
+
+    if (classCancelled) return 'cancelled';
+    if (!classTaken) return new Date(session.endDate) < new Date() ? 'noReport' : 'upcoming';
+    if (sid === 'all') return 'graded'; // old "whole class" sessions: no single student's homework to track
+
+    // 2) Homework for this class = homework (not tests) given to this student ON THE CLASS DATE
+    const classHw = homeworks.filter(h =>
+      !h.isTest &&
+      String(h.studentId?._id || h.studentId) === sid &&
+      new Date(h.createdAt).toDateString() === sessionDay
+    );
+
+    if (classHw.length === 0) return 'noHomework';
+    if (classHw.some(h => h.status === 'Pending')) return 'notSubmitted';
+    if (classHw.some(h => h.status === 'Submitted')) return 'notGraded';
+    return 'graded';
+  };
+
+  // ===== CLASS PLANNER PDF EXPORT =====
+  // Draws the calendar directly in the PDF (sharp text, small file) instead of taking a screenshot.
+  // Page 1+: colour-coded month calendar (Calendar / Month view).  Then: a full table of classes with their status.
   const handleExportPlannerPDF = async () => {
     try {
-      const doc = new jsPDF('landscape');
-      doc.setFontSize(18);
-      doc.text("Class Planner Schedule", 14, 22);
-      doc.setFontSize(11);
-      doc.setTextColor(100);
-      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const PAGE_W = doc.internal.pageSize.getWidth();   // 297
+      const PAGE_H = doc.internal.pageSize.getHeight();  // 210
+      const M = 10;                                      // page margin
+      const BRAND = [27, 37, 89];                        // #1B2559
+      const INDIGO = [79, 70, 229];
 
-      let currentY = 40;
+      const fmtTime = (d) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const studentOf = (session) => (session.studentId && session.studentId !== 'all')
+        ? students.find(s => String(s._id) === String(session.studentId))
+        : null;
+      const studentName = (session) => {
+        if (!session.studentId || session.studentId === 'all') return 'Entire Class';
+        const st = studentOf(session);
+        return st ? (st.registrationName || st.name || 'Unknown') : 'Unknown';
+      };
+      // Cuts text with "..." so it fits in the given width (mm) at the current font size
+      const fitText = (text, maxW) => {
+        if (doc.getTextWidth(text) <= maxW) return text;
+        let t = text;
+        while (t.length > 1 && doc.getTextWidth(t + '...') > maxW) t = t.slice(0, -1);
+        return t + '...';
+      };
 
-      const calendarElement = document.getElementById('planner-calendar-view');
-      if (calendarElement && plannerFilter === 'calendar') {
-        const canvas = await html2canvas(calendarElement, { scale: 2, backgroundColor: '#ffffff' });
-        const imgData = canvas.toDataURL('image/png');
-        
-        const pdfWidth = 265; 
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        
-        doc.addImage(imgData, 'PNG', 15, currentY, pdfWidth, pdfHeight);
-        
-        doc.addPage();
-        currentY = 20; 
-      }
-
-      let listToExport = [];
+      // ---------- Which classes go in the PDF (same as what the planner view shows) ----------
       const year = plannerCurrentDate.getFullYear();
       const month = plannerCurrentDate.getMonth();
+      const monthName = plannerCurrentDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      let listToExport = [];
+      let periodLabel = '';
 
       if (plannerFilter === 'day') {
         const today = new Date().toLocaleDateString();
         listToExport = visiblePlannerSessions.filter(s => new Date(s.startDate).toLocaleDateString() === today);
+        periodLabel = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       } else if (plannerFilter === 'week') {
         const now = new Date();
         const first = now.getDate() - now.getDay();
@@ -1768,33 +1816,222 @@ const handleAssignSubmit = async (e) => {
           const d = new Date(s.startDate);
           return d >= firstDay && d <= lastDay;
         });
+        periodLabel = `${firstDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - ${lastDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
       } else {
         listToExport = visiblePlannerSessions.filter(s => new Date(s.startDate).getMonth() === month && new Date(s.startDate).getFullYear() === year);
+        periodLabel = monthName;
       }
-
       listToExport.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
-      const tableColumn = ["Date", "Time", "Lesson Topic", "Student / Audience", "Recurring"];
-      const tableRows = [];
+      // Status of every class (worked out once)
+      const statusOf = new Map(listToExport.map(s => [s, getSessionStatus(s)]));
+      const counts = {};
+      SESSION_STATUS_ORDER.forEach(k => { counts[k] = 0; });
+      listToExport.forEach(s => { counts[statusOf.get(s)] += 1; });
 
-      listToExport.forEach(session => {
-        const dateStr = new Date(session.startDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        const timeStr = `${new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-        const studentName = session.studentId && session.studentId !== 'all' ? (students.find(s => s._id === session.studentId)?.registrationName || students.find(s => s._id === session.studentId)?.name || 'Unknown') : 'Entire Class';
-        const recurring = session.isRecurring ? 'Yes' : 'No';
+      // ---------- Page header: title, period, generated time, colour key with counts ----------
+      const drawHeader = (subtitle) => {
+        doc.setFillColor(...BRAND);
+        doc.rect(0, 0, PAGE_W, 16, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        doc.text(`Class Planner  |  ${periodLabel}`, M, 10.5);
+        // Right side of the bar: what this page shows + when it was made
+        if (subtitle) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(10);
+          doc.text(subtitle, PAGE_W - M, 7.5, { align: 'right' });
+        }
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.text(`MathCom Mentors  -  Generated ${new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, PAGE_W - M, subtitle ? 12.8 : 10.5, { align: 'right' });
 
-        tableRows.push([dateStr, timeStr, session.topic || '-', studentName, recurring]);
+        // Colour key with how many classes are in each colour
+        let x = M;
+        const y = 22;
+        doc.setFontSize(7.5);
+        SESSION_STATUS_ORDER.forEach(key => {
+          const st = SESSION_STATUS[key];
+          const label = `${st.label} (${counts[key]})`;
+          doc.setFillColor(...st.pdfFill);
+          doc.setDrawColor(180, 180, 180);
+          doc.setLineWidth(0.1);
+          doc.roundedRect(x, y - 2.8, 3.6, 3.6, 0.6, 0.6, 'FD');
+          doc.setTextColor(60, 60, 60);
+          doc.setFont('helvetica', 'normal');
+          doc.text(label, x + 5, y);
+          x += 5 + doc.getTextWidth(label) + 6;
+        });
+        doc.setFont('helvetica', 'normal');
+      };
+
+      // ---------- 1) MONTH CALENDAR (Calendar / Month view) ----------
+      const drawCalendar = plannerFilter === 'calendar' || plannerFilter === 'month';
+      if (drawCalendar) {
+        const COLS = 7;
+        const colW = (PAGE_W - 2 * M) / COLS;
+        const DAY_HEAD = 5.5;      // space for the day number in each box
+        const CHIP_H = 3.9;        // height of one class line
+        const CHIP_GAP = 0.6;
+        const MIN_ROW_H = 18;
+        const BOTTOM = PAGE_H - 12;
+        const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const todayStr = new Date().toDateString();
+
+        // Classes per day of this month
+        const byDay = {};
+        listToExport.forEach(s => {
+          const key = new Date(s.startDate).getDate();
+          (byDay[key] = byDay[key] || []).push(s);
+        });
+
+        // Build the weeks (Monday first), with blank days before the 1st / after the last day
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const lead = (new Date(year, month, 1).getDay() + 6) % 7;
+        const cells = [...Array(lead).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+        while (cells.length % 7 !== 0) cells.push(null);
+        const weeks = [];
+        for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+
+        const drawWeekdayRow = (y) => {
+          doc.setFillColor(244, 247, 254);
+          doc.rect(M, y, PAGE_W - 2 * M, 6, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(...BRAND);
+          weekdays.forEach((d, i) => doc.text(d.toUpperCase(), M + i * colW + colW / 2, y + 4.1, { align: 'center' }));
+          return y + 6;
+        };
+
+        drawHeader('Month calendar');
+        let y = drawWeekdayRow(27);
+
+        weeks.forEach(week => {
+          const maxClasses = Math.max(0, ...week.map(d => (d ? (byDay[d] || []).length : 0)));
+          const rowH = Math.max(MIN_ROW_H, DAY_HEAD + maxClasses * (CHIP_H + CHIP_GAP) + 1.5);
+
+          // New page if this week does not fit
+          if (y + rowH > BOTTOM) {
+            doc.addPage();
+            drawHeader('Month calendar (continued)');
+            y = drawWeekdayRow(27);
+          }
+
+          week.forEach((day, i) => {
+            const x = M + i * colW;
+            // Box
+            doc.setDrawColor(215, 222, 235);
+            doc.setLineWidth(0.2);
+            if (!day) {
+              doc.setFillColor(248, 250, 252);
+              doc.rect(x, y, colW, rowH, 'FD');
+              return;
+            }
+            const isToday = new Date(year, month, day).toDateString() === todayStr;
+            doc.setFillColor(255, 255, 255);
+            doc.rect(x, y, colW, rowH, 'FD');
+            if (isToday) {
+              doc.setDrawColor(...INDIGO);
+              doc.setLineWidth(0.6);
+              doc.rect(x + 0.3, y + 0.3, colW - 0.6, rowH - 0.6, 'S');
+            }
+
+            // Day number (+ number of classes)
+            const dayClasses = byDay[day] || [];
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8.5);
+            doc.setTextColor(...(isToday ? INDIGO : BRAND));
+            doc.text(String(day), x + 1.6, y + 4);
+            if (dayClasses.length > 0) {
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(6.5);
+              doc.setTextColor(140, 150, 170);
+              doc.text(`${dayClasses.length} class${dayClasses.length > 1 ? 'es' : ''}`, x + colW - 1.6, y + 4, { align: 'right' });
+            }
+
+            // One coloured line per class: "18:00 Advait Kewalramani"
+            dayClasses.forEach((s, idx) => {
+              const st = SESSION_STATUS[statusOf.get(s)];
+              const cy = y + DAY_HEAD + idx * (CHIP_H + CHIP_GAP);
+              doc.setFillColor(...st.pdfFill);
+              doc.roundedRect(x + 1, cy, colW - 2, CHIP_H, 0.8, 0.8, 'F');
+              doc.setTextColor(...st.pdfText);
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(6.6);
+              const t = fmtTime(s.startDate);
+              doc.text(t, x + 1.8, cy + 2.75);
+              const tW = doc.getTextWidth(t) + 1.3;
+              doc.setFont('helvetica', 'normal');
+              doc.text(fitText(studentName(s), colW - 3.6 - tW), x + 1.8 + tW, cy + 2.75);
+            });
+          });
+          y += rowH;
+        });
+        doc.addPage();
+      }
+
+      // ---------- 2) TABLE OF ALL CLASSES ----------
+      drawHeader(`All classes (${listToExport.length})`);
+      const tableRows = listToExport.map(session => {
+        const st = studentOf(session);
+        const key = statusOf.get(session);
+        return [
+          new Date(session.startDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
+          `${fmtTime(session.startDate)} - ${fmtTime(session.endDate)}`,
+          studentName(session),
+          st?.yearGroup || (session.yearGroupFilter && session.yearGroupFilter !== 'all' ? session.yearGroupFilter : '-'),
+          SESSION_STATUS[key].label,
+          session.isRecurring ? 'Weekly' : 'One-off'
+        ];
       });
+      const statusKeys = listToExport.map(s => statusOf.get(s));
 
       autoTable(doc, {
-        head: [tableColumn],
-        body: tableRows,
-        startY: currentY,
+        head: [['Date', 'Time', 'Student', 'Year', 'Status', 'Repeats']],
+        body: tableRows.length ? tableRows : [['No classes in this period', '', '', '', '', '']],
+        startY: 27,
+        margin: { left: M, right: M, top: 27, bottom: 14 },
         theme: 'grid',
-        headStyles: { fillColor: [79, 70, 229] },
+        styles: { fontSize: 8.5, cellPadding: 2, textColor: [40, 40, 40], lineColor: [220, 226, 236], lineWidth: 0.15, valign: 'middle' },
+        headStyles: { fillColor: INDIGO, textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          0: { cellWidth: 38 },
+          1: { cellWidth: 28 },
+          2: { cellWidth: 'auto', fontStyle: 'bold' },
+          3: { cellWidth: 22 },
+          4: { cellWidth: 52 },
+          5: { cellWidth: 20 }
+        },
+        // Colour the Status cell with the same colour as the planner
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 4 && tableRows.length) {
+            const st = SESSION_STATUS[statusKeys[data.row.index]];
+            data.cell.styles.fillColor = st.pdfFill;
+            data.cell.styles.textColor = st.pdfText;
+            data.cell.styles.fontStyle = 'bold';
+          }
+        },
+        // Repeat the page header on every new table page
+        didDrawPage: (data) => {
+          if (data.pageNumber > 1) drawHeader(`All classes (${listToExport.length}) - continued`);
+        }
       });
 
-      doc.save(`Class_Planner_${new Date().toISOString().split('T')[0]}.pdf`);
+      // ---------- Footer with page numbers on every page ----------
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(150, 150, 150);
+        doc.text('MathCom Mentors  -  Class Planner', M, PAGE_H - 6);
+        doc.text(`Page ${i} of ${totalPages}`, PAGE_W - M, PAGE_H - 6, { align: 'right' });
+      }
+
+      const fileLabel = periodLabel.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      doc.save(`Class_Planner_${fileLabel}.pdf`);
       showToast("Planner successfully exported to PDF!");
     } catch (error) {
       console.error("PDF Export Error:", error);
@@ -6416,51 +6653,8 @@ const handleAssignSubmit = async (e) => {
               });
             };
 
-            // ===== CLASS PROGRESS COLOURS =====
-            // A class is linked to its Lesson Schedule report and its homework by STUDENT + DATE.
-            // e.g. class for Rudra on 11 Nov at 20:30 -> report for Rudra dated 11 Nov, homework given to Rudra on 11 Nov.
-            // Blue       = class has not happened yet
-            // Red        = class is over but the Lesson Schedule (daily report) is not done
-            // Orange     = Lesson Schedule done, but no homework given to that student on the class date
-            // Yellow     = homework given, but the student has not submitted it
-            // Light green= homework submitted, but not graded yet
-            // Dark green = homework graded
-            // Grey       = class cancelled / student didn't attend, so no homework needed
-            const SESSION_STATUS = {
-              upcoming:     { label: 'Upcoming class',               chip: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200', time: 'text-indigo-900', dot: 'bg-indigo-300' },
-              noReport:     { label: 'Lesson Schedule not done',     chip: 'bg-red-500 text-white hover:bg-red-600',            time: 'text-red-700',    dot: 'bg-red-500' },
-              noHomework:   { label: 'HW not given',                 chip: 'bg-orange-400 text-white hover:bg-orange-500',      time: 'text-orange-700', dot: 'bg-orange-400' },
-              notSubmitted: { label: 'HW given, not submitted',      chip: 'bg-yellow-300 text-yellow-900 hover:bg-yellow-400', time: 'text-yellow-800', dot: 'bg-yellow-300' },
-              notGraded:    { label: 'HW submitted, not graded',     chip: 'bg-green-200 text-green-900 hover:bg-green-300',    time: 'text-green-800',  dot: 'bg-green-300' },
-              graded:       { label: 'HW graded',                    chip: 'bg-green-700 text-white hover:bg-green-800',        time: 'text-green-800',  dot: 'bg-green-700' },
-              cancelled:    { label: "Cancelled / didn't attend",    chip: 'bg-slate-200 text-slate-600 hover:bg-slate-300',    time: 'text-slate-600',  dot: 'bg-slate-300' },
-            };
-
-            const getSessionStatus = (session) => {
-              const sid = String(session.studentId || 'all');
-              const sessionDay = new Date(session.startDate).toDateString();
-
-              // 1) Lesson Schedule report for this student on this day
-              const dayReports = schemes.filter(r => new Date(r.date).toDateString() === sessionDay && String(r.studentId) === sid);
-              const classTaken = dayReports.some(r => !r.classStatus || r.classStatus === 'Class Taken');
-              const classCancelled = !classTaken && dayReports.some(r => r.classStatus && r.classStatus !== 'Class Taken' && r.classStatus !== 'Class Rescheduled');
-
-              if (classCancelled) return 'cancelled';
-              if (!classTaken) return new Date(session.endDate) < new Date() ? 'noReport' : 'upcoming';
-              if (sid === 'all') return 'graded'; // old "whole class" sessions: no single student's homework to track
-
-              // 2) Homework for this class = homework (not tests) given to this student ON THE CLASS DATE
-              const classHw = homeworks.filter(h =>
-                !h.isTest &&
-                String(h.studentId?._id || h.studentId) === sid &&
-                new Date(h.createdAt).toDateString() === sessionDay
-              );
-
-              if (classHw.length === 0) return 'noHomework';
-              if (classHw.some(h => h.status === 'Pending')) return 'notSubmitted';
-              if (classHw.some(h => h.status === 'Submitted')) return 'notGraded';
-              return 'graded';
-            };
+            // SESSION_STATUS and getSessionStatus are defined near the top of the component
+            // (shared with the PDF export so the PDF uses the same colours).
 
             const generateList = () => {
               if (plannerFilter === 'day') {
@@ -6668,7 +6862,7 @@ const handleAssignSubmit = async (e) => {
                 </div>
 
                 {/* GLOBAL YEAR + STUDENT FILTER (same as every other tab) */}
-                <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:items-end">
+                {/* <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:items-end">
                   <div className="flex-1 min-w-[110px]">
                     <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
                     <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
@@ -6698,7 +6892,7 @@ const handleAssignSubmit = async (e) => {
                       ✕ Show All Classes
                     </button>
                   )}
-                </div>
+                </div> */}
 
                 {/* COLOUR KEY */}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5 px-1">
