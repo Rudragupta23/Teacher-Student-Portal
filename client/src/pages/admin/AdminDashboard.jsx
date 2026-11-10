@@ -6416,16 +6416,50 @@ const handleAssignSubmit = async (e) => {
               });
             };
 
+            // ===== CLASS PROGRESS COLOURS =====
+            // A class is linked to its Lesson Schedule report and its homework by STUDENT + DATE.
+            // e.g. class for Rudra on 11 Nov at 20:30 -> report for Rudra dated 11 Nov, homework given to Rudra on 11 Nov.
+            // Blue       = class has not happened yet
+            // Red        = class is over but the Lesson Schedule (daily report) is not done
+            // Orange     = Lesson Schedule done, but no homework given to that student on the class date
+            // Yellow     = homework given, but the student has not submitted it
+            // Light green= homework submitted, but not graded yet
+            // Dark green = homework graded
+            // Grey       = class cancelled / student didn't attend, so no homework needed
+            const SESSION_STATUS = {
+              upcoming:     { label: 'Upcoming class',               chip: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200', time: 'text-indigo-900', dot: 'bg-indigo-300' },
+              noReport:     { label: 'Lesson Schedule not done',     chip: 'bg-red-500 text-white hover:bg-red-600',            time: 'text-red-700',    dot: 'bg-red-500' },
+              noHomework:   { label: 'HW not given',                 chip: 'bg-orange-400 text-white hover:bg-orange-500',      time: 'text-orange-700', dot: 'bg-orange-400' },
+              notSubmitted: { label: 'HW given, not submitted',      chip: 'bg-yellow-300 text-yellow-900 hover:bg-yellow-400', time: 'text-yellow-800', dot: 'bg-yellow-300' },
+              notGraded:    { label: 'HW submitted, not graded',     chip: 'bg-green-200 text-green-900 hover:bg-green-300',    time: 'text-green-800',  dot: 'bg-green-300' },
+              graded:       { label: 'HW graded',                    chip: 'bg-green-700 text-white hover:bg-green-800',        time: 'text-green-800',  dot: 'bg-green-700' },
+              cancelled:    { label: "Cancelled / didn't attend",    chip: 'bg-slate-200 text-slate-600 hover:bg-slate-300',    time: 'text-slate-600',  dot: 'bg-slate-300' },
+            };
+
             const getSessionStatus = (session) => {
-              const sessionDateStr = new Date(session.startDate).toDateString();
-              const hasReport = schemes.some(report => 
-                new Date(report.date).toDateString() === sessionDateStr && 
-                report.studentId === session.studentId
+              const sid = String(session.studentId || 'all');
+              const sessionDay = new Date(session.startDate).toDateString();
+
+              // 1) Lesson Schedule report for this student on this day
+              const dayReports = schemes.filter(r => new Date(r.date).toDateString() === sessionDay && String(r.studentId) === sid);
+              const classTaken = dayReports.some(r => !r.classStatus || r.classStatus === 'Class Taken');
+              const classCancelled = !classTaken && dayReports.some(r => r.classStatus && r.classStatus !== 'Class Taken' && r.classStatus !== 'Class Rescheduled');
+
+              if (classCancelled) return 'cancelled';
+              if (!classTaken) return new Date(session.endDate) < new Date() ? 'noReport' : 'upcoming';
+              if (sid === 'all') return 'graded'; // old "whole class" sessions: no single student's homework to track
+
+              // 2) Homework for this class = homework (not tests) given to this student ON THE CLASS DATE
+              const classHw = homeworks.filter(h =>
+                !h.isTest &&
+                String(h.studentId?._id || h.studentId) === sid &&
+                new Date(h.createdAt).toDateString() === sessionDay
               );
-              
-              if (hasReport) return 'logged';
-              if (new Date(session.endDate) < new Date()) return 'missed';
-              return 'upcoming';
+
+              if (classHw.length === 0) return 'noHomework';
+              if (classHw.some(h => h.status === 'Pending')) return 'notSubmitted';
+              if (classHw.some(h => h.status === 'Submitted')) return 'notGraded';
+              return 'graded';
             };
 
             const generateList = () => {
@@ -6666,6 +6700,17 @@ const handleAssignSubmit = async (e) => {
                   )}
                 </div>
 
+                {/* COLOUR KEY */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5 px-1">
+                  <span className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Colour key:</span>
+                  {['noReport', 'noHomework', 'notSubmitted', 'notGraded', 'graded', 'upcoming', 'cancelled'].map(key => (
+                    <span key={key} className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                      <span className={`w-3.5 h-3.5 rounded ${SESSION_STATUS[key].dot}`}></span>
+                      {SESSION_STATUS[key].label}
+                    </span>
+                  ))}
+                </div>
+
                 {/* Calendar View */}
                 {plannerFilter === 'calendar' ? (
                   <div id="planner-calendar-view" className="bg-white p-2 -mx-2 rounded-xl">
@@ -6692,12 +6737,15 @@ const handleAssignSubmit = async (e) => {
                             <div className="space-y-1">
                             {daySessions.map(session => {
                               const status = getSessionStatus(session);
-                              const colorClass = status === 'logged' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : status === 'missed' ? 'bg-rose-100 text-rose-700 hover:bg-rose-200' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200';
-                              const badgeColor = status === 'logged' ? 'text-emerald-900' : status === 'missed' ? 'text-rose-900' : 'text-indigo-900';
+                              const colorClass = SESSION_STATUS[status].chip;
+                              const badgeColor = SESSION_STATUS[status].time;
+                              const chipStudentName = session.studentId && session.studentId !== 'all'
+                                ? (students.find(s => s._id === session.studentId)?.registrationName || students.find(s => s._id === session.studentId)?.name || 'Unknown')
+                                : 'All';
                               
                               return (
                               <div key={session._id} onClick={(e) => { e.stopPropagation(); setPlannerForm({ topic: session.topic, weekNo: session.weekNo || '', title: session.title || session.topic, startTime: new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), endTime: new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), isRecurring: session.isRecurring, yearGroupFilter: session.yearGroupFilter || 'all', studentId: session.studentId || 'all' }); setPlannerModal({show: true, selectedDate: dateStr, data: session}); }}
-                                className={`text-[10px] leading-tight font-bold px-1 py-0.5 rounded-md shadow-sm flex items-center gap-1.5 overflow-hidden whitespace-nowrap cursor-pointer ${colorClass}`} title={session.topic}>
+                                className={`text-[10px] leading-tight font-bold px-1 py-0.5 rounded-md shadow-sm flex items-center gap-1.5 overflow-hidden whitespace-nowrap cursor-pointer ${colorClass}`} title={`${chipStudentName}: ${SESSION_STATUS[status].label}`}>
                                 <span className={`shrink-0 bg-white font-black px-1 rounded shadow-sm ${badgeColor}`}>
                                   {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                                 </span>
@@ -6719,7 +6767,7 @@ const handleAssignSubmit = async (e) => {
                   <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
                     {generateList().map(session => {
                       const status = getSessionStatus(session);
-                      const badgeClass = status === 'logged' ? 'bg-emerald-100 text-emerald-700' : status === 'missed' ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700';
+                      const badgeClass = SESSION_STATUS[status].chip;
                       
                       return (
                         <div key={session._id} className="p-5 bg-[#F4F7FE] rounded-2xl flex justify-between items-center border border-slate-100">
@@ -6733,6 +6781,10 @@ const handleAssignSubmit = async (e) => {
                                 {session.studentId && session.studentId !== 'all' 
                                   ? `👤 ${students.find(s => s._id === session.studentId)?.registrationName || students.find(s => s._id === session.studentId)?.name || 'Unknown'}` 
                                   : '📢 Entire Class'}
+                              </span>
+                              <span className="text-[10px] font-black px-2 py-1 rounded-md w-fit bg-white border border-slate-200 text-slate-600 flex items-center gap-1.5">
+                                <span className={`w-2.5 h-2.5 rounded-full ${SESSION_STATUS[status].dot}`}></span>
+                                {SESSION_STATUS[status].label}
                               </span>
                             </div>
                             <p className="text-sm font-bold text-indigo-500 mt-1">
