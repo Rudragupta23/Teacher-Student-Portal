@@ -8,7 +8,7 @@ import html2canvas from 'html2canvas';
 import { useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FilePreview, downloadFile, HOMEWORK_FILE_ACCEPT } from '../../utils/fileHelpers';
+import { FilePreview, downloadFile, HOMEWORK_FILE_ACCEPT, AttachmentList } from '../../utils/fileHelpers';
 
 const getOverdueTime = (dueDate, submittedAt = null) => {
   const targetDate = submittedAt ? new Date(submittedAt) : new Date();
@@ -1835,6 +1835,44 @@ const handleAssignSubmit = async (e) => {
                   <h3 className="text-2xl font-black text-[#1B2559]">Grade Homework</h3>
                 </div>
                 <p className="text-slate-500 text-sm mb-6">Score and total marks are optional. Leave both empty to mark the work without a grade (it will not affect the student's stats). You can also attach a marked document or a Google Drive link.</p>
+
+                {/* ASSIGNED WORK + STUDENT'S WORK (to look at while grading) */}
+                {modal.hw && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="bg-sky-50/60 p-4 rounded-2xl border border-sky-100 min-w-0">
+                      <h4 className="text-xs font-black text-sky-700 uppercase tracking-wide mb-3">📘 Assigned Work</h4>
+                      {modal.hw.studentInstructions && (
+                        <p className="text-xs text-sky-900 bg-white border border-sky-100 rounded-xl p-3 mb-3 whitespace-pre-wrap max-h-24 overflow-y-auto custom-scrollbar"><span className="font-black">Instructions:</span> {modal.hw.studentInstructions}</p>
+                      )}
+                      {modal.hw.content && (
+                        <p className="text-xs text-[#1B2559] bg-white border border-sky-100 rounded-xl p-3 mb-3 whitespace-pre-wrap max-h-32 overflow-y-auto custom-scrollbar"><span className="font-black">Question:</span> {modal.hw.content}</p>
+                      )}
+                      <AttachmentList
+                        files={[
+                          ...(modal.hw.attachments || []),
+                          ...(modal.hw.fileUrl && !(modal.hw.attachments?.length) ? [{ name: 'Attached File', url: modal.hw.fileUrl }] : [])
+                        ]}
+                        emptyText={modal.hw.status === 'Graded' ? 'No files (original content is removed after grading).' : 'No files attached to this homework.'}
+                      />
+                    </div>
+
+                    <div className="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 min-w-0">
+                      <h4 className="text-xs font-black text-indigo-700 uppercase tracking-wide mb-3 truncate">
+                        📝 {modal.hw.studentId?.registrationName || modal.hw.studentId?.name || "Student"}'s Work
+                      </h4>
+                      {modal.hw.submission?.answerText && (
+                        <p className="text-xs text-[#1B2559] bg-white border border-indigo-100 rounded-xl p-3 mb-3 whitespace-pre-wrap max-h-32 overflow-y-auto custom-scrollbar"><span className="font-black">Written answer:</span> {modal.hw.submission.answerText}</p>
+                      )}
+                      <AttachmentList
+                        files={[
+                          ...(modal.hw.submission?.attachments || []),
+                          ...(modal.hw.submission?.answerFileUrl && !(modal.hw.submission?.attachments?.length) ? [{ name: "Student's File", url: modal.hw.submission.answerFileUrl }] : [])
+                        ]}
+                        emptyText="No files submitted by the student."
+                      />
+                    </div>
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
                   {/* Left Column: Scores */}
@@ -1854,8 +1892,9 @@ const handleAssignSubmit = async (e) => {
                     <div>
                       <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Attach Marked Work</label>
                       <div className="relative border-2 border-dashed border-emerald-300 bg-emerald-50/50 rounded-2xl p-4 text-center hover:bg-emerald-50 transition-colors cursor-pointer group">
-                        <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAnswerSheetUpload} />
+                        <input type="file" accept={HOMEWORK_FILE_ACCEPT} multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAnswerSheetUpload} />
                         <p className="font-bold text-emerald-800 text-sm truncate px-2">Click to Attach Files (Max 50MB combined)</p>
+                        <p className="text-[11px] font-bold text-emerald-600/70 mt-1">PDF, JPG, PNG, Word, HTML</p>
                         {answerSheet.isUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
                       </div>
 
@@ -1886,15 +1925,9 @@ const handleAssignSubmit = async (e) => {
                                 </div>
                               </div>
                               {previewAttachmentUrl === file.url && (
-                                <div className="w-full h-48 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
-                                  {file.url.includes('image') || file.url.startsWith('data:image') ? (
-                                    <img src={file.url} alt="Preview" className="w-full h-full object-contain" />
-                                  ) : file.url.includes('pdf') || file.url.startsWith('data:application/pdf') ? (
-                                    <iframe src={file.url} className="w-full h-full border-0" title="PDF Preview"></iframe>
-                                  ) : (
-                                    <p className="text-xs text-slate-400 font-bold">Preview not available.</p>
-                                  )}
-                                </div>
+                                <div className="w-full h-64 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
+  <FilePreview url={file.url} name={file.name} className="w-full h-full border-0" imgClassName="w-full h-full object-contain" />
+</div>
                               )}
                             </div>
                           ))}
@@ -2051,8 +2084,9 @@ const handleAssignSubmit = async (e) => {
                   <div>
                     <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-2 block">Attach Student's Files</label>
                     <div className="relative border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-2xl p-4 text-center hover:bg-indigo-50 transition-colors cursor-pointer group">
-                      <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAdminSubmitFileUpload} />
+                      <input type="file" accept={HOMEWORK_FILE_ACCEPT} multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleAdminSubmitFileUpload} />
                       <p className="font-bold text-indigo-800 text-sm truncate px-2">Drag or Click to Attach Files (Max 50MB combined)</p>
+                      <p className="text-[11px] font-bold text-indigo-600/70 mt-1">PDF, JPG, PNG, Word, HTML</p>
                       {adminSubmitFile.isUploading && <p className="text-xs text-amber-500 mt-1">Uploading...</p>}
                     </div>
                     
@@ -2080,15 +2114,9 @@ const handleAssignSubmit = async (e) => {
                               </div>
                             </div>
                             {previewAttachmentUrl === file.url && (
-                              <div className="w-full h-48 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
-                                {file.url.includes('image') || file.url.startsWith('data:image') ? (
-                                  <img src={file.url} alt="Preview" className="w-full h-full object-contain" />
-                                ) : file.url.includes('pdf') || file.url.startsWith('data:application/pdf') ? (
-                                  <iframe src={file.url} className="w-full h-full border-0" title="PDF Preview"></iframe>
-                                ) : (
-                                  <p className="text-xs text-slate-400 font-bold">Preview not available.</p>
-                                )}
-                              </div>
+                              <div className="w-full h-64 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
+  <FilePreview url={file.url} name={file.name} className="w-full h-full border-0" imgClassName="w-full h-full object-contain" />
+</div>
                             )}
                           </div>
                         ))}
@@ -2249,13 +2277,7 @@ const handleAssignSubmit = async (e) => {
                             </div>
 
                             <div className="w-full h-[400px] overflow-hidden border-2 border-slate-200 rounded-2xl bg-white p-2 shadow-inner relative flex items-center justify-center">
-                              {attachment.url.includes('image') || attachment.url.startsWith('data:image') ? (
-                                <img src={attachment.url} alt={attachment.name} className="w-full h-full object-contain rounded-xl" />
-                              ) : attachment.url.includes('pdf') || attachment.url.startsWith('data:application/pdf') ? (
-                                <iframe src={attachment.url} className="w-full h-full border-0 rounded-xl" title={`PDF Preview ${idx}`}></iframe>
-                              ) : (
-                                <p className="text-center text-slate-500 font-bold">Preview not available for this format.</p>
-                              )}
+                              <FilePreview url={attachment.url} name={attachment.name} className="w-full h-full border-0 rounded-xl" imgClassName="w-full h-full object-contain rounded-xl" />
                             </div>
                           </div>
                         ))}
@@ -3160,7 +3182,7 @@ const handleAssignSubmit = async (e) => {
                                           View SW
                                         </button>
                                       )}
-                                      <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
+                                      <button onClick={() => setModal({ type: 'grade', hwId: hw._id, hw, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
   Grade
 </button>
 <button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: '' } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
@@ -3174,7 +3196,7 @@ const handleAssignSubmit = async (e) => {
                                       {user?.role === 'admin' ? (
                                           <button 
                                         onClick={() => {
-                                          setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', feedback: hw.grading?.feedback || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
+                                          setModal({ type: 'grade', hwId: hw._id, hw, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', feedback: hw.grading?.feedback || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
                                           if (hw.grading?.adminAnswerSheetUrl || hw.grading?.adminAttachments?.length > 0) {
                                             setAnswerSheet({ fileUrl: hw.grading.adminAnswerSheetUrl || '', fileName: 'Existing Marked/Checked work Attached', attachments: hw.grading.adminAttachments || [], isUploading: false });
                                           } else {
@@ -3622,7 +3644,7 @@ const handleAssignSubmit = async (e) => {
                                           View SW
                                         </button>
                                       )}
-                                      <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
+                                      <button onClick={() => setModal({ type: 'grade', hwId: hw._id, hw, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
   Grade
 </button>
 <button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: '' } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
@@ -3636,7 +3658,7 @@ const handleAssignSubmit = async (e) => {
                                       {user?.role === 'admin' ? (
                                           <button 
                                         onClick={() => {
-                                         setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', feedback: hw.grading?.feedback || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
+                                         setModal({ type: 'grade', hwId: hw._id, hw, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', feedback: hw.grading?.feedback || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
                                           if (hw.grading?.adminAnswerSheetUrl || (hw.grading?.adminAttachments && hw.grading.adminAttachments.length > 0)) {
                                             setAnswerSheet({ 
                                                 fileUrl: hw.grading.adminAnswerSheetUrl || '', 
@@ -5997,7 +6019,7 @@ const handleAssignSubmit = async (e) => {
                                         View SW
                                       </button>
                                     )}
-                                    <button onClick={() => setModal({ type: 'grade', hwId: hw._id, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
+                                    <button onClick={() => setModal({ type: 'grade', hwId: hw._id, hw, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
   Grade
 </button>
 <button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: '' } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
@@ -6011,7 +6033,7 @@ const handleAssignSubmit = async (e) => {
                                     {user?.role === 'admin' ? (
                                       <button 
                                         onClick={() => {
-                                          setModal({ type: 'grade', hwId: hw._id, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', feedback: hw.grading?.feedback || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
+                                          setModal({ type: 'grade', hwId: hw._id, hw, data: { score: hw.grading?.score ?? '', totalScore: hw.grading?.totalScore ?? '', driveLink: hw.driveLink || '', feedback: hw.grading?.feedback || '', adminAnswerSheetUrl: hw.grading?.adminAnswerSheetUrl || '' } });
                                           if (hw.grading?.adminAnswerSheetUrl || (hw.grading?.adminAttachments && hw.grading.adminAttachments.length > 0)) {
                                             setAnswerSheet({ 
                                                 fileUrl: hw.grading.adminAnswerSheetUrl || '', 

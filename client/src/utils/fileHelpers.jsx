@@ -1,7 +1,5 @@
-// Shared helpers for showing and downloading homework files
-// (PDF, images, Word .doc/.docx and HTML).
+import { useState, useEffect } from 'react';
 
-// The file types the admin/grader can attach to homework & tests
 export const HOMEWORK_FILE_ACCEPT = '.pdf,image/*,.doc,.docx,.html,.htm';
 
 const getExt = (str = '') => {
@@ -28,8 +26,6 @@ export const getFileKind = (url = '', name = '') => {
   return 'other';
 };
 
-// Shows a preview for a file. Word files use Microsoft's free online viewer,
-// which needs the file URL to be public (your CloudFront/S3 links are).
 export const FilePreview = ({ url, name, className = 'w-full h-full border-0 rounded-xl', imgClassName = 'w-full h-full object-contain rounded-xl' }) => {
   if (!url) return null;
   const kind = getFileKind(url, name);
@@ -45,16 +41,72 @@ export const FilePreview = ({ url, name, className = 'w-full h-full border-0 rou
       ></iframe>
     );
   }
-  if (kind === 'html') {
-    // sandbox: the page can run its own scripts (e.g. interactive worksheet)
-    // but cannot touch the portal or the logged-in user's data
-    return <iframe src={url} sandbox="allow-scripts allow-forms allow-popups" className={className} title={name || 'HTML Preview'}></iframe>;
-  }
+  if (kind === 'html') return <HtmlPreview url={url} name={name} className={className} />;
 
   return (
     <div className="text-center p-6">
       <p className="text-xs text-slate-400 font-bold mb-3">Preview not available for this format.</p>
       <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs bg-indigo-500 text-white px-4 py-2 rounded-xl font-black shadow-md inline-block">Open File in New Tab</a>
+    </div>
+  );
+};
+
+// Shows an HTML file as a working page.
+const HtmlPreview = ({ url, name, className }) => {
+  const [html, setHtml] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setHtml(null);
+    setFailed(false);
+    fetch(url)
+      .then(res => { if (!res.ok) throw new Error('Could not load'); return res.text(); })
+      .then(text => { if (!cancelled) setHtml(text); })
+      .catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; };
+  }, [url]);
+
+  const sandbox = 'allow-scripts allow-forms allow-popups';
+  if (html !== null) return <iframe srcDoc={html} sandbox={sandbox} className={className} title={name || 'HTML Preview'}></iframe>;
+  if (failed) return <iframe src={url} sandbox={sandbox} className={className} title={name || 'HTML Preview'}></iframe>;
+  return <p className="text-xs text-slate-400 font-bold p-6 text-center">Loading preview...</p>;
+};
+
+// A list of files with Preview / Open / Download buttons.
+export const AttachmentList = ({ files = [], emptyText = 'No files.' }) => {
+  const [openUrl, setOpenUrl] = useState(null);
+  const list = files.filter(f => f && f.url);
+
+  if (list.length === 0) {
+    return <p className="text-xs font-bold text-slate-400 bg-white rounded-xl border border-dashed border-slate-200 p-4 text-center">{emptyText}</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {list.map((file, idx) => (
+        <div key={`${file.url}-${idx}`} className="bg-white p-3 border border-slate-200 rounded-xl shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-bold text-[#1B2559] truncate" title={file.name}>📎 {file.name || `File ${idx + 1}`}</p>
+            <div className="flex gap-1.5 shrink-0">
+              <button type="button" onClick={() => setOpenUrl(openUrl === file.url ? null : file.url)} className="text-cyan-600 hover:text-cyan-700 font-bold text-xs bg-cyan-50 px-2.5 py-1.5 rounded-lg">
+                {openUrl === file.url ? 'Close' : 'Preview'}
+              </button>
+              <button type="button" onClick={() => window.open(file.url, '_blank')} className="text-indigo-600 hover:text-indigo-700 font-bold text-xs bg-indigo-50 px-2.5 py-1.5 rounded-lg">
+                Open
+              </button>
+              <button type="button" onClick={() => downloadFile(file.url, file.name)} className="text-emerald-600 hover:text-emerald-700 font-bold text-xs bg-emerald-50 px-2.5 py-1.5 rounded-lg">
+                ⬇️
+              </button>
+            </div>
+          </div>
+          {openUrl === file.url && (
+            <div className="w-full h-72 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center">
+              <FilePreview url={file.url} name={file.name} className="w-full h-full border-0" imgClassName="w-full h-full object-contain" />
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 };

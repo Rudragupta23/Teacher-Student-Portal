@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
-import { FilePreview } from '../../utils/fileHelpers';
+import { FilePreview, HOMEWORK_FILE_ACCEPT } from '../../utils/fileHelpers';
 
 export default function StudentDashboard() {
   // Tab Navigation
@@ -676,11 +676,11 @@ export default function StudentDashboard() {
                     value={submitForm.answerText} onChange={e => setSubmitForm({...submitForm, answerText: e.target.value})} />
                   
                   <div className="relative border-2 border-dashed border-indigo-300 bg-indigo-50/50 rounded-2xl p-6 text-center hover:bg-indigo-50 transition-colors cursor-pointer group">
-                    <input type="file" accept=".pdf, image/*" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />
-                    <p className="font-bold text-indigo-800 flex items-center justify-center gap-2">
+                    <input type="file" accept={HOMEWORK_FILE_ACCEPT} multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />                    <p className="font-bold text-indigo-800 flex items-center justify-center gap-2">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                       Attach Files (Combined Max 50MB)
                     </p>
+                    <p className="text-[11px] font-bold text-indigo-600/70 mt-1">PDF, JPG, PNG, Word, HTML</p>
                     {isUploading && <p className="mt-2 text-xs font-bold text-amber-500">Processing file(s)...</p>}
                   </div>
                   
@@ -708,14 +708,8 @@ export default function StudentDashboard() {
                             </div>
                           </div>
                           {previewAttachmentUrl === file.url && (
-                            <div className="w-full h-48 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
-                              {file.url.includes('image') || file.url.startsWith('data:image') ? (
-                                <img src={file.url} alt="Preview" className="w-full h-full object-contain" />
-                              ) : file.url.includes('pdf') || file.url.startsWith('data:application/pdf') ? (
-                                <iframe src={file.url} className="w-full h-full border-0" title="PDF Preview"></iframe>
-                              ) : (
-                                <p className="text-xs text-slate-400 font-bold">Preview not available.</p>
-                              )}
+                            <div className="w-full h-64 mt-2 border-2 border-slate-100 rounded-lg overflow-hidden relative bg-slate-50 flex items-center justify-center">
+                              <FilePreview url={file.url} name={file.name} className="w-full h-full border-0" imgClassName="w-full h-full object-contain" />
                             </div>
                           )}
                         </div>
@@ -766,13 +760,7 @@ export default function StudentDashboard() {
                         <div key={idx} className="flex flex-col gap-3">
                           <p className="font-bold text-emerald-800 text-sm">📎 {attachment.name}</p>
                           <div className="w-full max-h-[400px] overflow-auto border-2 border-emerald-200 rounded-2xl bg-white p-2 shadow-inner">
-                            {attachment.url.includes('image') || attachment.url.startsWith('data:image') ? (
-                              <img src={attachment.url} alt={attachment.name} className="w-full h-auto rounded-xl object-contain" />
-                            ) : attachment.url.includes('pdf') || attachment.url.startsWith('data:application/pdf') ? (
-                              <iframe src={attachment.url} className="w-full h-[500px] border-0 rounded-xl" title="PDF Preview"></iframe>
-                            ) : (
-                              <p className="text-center text-slate-500 py-10 font-bold">Preview not available for this format.</p>
-                            )}
+                            <FilePreview url={attachment.url} name={attachment.name} className="w-full h-[500px] border-0 rounded-xl" imgClassName="w-full h-auto rounded-xl object-contain" />
                           </div>
                           <button type="button" onClick={async () => {
                             const initials = (studentProfile.name || 'Unknown').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
