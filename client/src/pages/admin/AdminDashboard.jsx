@@ -2435,7 +2435,7 @@ const handleAssignSubmit = async (e) => {
     </button>
     {modal.type === 'viewWork' && modal.hwId && (
       <button onClick={() => setModal({ type: 'reopen', hwId: modal.hwId, title: modal.title, student: modal.student, data: { note: '', newDueDate: '' } })} className="flex-1 py-4 bg-amber-500 text-white hover:bg-amber-600 font-black rounded-2xl transition-colors shadow-lg shadow-amber-500/30">
-        🔁 Reopen for Resubmission
+        Reopen for Resubmission
       </button>
     )}
   </>
@@ -3115,7 +3115,7 @@ const handleAssignSubmit = async (e) => {
                                 </span>
                                 {hw.status === 'Pending' && hw.reopenedAt && (
                                   <span className="bg-amber-500 text-white px-2 py-1 rounded-md text-[10px] font-black shadow-sm" title={hw.reopenNote || 'Re-opened for resubmission'}>
-                                    🔁 REOPENED
+                                    REOPENED
                                   </span>
                                 )}
                                 {isLate && hw.status === 'Pending' && (
@@ -3186,7 +3186,7 @@ const handleAssignSubmit = async (e) => {
   Grade
 </button>
 <button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: '' } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
-  🔁 Reopen
+  Reopen
 </button>
                                     </>
                                   )}
@@ -3602,7 +3602,7 @@ const handleAssignSubmit = async (e) => {
                                 </span>
                                 {hw.status === 'Pending' && hw.reopenedAt && (
                                   <span className="bg-amber-500 text-white px-2 py-1 rounded-md text-[10px] font-black shadow-sm" title={hw.reopenNote || 'Re-opened for resubmission'}>
-                                    🔁 REOPENED
+                                    REOPENED
                                   </span>
                                 )}
                                 {isLate && hw.status === 'Pending' && (
@@ -3648,7 +3648,7 @@ const handleAssignSubmit = async (e) => {
   Grade
 </button>
 <button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: '' } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
-  🔁 Reopen
+  Reopen
 </button>
                                     </>
                                   )}
@@ -5997,7 +5997,7 @@ const handleAssignSubmit = async (e) => {
                               </span>
                               {hw.status === 'Pending' && hw.reopenedAt && (
                                 <span className="bg-amber-500 text-white px-2 py-1 rounded-md text-[10px] font-black shadow-sm" title={hw.reopenNote || 'Re-opened for resubmission'}>
-                                  🔁 REOPENED
+                                  REOPENED
                                 </span>
                               )}
                               {hw.submission?.submittedAt && new Date(hw.submission.submittedAt) > new Date(hw.dueDate) && (
@@ -6023,7 +6023,7 @@ const handleAssignSubmit = async (e) => {
   Grade
 </button>
 <button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: '' } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
-  🔁 Reopen
+  Reopen
 </button>
                                   </>
                                 )}
