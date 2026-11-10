@@ -865,11 +865,15 @@ const handleAssignSubmit = async (e) => {
   const executeModalAction = async () => {
     try {
       if (modal.type === 'grade') {
-        const hasScores = modal.data.score !== '' && modal.data.totalScore !== '';
-        const hasAttachments = answerSheet.fileUrl || (answerSheet.attachments && answerSheet.attachments.length > 0);
-        
-        if (!hasScores && !hasAttachments) {
-          return showToast("Enter marks or attach marked work!", "error");
+        // Grades are OPTIONAL. If both boxes are empty, the homework is marked
+        // without a score and it is left out of every average / stats.
+        const scoreStr = modal.data.score == null ? '' : String(modal.data.score).trim();
+        const totalStr = modal.data.totalScore == null ? '' : String(modal.data.totalScore).trim();
+        const hasScores = scoreStr !== '' && totalStr !== '';
+
+        // Only one of the two boxes filled -> ask for both (or neither)
+        if ((scoreStr !== '') !== (totalStr !== '')) {
+          return showToast("Enter both Score and Total, or leave both empty to mark without a grade.", "error");
         }
 
         if (hasScores) {
@@ -888,8 +892,8 @@ const handleAssignSubmit = async (e) => {
         }
         
         await api.put(`/homework/${modal.hwId}/grade`, { 
-          score: modal.data.score !== '' ? Number(modal.data.score) : null, 
-          totalScore: modal.data.totalScore !== '' ? Number(modal.data.totalScore) : null, 
+          score: hasScores ? Number(scoreStr) : null, 
+          totalScore: hasScores ? Number(totalStr) : null,
           feedback: modal.data.feedback || '',
           adminAnswerSheetUrl: answerSheet.fileUrl,
           adminAttachments: answerSheet.attachments,
@@ -913,8 +917,8 @@ const handleAssignSubmit = async (e) => {
       }
       else if (modal.type === 'deleteAnsSheet') {
         await api.put(`/homework/${modal.hwId}/grade`, { 
-          score: modal.data.score != null ? Number(modal.data.score) : null, 
-          totalScore: modal.data.totalScore != null ? Number(modal.data.totalScore) : null,
+          score: (modal.data.score != null && modal.data.score !== '') ? Number(modal.data.score) : null, 
+          totalScore: (modal.data.totalScore != null && modal.data.totalScore !== '') ? Number(modal.data.totalScore) : null,
           adminAnswerSheetUrl: '',
           adminAttachments: []
         });
@@ -1818,18 +1822,18 @@ const handleAssignSubmit = async (e) => {
                   <div className="bg-emerald-500 w-2 h-8 rounded-full"></div>
                   <h3 className="text-2xl font-black text-[#1B2559]">Grade Homework</h3>
                 </div>
-                <p className="text-slate-500 text-sm mb-6">Enter score and total marks below. You can optionally attach a marked document or a Google Drive link.</p>
+                <p className="text-slate-500 text-sm mb-6">Score and total marks are optional. Leave both empty to mark the work without a grade (it will not affect the student's stats). You can also attach a marked document or a Google Drive link.</p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
                   {/* Left Column: Scores */}
                   <div className="bg-[#F4F7FE] p-6 rounded-3xl border border-slate-100 flex flex-col justify-center items-center">
-                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-3">Score / Total</label>
+                    <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide mb-3">Score / Total (Optional)</label>
                     <div className="flex items-center justify-center gap-4 w-full">
                       <input type="number" min="0" className="w-24 p-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-black text-3xl text-center text-[#1B2559] shadow-sm" 
-                        value={modal.data?.score || ''} onChange={e => setModal({...modal, data: { ...modal.data, score: e.target.value }})} placeholder="-" />
+                        value={modal.data?.score ?? ''} onChange={e => setModal({...modal, data: { ...modal.data, score: e.target.value }})} placeholder="-" />
                       <span className="text-4xl font-black text-slate-300">/</span>
                       <input type="number" min="0" className="w-24 p-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-black text-3xl text-center text-[#1B2559] shadow-sm" 
-                        value={modal.data?.totalScore || ''} onChange={e => setModal({...modal, data: { ...modal.data, totalScore: e.target.value }})} placeholder="-" />
+                        value={modal.data?.totalScore ?? ''} onChange={e => setModal({...modal, data: { ...modal.data, totalScore: e.target.value }})} placeholder="-" />
                     </div>
                   </div>
 
@@ -6433,8 +6437,8 @@ const handleAssignSubmit = async (e) => {
                           }}
                                className="min-h-[100px] md:min-h-[120px] p-2 md:p-3 rounded-2xl border bg-white border-slate-100 hover:border-indigo-300 cursor-pointer transition-all">
                             <div className="text-xs md:text-sm font-black w-7 h-7 flex items-center justify-center rounded-full mb-2 text-[#1B2559]">{day}</div>
-                            <div className="space-y-1 overflow-y-auto max-h-[85px] custom-scrollbar">
-                            {daySessions.slice(0, 4).map(session => {
+                            <div className="space-y-1">
+                            {daySessions.map(session => {
                               const status = getSessionStatus(session);
                               const colorClass = status === 'logged' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : status === 'missed' ? 'bg-rose-100 text-rose-700 hover:bg-rose-200' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200';
                               const badgeColor = status === 'logged' ? 'text-emerald-900' : status === 'missed' ? 'text-rose-900' : 'text-indigo-900';
@@ -6453,11 +6457,6 @@ const handleAssignSubmit = async (e) => {
                               </div>
                               );
                             })}
-                        {daySessions.length > 4 && (
-                        <div className="text-[10px] font-black text-slate-500 text-center bg-slate-100 rounded py-0.5 mt-1">
-                          +{daySessions.length - 4} more
-                        </div>
-                        )}
                         </div>
                         </div>
                         );
@@ -6489,7 +6488,24 @@ const handleAssignSubmit = async (e) => {
                               {session.isRecurring && <span className="ml-3 bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-[10px] uppercase">Recurring</span>}
                             </p>
                           </div>
-                          <button onClick={() => handlePlannerDelete(session._id, false)} className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white font-bold transition-colors">Delete</button>
+                          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                            <button onClick={() => {
+                              const d = new Date(session.startDate);
+                              const sessionDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                              setPlannerForm({
+                                topic: session.topic,
+                                weekNo: session.weekNo || '',
+                                title: session.title || session.topic,
+                                startTime: new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}),
+                                endTime: new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}),
+                                isRecurring: session.isRecurring,
+                                yearGroupFilter: session.yearGroupFilter || 'all',
+                                studentId: session.studentId || 'all'
+                              });
+                              setPlannerModal({ show: true, selectedDate: sessionDateStr, data: session });
+                            }} className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white font-bold transition-colors">Edit</button>
+                            <button onClick={() => handlePlannerDelete(session._id, false)} className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white font-bold transition-colors">Delete</button>
+                          </div>
                         </div>
                       );
                     })}

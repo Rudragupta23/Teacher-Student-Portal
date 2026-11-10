@@ -722,7 +722,7 @@ export default function StudentDashboard() {
                 <p className="text-emerald-600 font-bold text-sm mb-4 bg-emerald-100/50 px-4 py-2 rounded-full">Note: Original homework content has been removed post-grading.</p>
 
                 <div className="w-auto px-6 h-20 bg-emerald-500 text-white rounded-full inline-flex items-center justify-center text-3xl font-black mb-4 shadow-lg shadow-emerald-500/30">
-                {modalTask.grading?.score != null ? `${modalTask.grading.score} / ${modalTask.grading.totalScore}` : 'N/A'}
+                {modalTask.grading?.score != null && modalTask.grading?.totalScore ? `${modalTask.grading.score} / ${modalTask.grading.totalScore}` : 'Marked ✓'}
               </div>
               <h4 className="text-xl font-black text-emerald-800 mb-2">Graded Successfully!</h4>
 
