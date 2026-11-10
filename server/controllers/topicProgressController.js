@@ -98,6 +98,24 @@ exports.deleteAllTopics = async (req, res) => {
   }
 };
 
+// @desc    Delete only the ticked topics
+// @route   POST /api/topics/bulk-delete
+exports.bulkDeleteTopics = async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only the admin can delete topics.' });
+    }
+    const { topicIds } = req.body;
+    if (!topicIds || !Array.isArray(topicIds) || topicIds.length === 0) {
+      return res.status(400).json({ message: 'No topics selected' });
+    }
+    const result = await TopicProgress.deleteMany({ _id: { $in: topicIds } });
+    res.status(200).json({ message: `${result.deletedCount} topic(s) deleted successfully` });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete selected topics' });
+  }
+};
+
 exports.bulkUpdateTopicDates = async (req, res) => {
   try {
     const { topicIds, date } = req.body;

@@ -65,7 +65,25 @@ export default function AdminDashboard() {
   const [homeworks, setHomeworks] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [minDateTime, setMinDateTime] = useState('');
-  const [selectedStudentForChart, setSelectedStudentForChart] = useState('all');
+  // ===== ONE GLOBAL YEAR + STUDENT FILTER, shared by every tab =====
+  // Pick a student once and every tab (Homework, Tests, Submitted, Lesson Schedule,
+  // Topics, Analytics, Library, Drive, Announcements) shows that student.
+  // Saved in sessionStorage so it survives tab changes and page refresh (cleared when the browser tab closes).
+  const readSaved = (key) => { try { return sessionStorage.getItem(key) || 'all'; } catch { return 'all'; } };
+  const [globalYear, setGlobalYearState] = useState(() => readSaved('adminFilterYear'));
+  const [globalStudent, setGlobalStudentState] = useState(() => readSaved('adminFilterStudent'));
+  const setGlobalYear = (v) => { const val = v || 'all'; setGlobalYearState(val); try { sessionStorage.setItem('adminFilterYear', val); } catch {} };
+  const setGlobalStudent = (v) => { const val = v || 'all'; setGlobalStudentState(val); try { sessionStorage.setItem('adminFilterStudent', val); } catch {} };
+
+  // Old per-tab names now all point at the global filter
+  const hwYearFilter = globalYear, setHwYearFilter = setGlobalYear;
+  const hwStudentFilter = globalStudent, setHwStudentFilter = setGlobalStudent;
+  const schemeListYear = globalYear, setSchemeListYear = setGlobalYear;
+  const schemeListStudent = globalStudent, setSchemeListStudent = setGlobalStudent;
+  const topicYearFilter = globalYear, setTopicYearFilter = setGlobalYear;
+  const topicSelectedStudent = globalStudent === 'all' ? '' : globalStudent; // Topics tab uses '' for "no student"
+  const setTopicSelectedStudent = setGlobalStudent;
+  const selectedStudentForChart = globalStudent, setSelectedStudentForChart = setGlobalStudent;
   const [announcements, setAnnouncements] = useState([]);
   const [announcementForm, setAnnouncementForm] = useState({ content: '', targetAudience: '', imageUrl: '' });
   const [isAnnounceUploading, setIsAnnounceUploading] = useState(false);
@@ -169,9 +187,8 @@ const [testForm, setTestForm] = useState({
     studentId: '' 
   });
   const [graderInstruction, setGraderInstruction] = useState('');
-  const [schemeListYear, setSchemeListYear] = useState('all');
-  const [schemeListStudent, setSchemeListStudent] = useState('all');
-  const [schemeListStatus, setSchemeListStatus] = useState('all'); 
+  // schemeListYear / schemeListStudent now come from the global filter (top of component)
+  const [schemeListStatus, setSchemeListStatus] = useState('all');
   const [schemeListDate, setSchemeListDate] = useState(''); 
 
   // NEW STATES FOR EDITING BOARD AND SCHEMES
@@ -197,6 +214,15 @@ const [testForm, setTestForm] = useState({
 
   // Class Planner States
   const [plannerSessions, setPlannerSessions] = useState([]);
+  // Planner follows the global Year + Student filter ("All" shows every class)
+  const visiblePlannerSessions = plannerSessions.filter(s => {
+    if (globalStudent !== 'all') return String(s.studentId) === String(globalStudent);
+    if (globalYear !== 'all') {
+      const st = students.find(x => String(x._id) === String(s.studentId));
+      return st ? st.yearGroup === globalYear : (s.yearGroupFilter === globalYear);
+    }
+    return true;
+  });
   const [plannerFilter, setPlannerFilter] = useState('calendar'); 
   const [plannerCurrentDate, setPlannerCurrentDate] = useState(new Date());
   const [plannerModal, setPlannerModal] = useState({ show: false, selectedDate: null, data: null });
@@ -207,27 +233,50 @@ const [testForm, setTestForm] = useState({
   const [topicForm, setTopicForm] = useState({ topicName: '', areaName: '', grade: '', yearLevel: '', sparxCode: '', pastPaperQues: '', flashCards: '', studentConfidence: '', datesCovered: [''] });
   
   // Restored Topic States
-  const [topicYearFilter, setTopicYearFilter] = useState('all');
-  const [topicSelectedStudent, setTopicSelectedStudent] = useState('');
+  // topicYearFilter / topicSelectedStudent now come from the global filter (top of component)
   const [topicSearchTerm, setTopicSearchTerm] = useState('');
-  const [topicSortConfig, setTopicSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+  // 'default' = Grade, then Topic Name, then Dates Covered
+  const [topicSortConfig, setTopicSortConfig] = useState({ key: 'default', direction: 'asc' });
 
-  // Homework Filter States
-  const [hwYearFilter, setHwYearFilter] = useState('all');
-  const [hwStudentFilter, setHwStudentFilter] = useState('all');
+  // Homework Filter States (year + student now come from the global filter)
   const [hwStatusFilter, setHwStatusFilter] = useState('all');
-  const [hwSortConfig, setHwSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+  // Which of the 6 tiles is clicked: 'all' (normal view), 'assigned', 'submitted', 'due', 'overdue', 'graded', 'needsGrading'
+  const [hwTileFilter, setHwTileFilter] = useState('all');
+
+  // Each tab keeps its own sort order.
+  // Default: Homework & Tests -> newest assigned first; Submitted Work -> newest student submission first.
+  const [hwSortConfigs, setHwSortConfigs] = useState({});
+  const defaultHwSort = activeTab === 'submitted'
+    ? { key: 'submissionTime', direction: 'desc' }
+    : { key: 'createdAt', direction: 'desc' };
+  const hwSortConfig = hwSortConfigs[activeTab] || defaultHwSort;
 
   const handleSortHomework = (key) => {
     let direction = 'asc';
     if (hwSortConfig.key === key && hwSortConfig.direction === 'asc') direction = 'desc';
-    setHwSortConfig({ key, direction });
+    setHwSortConfigs(prev => ({ ...prev, [activeTab]: { key, direction } }));
   };
-  
   const [topicGradeFilter, setTopicGradeFilter] = useState('all'); 
   const [topicYearLevelFilter, setTopicYearLevelFilter] = useState('all');
   const [selectedTopicIds, setSelectedTopicIds] = useState([]); 
   const [bulkDate, setBulkDate] = useState(new Date().toISOString().split('T')[0]); 
+
+  // Global filter safety: if the saved student no longer exists in this account's list, go back to "All"
+  useEffect(() => {
+    if (globalStudent !== 'all' && students.length > 0 && !students.some(s => String(s._id) === String(globalStudent))) {
+      setGlobalStudent('all');
+    }
+  }, [students, globalStudent]);
+
+  // When the student changes (from any tab), clear the Topics tab's grade / year-level filters and ticked topics
+  useEffect(() => {
+    setTopicGradeFilter('all');
+    setTopicYearLevelFilter('all');
+    setSelectedTopicIds([]);
+  }, [globalStudent]);
+
+  // Changing the Status dropdown clears any clicked tile (and the other way round)
+  useEffect(() => { if (hwStatusFilter !== 'all') setHwTileFilter('all'); }, [hwStatusFilter]);
   
   // NEW: States for the Topic Modal and Editing
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
@@ -459,8 +508,8 @@ const [testForm, setTestForm] = useState({
 
   const handlePlannerDelete = async (id, deleteAllRecurring = false) => {
     try {
-      await api.delete(`/planner/${id}?deleteAllRecurring=${deleteAllRecurring}`);
-      showToast('Class deleted successfully!', 'error');
+      const res = await api.delete(`/planner/${id}?deleteAllRecurring=${deleteAllRecurring}`);
+      showToast(deleteAllRecurring ? (res.data?.message || 'Upcoming classes deleted.') : 'Class deleted successfully!', 'error');
       setPlannerModal({ show: false, selectedDate: null, data: null });
       fetchData();
     } catch (err) {
@@ -961,6 +1010,14 @@ const handleAssignSubmit = async (e) => {
         showToast(modal.data ? "Student's topics deleted successfully!" : "All topics have been deleted!", "error");
         fetchTopics();
       }
+      else if (modal.type === 'deleteSelectedTopics') {
+        const ids = modal.data || [];
+        if (ids.length === 0) return showToast("No topics selected.", "error");
+        const res = await api.post('/topics/bulk-delete', { topicIds: ids });
+        showToast(res.data?.message || `${ids.length} topic(s) deleted.`, "error");
+        setSelectedTopicIds([]);
+        fetchTopics();
+      }
       else if (modal.type === 'adminSubmit') {
         await api.post(`/homework/${modal.hwId}/submit`, {
           answerText: adminSubmitForm.answerText,
@@ -1221,6 +1278,22 @@ const handleAssignSubmit = async (e) => {
     .sort((a, b) => {
       if (!topicSortConfig || !topicSortConfig.key) return 0;
 
+      // DEFAULT ORDER: Grade -> Topic Name -> Dates Covered (earliest date first, topics with no date last)
+      if (topicSortConfig.key === 'default') {
+        const byText = (x, y) => String(x || '').localeCompare(String(y || ''), undefined, { numeric: true, sensitivity: 'base' });
+        const gradeCompare = byText(a.grade, b.grade);
+        if (gradeCompare !== 0) return gradeCompare;
+        const nameCompare = byText(a.topicName, b.topicName);
+        if (nameCompare !== 0) return nameCompare;
+        const firstDate = (t) => {
+          const times = (t.datesCovered || []).filter(Boolean).map(d => new Date(d).getTime()).filter(n => !isNaN(n));
+          return times.length ? Math.min(...times) : Infinity;
+        };
+        const dA = firstDate(a), dB = firstDate(b);
+        if (dA === dB) return 0;
+        return dA < dB ? -1 : 1;
+      }
+
       if (topicSortConfig.key === 'yearLevel') {
         const numA = parseInt((a.yearLevel || '').toString().replace(/[^0-9]/g, ''), 10) || 0;
         const numB = parseInt((b.yearLevel || '').toString().replace(/[^0-9]/g, ''), 10) || 0;
@@ -1298,7 +1371,20 @@ const handleAssignSubmit = async (e) => {
     return 0;
   });
 
-  const activeHomeworks = filteredHomeworks.filter(hw => hw.status !== 'Graded');
+  // The homework table normally hides graded work. Clicking one of the 6 tiles shows exactly what that tile counts.
+  const matchesHwTile = (hw) => {
+    const now = new Date();
+    switch (hwTileFilter) {
+      case 'assigned':     return true;
+      case 'submitted':    return hw.status === 'Submitted' || hw.status === 'Graded';
+      case 'due':          return hw.status === 'Pending' && new Date(hw.dueDate) >= now;
+      case 'overdue':      return hw.status === 'Pending' && new Date(hw.dueDate) < now;
+      case 'graded':       return hw.status === 'Graded';
+      case 'needsGrading': return hw.status === 'Submitted';
+      default:             return hw.status !== 'Graded'; // normal view (no tile clicked)
+    }
+  };
+  const activeHomeworks = filteredHomeworks.filter(matchesHwTile);
 
   const filteredTests = homeworks.filter(hw => {
     if (!hw.isTest) return false;
@@ -1340,6 +1426,9 @@ const handleAssignSubmit = async (e) => {
     } else if (hwSortConfig.key === 'difficulty') {
       valA = (a.difficulty || '').toLowerCase();
       valB = (b.difficulty || '').toLowerCase();
+    } else if (hwSortConfig.key === 'createdAt') {
+      valA = new Date(a.createdAt || 0).getTime();
+      valB = new Date(b.createdAt || 0).getTime();
     }
 
     if (valA < valB) return hwSortConfig.direction === 'asc' ? -1 : 1;
@@ -1669,18 +1758,18 @@ const handleAssignSubmit = async (e) => {
 
       if (plannerFilter === 'day') {
         const today = new Date().toLocaleDateString();
-        listToExport = plannerSessions.filter(s => new Date(s.startDate).toLocaleDateString() === today);
+        listToExport = visiblePlannerSessions.filter(s => new Date(s.startDate).toLocaleDateString() === today);
       } else if (plannerFilter === 'week') {
         const now = new Date();
         const first = now.getDate() - now.getDay();
         const firstDay = new Date(new Date().setDate(first));
         const lastDay = new Date(new Date().setDate(first + 6));
-        listToExport = plannerSessions.filter(s => {
+        listToExport = visiblePlannerSessions.filter(s => {
           const d = new Date(s.startDate);
           return d >= firstDay && d <= lastDay;
         });
       } else {
-        listToExport = plannerSessions.filter(s => new Date(s.startDate).getMonth() === month && new Date(s.startDate).getFullYear() === year);
+        listToExport = visiblePlannerSessions.filter(s => new Date(s.startDate).getMonth() === month && new Date(s.startDate).getFullYear() === year);
       }
 
       listToExport.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
@@ -1797,8 +1886,9 @@ const handleAssignSubmit = async (e) => {
     return (
       <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
         
-        <div className={`absolute top-6 right-6 z-50 transform transition-all duration-500 ease-out flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl font-bold text-white
-          ${toast.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
+        {/* Toast: "fixed" + very high z-index so it always shows ON TOP of any open window/popup */}
+        <div role="alert" className={`fixed top-6 right-6 z-[9999] max-w-[90vw] transform transition-all duration-500 ease-out flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl font-bold text-white
+          ${toast.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'}
           ${toast.type === 'error' ? 'bg-rose-500' : 'bg-slate-900'}`}>
           {toast.type === 'error' ? '⚠️' : '✅'}
           {toast.message}
@@ -2127,7 +2217,7 @@ const handleAssignSubmit = async (e) => {
               </>
             )}
 
-            {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes' || modal.type === 'deleteAllTopics') && (
+            {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes' || modal.type === 'deleteAllTopics' || modal.type === 'deleteSelectedTopics') && (
   <>
     <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mb-4 text-3xl mx-auto">🗑️</div>
     <h3 className="text-2xl font-black text-slate-800 mb-2 text-center">
@@ -2136,14 +2226,15 @@ const handleAssignSubmit = async (e) => {
        modal.type === 'deleteGrader' ? 'Delete Grader?' : 
        modal.type === 'deleteAllSchemes' ? 'Delete ALL Reports?' : 
        modal.type === 'deleteAllTopics' ? (modal.data ? "Delete Student's Topics?" : 'Delete ALL Topics?') : 
+       modal.type === 'deleteSelectedTopics' ? `Delete ${modal.data?.length || 0} Selected Topic(s)?` :
        modal.type === 'deleteScheme' ? 'Delete Report?' : 'Delete Homework?'}
     </h3>
-    <p className="text-slate-500 text-sm mb-6 text-center">
+        <p className="text-slate-500 text-sm mb-6 text-center">
       {modal.type === 'deleteAnsSheet' ? 'This will remove your uploaded marked/checked work from this graded homework.' : 
        modal.type === 'deleteGrader' ? `Are you sure you want to permanently delete "${modal.data}"?` :
        modal.type === 'deleteAllSchemes' ? 'Are you sure you want to wipe the ENTIRE lesson schedule? This cannot be undone.' :
        modal.type === 'deleteAllTopics' ? (modal.data ? 'Are you sure you want to wipe ALL Topic Records for this specific student? This cannot be undone.' : 'Are you sure you want to wipe ALL Topic Records for EVERYONE? This cannot be undone.') :
-       'This action is permanent and cannot be undone.'}
+       modal.type === 'deleteSelectedTopics' ? 'Only the topics you ticked will be deleted. The other topics stay. This cannot be undone.' :       'This action is permanent and cannot be undone.'}
     </p>
   </>
 )}
@@ -2452,12 +2543,11 @@ const handleAssignSubmit = async (e) => {
   Cancel
 </button>
                   <button onClick={executeModalAction} className={`flex-1 py-4 font-bold rounded-2xl text-white transition-transform hover:-translate-y-1 shadow-lg
-  ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes' || modal.type === 'deleteAllTopics') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' :
+  ${(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteScheme' || modal.type === 'deleteAllSchemes' || modal.type === 'deleteAllTopics' || modal.type === 'deleteSelectedTopics') ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/30' :
     modal.type === 'grade' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 
     modal.type === 'reopen' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/30' : 
     'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/30'}`}>
-  {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader') ? 'Yes, Delete' : modal.type === 'reopen' ? 'Yes, Reopen' : 'Confirm'}
-</button>
+  {(modal.type === 'delete' || modal.type === 'deleteStudent' || modal.type === 'deleteAnsSheet' || modal.type === 'deleteGrader' || modal.type === 'deleteSelectedTopics') ? 'Yes, Delete' : modal.type === 'reopen' ? 'Yes, Reopen' : 'Confirm'}</button>
                 </>
               )}
             </div>
@@ -3030,33 +3120,46 @@ const handleAssignSubmit = async (e) => {
                   const gradedCount = studentHws.filter(h => h.status === 'Graded').length;
                   const needsGradingCount = studentHws.filter(h => h.status === 'Submitted').length;
 
+                                    // Clickable tiles: click to show only that group in the table, click again to go back
+                  const tiles = [
+                    { key: 'assigned',     label: 'Assigned HW',   count: assignedCount,      box: 'bg-indigo-50 border-indigo-100',   title: 'text-indigo-800',  num: 'text-indigo-600',  ring: 'ring-indigo-500' },
+                    { key: 'submitted',    label: 'Submitted HW',  count: submittedCount,     box: 'bg-blue-50 border-blue-100',       title: 'text-blue-800',    num: 'text-blue-600',    ring: 'ring-blue-500' },
+                    { key: 'due',          label: 'Due HW',        count: dueCount,           box: 'bg-amber-50 border-amber-100',     title: 'text-amber-800',   num: 'text-amber-600',   ring: 'ring-amber-500' },
+                    { key: 'overdue',      label: 'Overdue HW',    count: overdueCount,       box: 'bg-rose-50 border-rose-100',       title: 'text-rose-800',    num: 'text-rose-600',    ring: 'ring-rose-500' },
+                    { key: 'graded',       label: 'Graded HW',     count: gradedCount,        box: 'bg-emerald-50 border-emerald-100', title: 'text-emerald-800', num: 'text-emerald-600', ring: 'ring-emerald-500' },
+                    { key: 'needsGrading', label: 'Needs Grading', count: needsGradingCount,  box: 'bg-fuchsia-50 border-fuchsia-100', title: 'text-fuchsia-800', num: 'text-fuchsia-600', ring: 'ring-fuchsia-500' },
+                  ];
+                  const activeTile = tiles.find(t => t.key === hwTileFilter);
+
                   return (
-                    <div className="flex flex-row items-center gap-4 mb-6 overflow-x-auto flex-nowrap custom-scrollbar pb-2 animate-fade-in">
-                      <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 flex-1 min-w-[150px] text-center shadow-sm shrink-0">
-                        <h3 className="text-indigo-800 font-black text-[10px] uppercase tracking-wider">Assigned HW</h3>
-                        <p className="text-2xl font-black text-indigo-600 mt-1">{assignedCount}</p>
+                    <>
+                      <div className="flex flex-row items-center gap-4 mb-3 overflow-x-auto flex-nowrap custom-scrollbar pb-2 pt-1 px-1 animate-fade-in">
+                        {tiles.map(t => (
+                          <button
+                            key={t.key}
+                            type="button"
+                            onClick={() => { setHwStatusFilter('all'); setHwTileFilter(hwTileFilter === t.key ? 'all' : t.key); }}
+                            title={hwTileFilter === t.key ? 'Click again to show the normal list' : `Show only ${t.label}`}
+                            className={`${t.box} p-4 rounded-2xl border flex-1 min-w-[150px] text-center shadow-sm shrink-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md
+                              ${hwTileFilter === t.key ? `ring-4 ${t.ring} ring-offset-2` : ''}`}
+                          >
+                            <h3 className={`${t.title} font-black text-[10px] uppercase tracking-wider`}>{t.label}</h3>
+                            <p className={`text-2xl font-black ${t.num} mt-1`}>{t.count}</p>
+                          </button>
+                        ))}
                       </div>
-                      <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex-1 min-w-[150px] text-center shadow-sm shrink-0">
-                        <h3 className="text-blue-800 font-black text-[10px] uppercase tracking-wider">Submitted HW</h3>
-                        <p className="text-2xl font-black text-blue-600 mt-1">{submittedCount}</p>
-                      </div>
-                      <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex-1 min-w-[150px] text-center shadow-sm shrink-0">
-                        <h3 className="text-amber-800 font-black text-[10px] uppercase tracking-wider">Due HW</h3>
-                        <p className="text-2xl font-black text-amber-600 mt-1">{dueCount}</p>
-                      </div>
-                      <div className="bg-rose-50 p-4 rounded-2xl border border-rose-100 flex-1 min-w-[150px] text-center shadow-sm shrink-0">
-                        <h3 className="text-rose-800 font-black text-[10px] uppercase tracking-wider">Overdue HW</h3>
-                        <p className="text-2xl font-black text-rose-600 mt-1">{overdueCount}</p>
-                      </div>
-                      <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex-1 min-w-[150px] text-center shadow-sm shrink-0">
-                        <h3 className="text-emerald-800 font-black text-[10px] uppercase tracking-wider">Graded HW</h3>
-                        <p className="text-2xl font-black text-emerald-600 mt-1">{gradedCount}</p>
-                      </div>
-                      <div className="bg-fuchsia-50 p-4 rounded-2xl border border-fuchsia-100 flex-1 min-w-[150px] text-center shadow-sm shrink-0">
-                        <h3 className="text-fuchsia-800 font-black text-[10px] uppercase tracking-wider">Needs Grading</h3>
-                        <p className="text-2xl font-black text-fuchsia-600 mt-1">{needsGradingCount}</p>
-                      </div>
-                    </div>
+                      {activeTile && (
+                        <div className="flex items-center justify-between gap-3 mb-6 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 animate-fade-in">
+                          <p className="text-sm font-bold text-slate-600">
+                            Showing: <span className={`font-black ${activeTile.num}`}>{activeTile.label}</span> ({activeTile.count})
+                          </p>
+                          <button type="button" onClick={() => setHwTileFilter('all')} className="text-xs font-black text-slate-500 hover:text-rose-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg">
+                            ✕ Clear
+                          </button>
+                        </div>
+                      )}
+                      {!activeTile && <div className="mb-3"></div>}
+                    </>
                   );
                 })()}
 
@@ -3231,8 +3334,8 @@ const handleAssignSubmit = async (e) => {
                           <td colSpan="6" className="text-center py-20">
                             <div className="flex flex-col items-center justify-center">
                               <div className="text-6xl mb-4 opacity-50">📂</div>
-                              <p className="text-[#1B2559] font-black text-xl mb-1">Inbox Zero!</p>
-                              <p className="text-[#A3AED0] font-bold">Assign new work using the button above to get started.</p>
+                              <p className="text-[#1B2559] font-black text-xl mb-1">{hwTileFilter !== 'all' ? 'Nothing here' : 'Inbox Zero!'}</p>
+                              <p className="text-[#A3AED0] font-bold">{hwTileFilter !== 'all' ? 'No homework matches this tile for the selected filters.' : 'Assign new work using the button above to get started.'}</p>
                             </div>
                           </td>
                         </tr>
@@ -6307,7 +6410,7 @@ const handleAssignSubmit = async (e) => {
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
             const getSessionsForDay = (day, m = month, y = year) => {
-              return plannerSessions.filter(session => {
+              return visiblePlannerSessions.filter(session => {
                 const d = new Date(session.startDate);
                 return d.getDate() === day && d.getMonth() === m && d.getFullYear() === y;
               });
@@ -6328,20 +6431,20 @@ const handleAssignSubmit = async (e) => {
             const generateList = () => {
               if (plannerFilter === 'day') {
                 const today = new Date().toLocaleDateString();
-                return plannerSessions.filter(s => new Date(s.startDate).toLocaleDateString() === today);
+                return visiblePlannerSessions.filter(s => new Date(s.startDate).toLocaleDateString() === today);
               }
               if (plannerFilter === 'week') {
                 const now = new Date();
                 const first = now.getDate() - now.getDay();
                 const firstDay = new Date(new Date().setDate(first));
                 const lastDay = new Date(new Date().setDate(first + 6));
-                return plannerSessions.filter(s => {
+                return visiblePlannerSessions.filter(s => {
                   const d = new Date(s.startDate);
                   return d >= firstDay && d <= lastDay;
                 });
               }
               if (plannerFilter === 'month') {
-                return plannerSessions.filter(s => new Date(s.startDate).getMonth() === month && new Date(s.startDate).getFullYear() === year);
+                return visiblePlannerSessions.filter(s => new Date(s.startDate).getMonth() === month && new Date(s.startDate).getFullYear() === year);
               }
               return [];
             };
@@ -6490,8 +6593,8 @@ const handleAssignSubmit = async (e) => {
                               Delete One
                             </button>
                             {plannerModal.data.isRecurring && (
-                              <button type="button" onClick={() => handlePlannerDelete(plannerModal.data._id, true)} className="w-full py-3.5 bg-red-700 text-white font-bold rounded-xl hover:bg-red-800 text-sm sm:text-base transition-colors shadow-sm">
-                                Delete Series
+                              <button type="button" onClick={() => handlePlannerDelete(plannerModal.data._id, true)} title="Deletes every class in this series from now onwards. Past classes are kept." className="w-full py-3.5 bg-red-700 text-white font-bold rounded-xl hover:bg-red-800 text-sm sm:text-base transition-colors shadow-sm">
+                                Delete Future Series
                               </button>
                             )}
                           </div>
@@ -6527,6 +6630,39 @@ const handleAssignSubmit = async (e) => {
                       <h3 className="text-xl font-black text-[#1B2559] min-w-[160px] text-center">{monthNames[month]} {year}</h3>
                       <button onClick={() => setPlannerCurrentDate(new Date(year, month + 1, 1))} className="p-3 bg-white hover:bg-slate-100 rounded-xl shadow-sm">{'>'}</button>
                     </div>
+                  )}
+                </div>
+
+                {/* GLOBAL YEAR + STUDENT FILTER (same as every other tab) */}
+                <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100 sm:items-end">
+                  <div className="flex-1 min-w-[110px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Year</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={hwYearFilter} onChange={e => { setHwYearFilter(e.target.value); setHwStudentFilter('all'); }}>
+                      <option value="all">All Years</option>
+                      {[...new Set(students.map(s => s.yearGroup).filter(Boolean))].map(yg => (
+                        <option key={yg} value={yg}>{yg}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-[1.5] min-w-[150px]">
+                    <label className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Filter by Student</label>
+                    <select className="w-full py-2.5 px-3 mt-1 bg-white border border-slate-200 rounded-lg outline-none font-bold text-[#1B2559] text-sm"
+                      value={hwStudentFilter} onChange={e => setHwStudentFilter(e.target.value)}>
+                      <option value="all">All Filtered Students</option>
+                      {students
+                        .filter(s => hwYearFilter === 'all' || s.yearGroup === hwYearFilter)
+                        .sort((a, b) => (a.registrationName || a.name || '').localeCompare(b.registrationName || b.name || ''))
+                        .map(s => (
+                        <option key={s._id} value={s._id}>{s.registrationName || s.name} {s.yearGroup ? `- ${s.yearGroup}` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {(hwYearFilter !== 'all' || hwStudentFilter !== 'all') && (
+                    <button type="button" onClick={() => { setHwYearFilter('all'); setHwStudentFilter('all'); }}
+                      className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-black text-slate-500 hover:text-rose-600 whitespace-nowrap">
+                      ✕ Show All Classes
+                    </button>
                   )}
                 </div>
 
@@ -6907,6 +7043,26 @@ const handleAssignSubmit = async (e) => {
                       >
                         {selectedTopicIds.length === processedTopics.length && processedTopics.length > 0 ? '⨯ Deselect All' : '✓ Select All'}
                       </button>
+
+                      {/* DELETE ONLY THE TICKED TOPICS (admin only, like "Delete All") */}
+                      {user?.role === 'admin' && (
+                        <button
+                          type="button"
+                          disabled={selectedTopicIds.length === 0}
+                          onClick={() => setModal({ type: 'deleteSelectedTopics', data: [...selectedTopicIds] })}
+                          className={`mt-1 px-3 py-1.5 rounded-lg text-xs font-black whitespace-nowrap transition-colors
+                            ${selectedTopicIds.length === 0 ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-500 hover:text-white'}`}
+                        >
+                          Delete Selected ({selectedTopicIds.length})
+                        </button>
+                      )}
+
+                      {topicSortConfig.key !== 'default' && (
+                        <button type="button" onClick={() => setTopicSortConfig({ key: 'default', direction: 'asc' })}
+                          className="text-[11px] font-bold text-slate-500 hover:text-indigo-600 whitespace-nowrap mt-1" title="Grade, then Topic Name, then Dates Covered">
+                          ↺ Default order
+                        </button>
+                      )}
                     </div>
 
                     {/* MIDDLE: INLINE ANALYTICS */}

@@ -417,8 +417,9 @@ export default function ParentDashboard() {
     <div className="flex h-screen bg-[#F4F7FE] font-sans overflow-hidden text-slate-800 relative">
       
       {/* CUSTOM TOAST NOTIFICATION */}
-      <div className={`absolute top-6 right-6 z-50 transform transition-all duration-500 ease-out flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl font-bold text-white
-        ${toast.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
+      {/* Toast: "fixed" + very high z-index so it always shows ON TOP of any open window/popup */}
+      <div role="alert" className={`fixed top-6 right-6 z-[9999] max-w-[90vw] transform transition-all duration-500 ease-out flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl font-bold text-white
+        ${toast.show ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'}
         ${toast.type === 'error' ? 'bg-rose-500' : 'bg-slate-900'}`}>
         {toast.type === 'error' ? '⚠️' : '✅'}
         {toast.message}

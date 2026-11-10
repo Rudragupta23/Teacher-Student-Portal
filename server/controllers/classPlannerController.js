@@ -124,7 +124,20 @@ exports.deleteClassSession = async (req, res) => {
     if (!session) return res.status(404).json({ message: 'Session not found' });
 
     if (deleteAllRecurring === 'true' && session.groupId) {
-      await ClassPlanner.deleteMany({ groupId: session.groupId });
+      // "Delete Series" removes only the classes that have NOT started yet.
+      // Past classes in the series stay, so the history is kept.
+      const result = await ClassPlanner.deleteMany({
+        groupId: session.groupId,
+        startDate: { $gte: new Date() }
+      });
+
+      if (result.deletedCount === 0) {
+        return res.status(200).json({ message: 'No upcoming classes left in this series. Past classes were kept.', deletedCount: 0 });
+      }
+      return res.status(200).json({
+        message: `${result.deletedCount} upcoming class(es) deleted. Past classes were kept.`,
+        deletedCount: result.deletedCount
+      });
     } else {
       await ClassPlanner.findByIdAndDelete(id);
     }
