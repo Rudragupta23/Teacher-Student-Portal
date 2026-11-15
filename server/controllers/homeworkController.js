@@ -582,14 +582,16 @@ exports.reopenSubmission = async (req, res) => {
       }
     }
 
-    if (newDueDate) {
-      if (new Date(newDueDate) <= new Date()) {
-        return res.status(400).json({ message: 'New due date must be in the future!' });
-      }
-      homework.dueDate = new Date(newDueDate);
-      homework.reminderSent = false;
-      homework.parentReminderSent = false;
+    if (!newDueDate || isNaN(new Date(newDueDate))) {
+      return res.status(400).json({ message: 'Please choose a new deadline for the re-opened work.' });
     }
+    const minNewDue = new Date(Date.now() + (3 * 24 + 12) * 60 * 60 * 1000);
+    if (new Date(newDueDate) < minNewDue) {
+      return res.status(400).json({ message: 'New deadline must be at least 5 days from today.' });
+    }
+    homework.dueDate = new Date(newDueDate);
+    homework.reminderSent = false;
+    homework.parentReminderSent = false;
 
     // Keep the student's previous files/answer so they only need to add what is missing.
     // Clear submittedAt so the old submission time no longer shows as LATE.

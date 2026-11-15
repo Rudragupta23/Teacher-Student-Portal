@@ -42,6 +42,20 @@ const getDefaultDueDate = () => {
   return `${year}-${month}-${day}T20:00`;
 };
 
+// Re-opened work must get a new deadline at least 5 days from today.
+// e.g. re-opened on 15 Nov -> earliest new deadline is 20 Nov (00:00)
+const REOPEN_MIN_DAYS = 5;
+const getReopenMinDate = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + REOPEN_MIN_DAYS);
+  return d;
+};
+const getReopenMinInput = () => {
+  const d = getReopenMinDate();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T00:00`;
+};
+
 const formatTaskTitle = (title) => {
   if (!title) return '';
   let formatted = title.toLowerCase().split(' ')
@@ -1022,12 +1036,15 @@ const handleAssignSubmit = async (e) => {
       }
       else if (modal.type === 'reopen') {
         const newDue = modal.data?.newDueDate;
-        if (newDue && new Date(newDue) <= new Date()) {
-          return showToast("New deadline must be in the future!", "error");
+        if (!newDue) {
+          return showToast("Please choose a new deadline.", "error");
+        }
+        if (new Date(newDue) < getReopenMinDate()) {
+          return showToast(`New deadline must be at least ${REOPEN_MIN_DAYS} days from today (on or after ${getReopenMinDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}).`, "error");
         }
         await api.put(`/homework/${modal.hwId}/reopen`, {
           note: (modal.data?.note || '').trim(),
-          newDueDate: newDue ? new Date(newDue).toISOString() : undefined
+          newDueDate: new Date(newDue).toISOString()
         });
         showToast("Submission re-opened. The student can now submit again.");
       }
@@ -1721,29 +1738,44 @@ const handleAssignSubmit = async (e) => {
 
   // ===== CLASS PROGRESS COLOURS (used by the Class Planner AND its PDF export) =====
   // A class is linked to its Lesson Schedule report and its homework by STUDENT + DATE.
-  // e.g. class for Rudra on 11 Nov at 20:30 -> report for Rudra dated 11 Nov, homework given to Rudra on 11 Nov.
-  // Blue       = class has not happened yet
-  // Red        = class is over but the Lesson Schedule (daily report) is not done
-  // Orange     = Lesson Schedule done, but no homework given to that student on the class date
-  // Yellow     = homework given, but the student has not submitted it
-  // Light green= homework submitted, but not graded yet
-  // Dark green = homework graded
-  // Grey       = class cancelled / student didn't attend, so no homework needed
+  // The admin has 5 DAYS after the class to give that student homework.
+  // e.g. class for Rudra on 15 Nov at 21:30 -> report for Rudra dated 15 Nov,
+  //      homework given to Rudra from 15 Nov up to the end of 20 Nov.
+  // Purple      = class has not happened yet,
+  //               OR Lesson Schedule done and still inside the 5 days to give homework (e.g. until 20 Nov)
+  // Red         = class is over but the Lesson Schedule (daily report) is not done
+  // Dark yellow = Lesson Schedule done, but NO homework given within the 5 days (after 20 Nov)
+  // Green       = Lesson Schedule done AND homework given (class recorded + HW given)
+  // Grey        = class cancelled / student didn't attend, so no homework needed
   // (pdfFill / pdfText = the same colours as RGB numbers, for the PDF)
+  const HW_DAYS_LIMIT = 5;
   const SESSION_STATUS = {
-    upcoming:     { label: 'Upcoming class',            chip: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200', time: 'text-indigo-900', dot: 'bg-indigo-300', pdfFill: [224, 231, 255], pdfText: [55, 48, 163] },
-    noReport:     { label: 'Lesson Schedule not done',  chip: 'bg-red-500 text-white hover:bg-red-600',            time: 'text-red-700',    dot: 'bg-red-500',    pdfFill: [239, 68, 68],   pdfText: [255, 255, 255] },
-    noHomework:   { label: 'HW not given',              chip: 'bg-orange-400 text-white hover:bg-orange-500',      time: 'text-orange-700', dot: 'bg-orange-400', pdfFill: [251, 146, 60],  pdfText: [255, 255, 255] },
-    notSubmitted: { label: 'HW given, not submitted',   chip: 'bg-yellow-300 text-yellow-900 hover:bg-yellow-400', time: 'text-yellow-800', dot: 'bg-yellow-300', pdfFill: [253, 224, 71],  pdfText: [113, 63, 18] },
-    notGraded:    { label: 'HW submitted, not graded',  chip: 'bg-green-200 text-green-900 hover:bg-green-300',    time: 'text-green-800',  dot: 'bg-green-300',  pdfFill: [187, 247, 208], pdfText: [20, 83, 45] },
-    graded:       { label: 'HW graded',                 chip: 'bg-green-700 text-white hover:bg-green-800',        time: 'text-green-800',  dot: 'bg-green-700',  pdfFill: [21, 128, 61],   pdfText: [255, 255, 255] },
-    cancelled:    { label: "Cancelled / didn't attend", chip: 'bg-slate-200 text-slate-600 hover:bg-slate-300',    time: 'text-slate-600',  dot: 'bg-slate-300',  pdfFill: [226, 232, 240], pdfText: [71, 85, 105] },
+    upcoming:   { label: 'Upcoming class',                 chip: 'bg-violet-500 text-white hover:bg-violet-600',     time: 'text-violet-700', dot: 'bg-violet-500', pdfFill: [139, 92, 246],  pdfText: [255, 255, 255] },
+    noReport:   { label: 'Lesson Schedule not done',       chip: 'bg-red-500 text-white hover:bg-red-600',           time: 'text-red-700',    dot: 'bg-red-500',    pdfFill: [239, 68, 68],   pdfText: [255, 255, 255] },
+    noHomework: { label: `HW not given within ${HW_DAYS_LIMIT} days`, chip: 'bg-yellow-600 text-white hover:bg-yellow-700', time: 'text-yellow-800', dot: 'bg-yellow-600', pdfFill: [202, 138, 4], pdfText: [255, 255, 255] },
+    hwGiven:    { label: 'Lesson done + HW given',         chip: 'bg-green-600 text-white hover:bg-green-700',       time: 'text-green-800',  dot: 'bg-green-600',  pdfFill: [22, 163, 74],   pdfText: [255, 255, 255] },
+    cancelled:  { label: "Cancelled / didn't attend",      chip: 'bg-slate-200 text-slate-600 hover:bg-slate-300',   time: 'text-slate-600',  dot: 'bg-slate-300',  pdfFill: [226, 232, 240], pdfText: [71, 85, 105] },
   };
-  const SESSION_STATUS_ORDER = ['noReport', 'noHomework', 'notSubmitted', 'notGraded', 'graded', 'upcoming', 'cancelled'];
+  const SESSION_STATUS_ORDER = ['noReport', 'noHomework', 'hwGiven', 'upcoming', 'cancelled'];
+  const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+
+  // Last moment the admin can give homework for this class: end of the day, 5 days after the class.
+  // e.g. class on 15 Nov -> 20 Nov 23:59
+  const getHwDeadline = (session) => {
+    const d = startOfDay(session.startDate);
+    d.setDate(d.getDate() + HW_DAYS_LIMIT);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  };
+
+  // Text like "20 Nov" for the HW deadline of a class
+  // const getHwDeadlineText = (session) =>
+  //   getHwDeadline(session).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
   const getSessionStatus = (session) => {
     const sid = String(session.studentId || 'all');
-    const sessionDay = new Date(session.startDate).toDateString();
+    const classDayStart = startOfDay(session.startDate);
+    const sessionDay = classDayStart.toDateString();
 
     // 1) Lesson Schedule report for this student on this day
     const dayReports = schemes.filter(r => new Date(r.date).toDateString() === sessionDay && String(r.studentId) === sid);
@@ -1752,20 +1784,33 @@ const handleAssignSubmit = async (e) => {
 
     if (classCancelled) return 'cancelled';
     if (!classTaken) return new Date(session.endDate) < new Date() ? 'noReport' : 'upcoming';
-    if (sid === 'all') return 'graded'; // old "whole class" sessions: no single student's homework to track
+    if (sid === 'all') return 'hwGiven'; // old "whole class" sessions: no single student's homework to track
 
-    // 2) Homework for this class = homework (not tests) given to this student ON THE CLASS DATE
-    const classHw = homeworks.filter(h =>
-      !h.isTest &&
-      String(h.studentId?._id || h.studentId) === sid &&
-      new Date(h.createdAt).toDateString() === sessionDay
-    );
+    // 2) Homework for this class = homework (not tests) given to this student
+    //    from the class day up to 5 days later.
+    //    If the student has ANOTHER class inside those 5 days, homework given on/after
+    //    that next class day belongs to the next class instead (so one homework is not counted twice).
+    const hwDeadline = getHwDeadline(session);
+    const nextClassDayStart = plannerSessions
+      .filter(s => String(s.studentId || 'all') === sid && startOfDay(s.startDate) > classDayStart)
+      .map(s => startOfDay(s.startDate))
+      .sort((a, b) => a - b)[0];
 
-    if (classHw.length === 0) return 'noHomework';
-    if (classHw.some(h => h.status === 'Pending')) return 'notSubmitted';
-    if (classHw.some(h => h.status === 'Submitted')) return 'notGraded';
-    return 'graded';
+    const classHw = homeworks.filter(h => {
+      if (h.isTest || String(h.studentId?._id || h.studentId) !== sid) return false;
+      const given = new Date(h.createdAt);
+      const insideFiveDays = given >= classDayStart && given <= hwDeadline;
+      const belongsToNextClass = nextClassDayStart && given >= nextClassDayStart;
+      return insideFiveDays && !belongsToNextClass;
+    });
+
+    if (classHw.length > 0) return 'hwGiven';
+    // Still inside the 5 days -> stays purple (same as a future class). After the 5 days -> dark yellow.
+    return new Date() > hwDeadline ? 'noHomework' : 'upcoming';
   };
+
+  // Label for a class (used in the calendar tooltip, the Day/Week/Month list and the PDF)
+  const getSessionStatusLabel = (session, status) => SESSION_STATUS[status].label;
 
   // ===== CLASS PLANNER PDF EXPORT =====
   // Draws the calendar directly in the PDF (sharp text, small file) instead of taking a screenshot.
@@ -1981,7 +2026,7 @@ const handleAssignSubmit = async (e) => {
           `${fmtTime(session.startDate)} - ${fmtTime(session.endDate)}`,
           studentName(session),
           st?.yearGroup || (session.yearGroupFilter && session.yearGroupFilter !== 'all' ? session.yearGroupFilter : '-'),
-          SESSION_STATUS[key].label,
+          getSessionStatusLabel(session, key),
           session.isRecurring ? 'Weekly' : 'One-off'
         ];
       });
@@ -2001,7 +2046,7 @@ const handleAssignSubmit = async (e) => {
           1: { cellWidth: 28 },
           2: { cellWidth: 'auto', fontStyle: 'bold' },
           3: { cellWidth: 22 },
-          4: { cellWidth: 52 },
+          4: { cellWidth: 66 },
           5: { cellWidth: 20 }
         },
         // Colour the Status cell with the same colour as the planner
@@ -2433,6 +2478,9 @@ const handleAssignSubmit = async (e) => {
                                 <button type="button" onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)} className="text-cyan-600 hover:text-cyan-700 font-bold text-xs bg-cyan-50 px-3 py-1.5 rounded-lg">
                                   {previewAttachmentUrl === file.url ? 'Close' : 'Preview'}
                                 </button>
+                                <button type="button" onClick={() => downloadFile(file.url, file.name)} className="text-emerald-600 hover:text-emerald-700 font-bold text-xs bg-emerald-50 px-3 py-1.5 rounded-lg">
+                                  Download
+                                </button>
                                 <button type="button" onClick={() => {
                                   const newAttachments = adminSubmitForm.attachments.filter((_, i) => i !== idx);
                                   setAdminSubmitForm({...adminSubmitForm, attachments: newAttachments});
@@ -2677,11 +2725,12 @@ const handleAssignSubmit = async (e) => {
           onChange={e => setModal({ ...modal, data: { ...modal.data, note: e.target.value } })} />
       </div>
       <div>
-        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">New Deadline (Optional)</label>
-        <input type="datetime-local" className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/20 font-bold text-[#1B2559]"
+        <label className="text-xs font-black text-[#A3AED0] uppercase tracking-wide ml-1">New Deadline <span className="text-rose-500">*</span></label>
+        <input type="datetime-local" required className="w-full p-4 mt-1 bg-[#F4F7FE] border-none rounded-2xl outline-none focus:ring-4 focus:ring-amber-500/20 font-bold text-[#1B2559]"
+          min={getReopenMinInput()}
           value={modal.data?.newDueDate || ''}
           onChange={e => setModal({ ...modal, data: { ...modal.data, newDueDate: e.target.value } })} />
-        <p className="text-[11px] font-bold text-slate-400 mt-1 ml-1">Leave empty to keep the current deadline. If that deadline has already passed, the new submission will be marked LATE.</p>
+        <p className="text-[11px] font-bold text-slate-400 mt-1 ml-1">Required. Must be at least {REOPEN_MIN_DAYS} days from today (on or after {getReopenMinDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}). It is already set to {REOPEN_MIN_DAYS} days from today; you can choose a later date.</p>
       </div>
     </div>
   </>
@@ -2762,7 +2811,7 @@ const handleAssignSubmit = async (e) => {
       Close Preview
     </button>
     {modal.type === 'viewWork' && modal.hwId && (
-      <button onClick={() => setModal({ type: 'reopen', hwId: modal.hwId, title: modal.title, student: modal.student, data: { note: '', newDueDate: '' } })} className="flex-1 py-4 bg-amber-500 text-white hover:bg-amber-600 font-black rounded-2xl transition-colors shadow-lg shadow-amber-500/30">
+      <button onClick={() => setModal({ type: 'reopen', hwId: modal.hwId, title: modal.title, student: modal.student, data: { note: '', newDueDate: getDefaultDueDate() } })} className="flex-1 py-4 bg-amber-500 text-white hover:bg-amber-600 font-black rounded-2xl transition-colors shadow-lg shadow-amber-500/30">
         Reopen for Resubmission
       </button>
     )}
@@ -3172,6 +3221,9 @@ const handleAssignSubmit = async (e) => {
                                           <button type="button" onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)} className="text-cyan-600 hover:text-cyan-700 font-bold text-xs bg-cyan-50 px-3 py-1.5 rounded-lg">
                                             {previewAttachmentUrl === file.url ? 'Close' : 'Preview'}
                                           </button>
+                                          <button type="button" onClick={() => downloadFile(file.url, file.name)} className="text-emerald-600 hover:text-emerald-700 font-bold text-xs bg-emerald-50 px-3 py-1.5 rounded-lg">
+                                          Download
+                                          </button>
                                           <button type="button" onClick={() => {
                                             const newAttachments = assignForm.attachments.filter((_, i) => i !== idx);
                                             setAssignForm({...assignForm, attachments: newAttachments});
@@ -3525,7 +3577,7 @@ const handleAssignSubmit = async (e) => {
                                       <button onClick={() => setModal({ type: 'grade', hwId: hw._id, hw, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
   Grade
 </button>
-<button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: '' } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
+<button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: getDefaultDueDate() } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
   Reopen
 </button>
                                     </>
@@ -3743,6 +3795,9 @@ const handleAssignSubmit = async (e) => {
                                         <div className="flex gap-2 shrink-0">
                                           <button type="button" onClick={() => setPreviewAttachmentUrl(previewAttachmentUrl === file.url ? null : file.url)} className="text-cyan-600 hover:text-cyan-700 font-bold text-xs bg-cyan-50 px-3 py-1.5 rounded-lg">
                                             {previewAttachmentUrl === file.url ? 'Close' : 'Preview'}
+                                          </button>
+                                          <button type="button" onClick={() => downloadFile(file.url, file.name)} className="text-emerald-600 hover:text-emerald-700 font-bold text-xs bg-emerald-50 px-3 py-1.5 rounded-lg">
+                                          Download
                                           </button>
                                           <button type="button" onClick={() => {
                                             const newAttachments = testForm.attachments.filter((_, i) => i !== idx);
@@ -3987,7 +4042,7 @@ const handleAssignSubmit = async (e) => {
                                       <button onClick={() => setModal({ type: 'grade', hwId: hw._id, hw, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
   Grade
 </button>
-<button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: '' } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
+<button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: getDefaultDueDate() } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
   Reopen
 </button>
                                     </>
@@ -6362,7 +6417,7 @@ const handleAssignSubmit = async (e) => {
                                     <button onClick={() => setModal({ type: 'grade', hwId: hw._id, hw, data: { score: '', totalScore: '', driveLink: hw.driveLink || '', feedback: '' } })} className="px-3 py-1.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-transform hover:-translate-y-1 shadow-sm text-xs flex items-center gap-1 whitespace-nowrap">
   Grade
 </button>
-<button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: '' } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
+<button onClick={() => setModal({ type: 'reopen', hwId: hw._id, title: hw.title, student: hw.studentId, data: { note: '', newDueDate: getDefaultDueDate() } })} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 font-black rounded-lg hover:bg-amber-100 transition-colors shadow-sm text-xs whitespace-nowrap" title="Send back to the student so they can submit again">
   Reopen
 </button>
                                   </>
@@ -6897,12 +6952,13 @@ const handleAssignSubmit = async (e) => {
                 {/* COLOUR KEY */}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-5 px-1">
                   <span className="text-[10px] font-black text-[#A3AED0] uppercase tracking-wide">Colour key:</span>
-                  {['noReport', 'noHomework', 'notSubmitted', 'notGraded', 'graded', 'upcoming', 'cancelled'].map(key => (
+                  {SESSION_STATUS_ORDER.map(key => (
                     <span key={key} className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
                       <span className={`w-3.5 h-3.5 rounded ${SESSION_STATUS[key].dot}`}></span>
                       {SESSION_STATUS[key].label}
                     </span>
                   ))}
+                  <span className="text-[10px] font-bold text-slate-400">HW must be given within {HW_DAYS_LIMIT} days of the class.</span>
                 </div>
 
                 {/* Calendar View */}
@@ -6939,7 +6995,7 @@ const handleAssignSubmit = async (e) => {
                               
                               return (
                               <div key={session._id} onClick={(e) => { e.stopPropagation(); setPlannerForm({ topic: session.topic, weekNo: session.weekNo || '', title: session.title || session.topic, startTime: new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), endTime: new Date(session.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}), isRecurring: session.isRecurring, yearGroupFilter: session.yearGroupFilter || 'all', studentId: session.studentId || 'all' }); setPlannerModal({show: true, selectedDate: dateStr, data: session}); }}
-                                className={`text-[10px] leading-tight font-bold px-1 py-0.5 rounded-md shadow-sm flex items-center gap-1.5 overflow-hidden whitespace-nowrap cursor-pointer ${colorClass}`} title={`${chipStudentName}: ${SESSION_STATUS[status].label}`}>
+                                className={`text-[10px] leading-tight font-bold px-1 py-0.5 rounded-md shadow-sm flex items-center gap-1.5 overflow-hidden whitespace-nowrap cursor-pointer ${colorClass}`} title={`${chipStudentName}: ${getSessionStatusLabel(session, status)}`}>
                                 <span className={`shrink-0 bg-white font-black px-1 rounded shadow-sm ${badgeColor}`}>
                                   {new Date(session.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                                 </span>
@@ -6978,7 +7034,7 @@ const handleAssignSubmit = async (e) => {
                               </span>
                               <span className="text-[10px] font-black px-2 py-1 rounded-md w-fit bg-white border border-slate-200 text-slate-600 flex items-center gap-1.5">
                                 <span className={`w-2.5 h-2.5 rounded-full ${SESSION_STATUS[status].dot}`}></span>
-                                {SESSION_STATUS[status].label}
+                                {getSessionStatusLabel(session, status)}
                               </span>
                             </div>
                             <p className="text-sm font-bold text-indigo-500 mt-1">
