@@ -1741,19 +1741,19 @@ const handleAssignSubmit = async (e) => {
   // The admin has 5 DAYS after the class to give that student homework.
   // e.g. class for Rudra on 15 Nov at 21:30 -> report for Rudra dated 15 Nov,
   //      homework given to Rudra from 15 Nov up to the end of 20 Nov.
-  // Purple      = class has not happened yet,
-  //               OR Lesson Schedule done and still inside the 5 days to give homework (e.g. until 20 Nov)
-  // Red         = class is over but the Lesson Schedule (daily report) is not done
-  // Dark yellow = Lesson Schedule done, but NO homework given within the 5 days (after 20 Nov)
-  // Green       = Lesson Schedule done AND homework given (class recorded + HW given)
+  // Light purple = class has not happened yet (future class)
+  // Red          = class is over but the Lesson Schedule (daily report) is not done
+  // Yellow       = Lesson Schedule done, but NO homework given yet
+  //                (stays yellow for ever if no homework is given within the 5 days)
+  // Green        = Lesson Schedule done AND homework given within the 5 days
   // Grey        = class cancelled / student didn't attend, so no homework needed
   // (pdfFill / pdfText = the same colours as RGB numbers, for the PDF)
   const HW_DAYS_LIMIT = 5;
   const SESSION_STATUS = {
-    upcoming:   { label: 'Upcoming class',                 chip: 'bg-violet-500 text-white hover:bg-violet-600',     time: 'text-violet-700', dot: 'bg-violet-500', pdfFill: [139, 92, 246],  pdfText: [255, 255, 255] },
-    noReport:   { label: 'Lesson Schedule not done',       chip: 'bg-red-500 text-white hover:bg-red-600',           time: 'text-red-700',    dot: 'bg-red-500',    pdfFill: [239, 68, 68],   pdfText: [255, 255, 255] },
-    noHomework: { label: `HW not given within ${HW_DAYS_LIMIT} days`, chip: 'bg-yellow-600 text-white hover:bg-yellow-700', time: 'text-yellow-800', dot: 'bg-yellow-600', pdfFill: [202, 138, 4], pdfText: [255, 255, 255] },
-    hwGiven:    { label: 'Lesson done + HW given',         chip: 'bg-green-600 text-white hover:bg-green-700',       time: 'text-green-800',  dot: 'bg-green-600',  pdfFill: [22, 163, 74],   pdfText: [255, 255, 255] },
+    upcoming:   { label: 'Upcoming class',                 chip: 'bg-purple-100 text-purple-800 hover:bg-purple-200', time: 'text-purple-700', dot: 'bg-purple-200', pdfFill: [243, 232, 255], pdfText: [107, 33, 168] },
+    noReport:   { label: 'Lesson Schedule not done',       chip: 'bg-red-300 text-red-950 hover:bg-red-400',          time: 'text-red-700',    dot: 'bg-red-400',    pdfFill: [252, 165, 165], pdfText: [69, 10, 10] },
+    noHomework: { label: 'Lesson done, HW not given',      chip: 'bg-yellow-300 text-yellow-950 hover:bg-yellow-400', time: 'text-yellow-800', dot: 'bg-yellow-400', pdfFill: [253, 224, 71],  pdfText: [66, 32, 6] },
+    hwGiven:    { label: 'Lesson done + HW given',         chip: 'bg-green-300 text-green-950 hover:bg-green-400',    time: 'text-green-800',  dot: 'bg-green-400',  pdfFill: [134, 239, 172], pdfText: [5, 46, 22] },
     cancelled:  { label: "Cancelled / didn't attend",      chip: 'bg-slate-200 text-slate-600 hover:bg-slate-300',   time: 'text-slate-600',  dot: 'bg-slate-300',  pdfFill: [226, 232, 240], pdfText: [71, 85, 105] },
   };
   const SESSION_STATUS_ORDER = ['noReport', 'noHomework', 'hwGiven', 'upcoming', 'cancelled'];
@@ -1804,9 +1804,9 @@ const handleAssignSubmit = async (e) => {
       return insideFiveDays && !belongsToNextClass;
     });
 
-    if (classHw.length > 0) return 'hwGiven';
-    // Still inside the 5 days -> stays purple (same as a future class). After the 5 days -> dark yellow.
-    return new Date() > hwDeadline ? 'noHomework' : 'upcoming';
+    // Homework given within the 5 days -> green. Otherwise yellow
+    // (yellow during the 5 days, and it stays yellow if no homework is given in time).
+    return classHw.length > 0 ? 'hwGiven' : 'noHomework';
   };
 
   // Label for a class (used in the calendar tooltip, the Day/Week/Month list and the PDF)
